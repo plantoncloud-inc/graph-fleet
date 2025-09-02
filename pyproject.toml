@@ -1,0 +1,54 @@
+[project]
+name = "agent-fleet"
+version = "0.0.1"
+description = "Resolve cloud resource identities (IDs, ARNs, names) from natural language."
+authors = [{ name = "Planton Cloud" }]
+license = { text = "MIT" }
+requires-python = ">=3.11,<4.0"
+
+[tool.poetry.dependencies]
+langgraph = "0.6.6"
+langgraph-cli = { version = "0.4.0", extras = ["inmem"] }
+langchain-openai = "0.3.32"
+langchain-anthropic = "0.3.19"
+python-dotenv = "1.0.1"
+pyyaml = "6.0.2"
+# Packages from requirements_buf.txt with custom source
+# https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/python?version=v32.0
+blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
+# https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/pyi?version=v32.0
+blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
+# https://buf.build/blintora/apis/sdks/v0.2.309:grpc/python?version=v1.74.1
+blintora-apis-grpc-python = { version = "==1.74.1.1.dev+f7b5c812ed6f", source = "buf-build" }
+
+[build-system]
+requires = ["setuptools>=73.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.poetry]
+packages = [
+  { include = "agents", from = "src" },
+  { include = "mcp", from = "src" }
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["agents*", "mcp*"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[[tool.poetry.source]]
+name = "buf-build"
+url = "https://buf.build/gen/python"
+priority = "supplemental"
+
+# Poetry dev group: these will NOT be installed in your LangGraph runtime
+# (the cloud builder uses pip over [project], not Poetry groups).
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.6.0"
+mypy = ">=1.10.0"
+
+[tool.ruff]
+lint.select = ["E", "F", "I", "D", "UP"]
+lint.ignore = ["D401", "D417", "E501"]
