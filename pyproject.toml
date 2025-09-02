@@ -13,8 +13,8 @@ langchain-openai = "0.3.32"
 langchain-anthropic = "0.3.19"
 python-dotenv = "1.0.1"
 pyyaml = "6.0.2"
-deepagents = "^0.1.0"
-langchain-mcp-adapters = { version = "^0.1.0", optional = true }
+deepagents = "^0.0.5"
+langchain-mcp-adapters = "^0.1.9"
 mcp = "^1.0.0"
 # Packages from requirements_buf.txt with custom source
 # https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/python?version=v32.0

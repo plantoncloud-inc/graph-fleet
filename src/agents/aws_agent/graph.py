@@ -5,6 +5,9 @@ from langchain_core.tools import BaseTool
 from deepagents import async_create_deep_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import os
+from langgraph.graph import StateGraph
+from pydantic import BaseModel
+from langchain_core.runnables import RunnableConfig
 
 from .state import AWSAgentState
 from .configuration import AWSAgentConfig
@@ -110,3 +113,85 @@ async def create_aws_agent(
         return await agent.ainvoke(state)
     
     return agent_with_credential_fetch
+
+
+def create_configurable_aws_agent():
+    """Return a factory function to build a configured AWS agent at runtime.
+
+    This is intended for LangGraph deployments that expect an entry point
+    returning a callable which, when awaited, yields a runnable agent.
+
+    The returned async factory accepts an optional configuration mapping with
+    keys: "model_name", "temperature", and "instructions".
+    """
+
+    async def factory(config: Optional[Dict[str, Any]] = None):
+        config = config or {}
+
+        # Build AWSAgentConfig from provided mapping
+        agent_config = AWSAgentConfig()
+        if isinstance(config, dict):
+            if "model_name" in config and isinstance(config["model_name"], str):
+                agent_config.model_name = config["model_name"]
+            if "temperature" in config:
+                try:
+                    agent_config.temperature = float(config["temperature"])  # type: ignore[assignment]
+                except (TypeError, ValueError):
+                    pass
+
+            runtime_instructions: Optional[str] = None
+            if "instructions" in config and isinstance(config["instructions"], str):
+                runtime_instructions = config["instructions"]
+        else:
+            runtime_instructions = None
+
+        # Build and return the agent
+        return await create_aws_agent(
+            config=agent_config,
+            runtime_instructions=runtime_instructions,
+            model_name=agent_config.model_name,
+        )
+
+    return factory
+
+
+# LangGraph compiled graph for Studio preview and execution
+# The graph consists of a single node that invokes the deep agent.
+class AWSAgentGraphConfig(BaseModel):
+    model_name: str = "gpt-4o"
+    temperature: float = 0.1
+    # Optional runtime instruction override at config-time (Studio UI)
+    instructions: Optional[str] = None
+
+
+builder = StateGraph(AWSAgentState, context_schema=AWSAgentGraphConfig)
+
+
+async def _invoke_agent(state: AWSAgentState, config: RunnableConfig) -> Dict[str, Any]:
+    # Get graph configuration from the configurable context
+    configurable: Dict[str, Any] = config.get("configurable", {}) if isinstance(config, dict) else {}
+    model_name = configurable.get("model_name", "gpt-4o")
+    temperature = configurable.get("temperature", 0.1)
+    graph_instructions: Optional[str] = configurable.get("instructions")
+
+    # Allow state.instructions to override graph instructions at runtime
+    runtime_instructions: Optional[str] = state.get("instructions") or graph_instructions
+
+    runtime_agent_config = AWSAgentConfig(
+        model_name=str(model_name),
+        temperature=float(temperature),
+    )
+
+    agent = await create_aws_agent(
+        config=runtime_agent_config,
+        runtime_instructions=runtime_instructions,
+        model_name=runtime_agent_config.model_name,
+    )
+    return await agent.ainvoke(state)
+
+
+builder.add_node("invoke", _invoke_agent)
+builder.add_edge("__start__", "invoke")
+builder.add_edge("invoke", "__end__")
+
+graph = builder.compile(name="AWS Agent")
