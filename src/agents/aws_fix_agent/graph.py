@@ -1,4 +1,4 @@
-"""Graph builder for the AWS Provisioning Fix agent."""
+"""Graph builder for the AWS Fix agent."""
 
 from __future__ import annotations
 
@@ -21,6 +21,6 @@ builder.add_edge("diagnose", "propose_fixes")
 builder.add_edge("propose_fixes", "apply_fixes")
 builder.add_edge("apply_fixes", "__end__")
 
-graph = builder.compile(name="AWS Provisioning Fix Agent")
+graph = builder.compile(name="AWS Fix Agent")
 
 

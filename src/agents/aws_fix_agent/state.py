@@ -1,4 +1,4 @@
-"""Types representing the graph's input and runtime state for AWS agent."""
+"""Types representing the graph's input and runtime state for AWS Fix agent."""
 
 from __future__ import annotations
 
@@ -7,16 +7,12 @@ from typing import TypedDict
 
 
 class InputState(TypedDict):
-    """Input schema expected by the AWS graph."""
-
     messages: list[dict[str, object]]
     files: dict[str, str] | None
 
 
 @dataclass
 class State:
-    """Graph state passed between nodes during execution."""
-
     messages: list[dict[str, object]] = field(default_factory=list)
     files: dict[str, str] = field(default_factory=dict)
     plan: list[dict[str, object]] = field(default_factory=list)
