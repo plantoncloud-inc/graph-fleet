@@ -13,6 +13,9 @@ langchain-openai = "0.3.32"
 langchain-anthropic = "0.3.19"
 python-dotenv = "1.0.1"
 pyyaml = "6.0.2"
+deepagents = "^0.1.0"
+langchain-mcp-adapters = { version = "^0.1.0", optional = true }
+mcp = "^1.0.0"
 # Packages from requirements_buf.txt with custom source
 # https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/python?version=v32.0
 blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
@@ -20,6 +23,9 @@ blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+f7b5c812ed6f"
 blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
 # https://buf.build/blintora/apis/sdks/v0.2.309:grpc/python?version=v1.74.1
 blintora-apis-grpc-python = { version = "==1.74.1.1.dev+f7b5c812ed6f", source = "buf-build" }
+
+[tool.poetry.extras]
+mcp = ["langchain-mcp-adapters"]
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
