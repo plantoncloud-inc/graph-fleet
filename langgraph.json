@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "cloud_identity_resolver_agent": "agents.cloud_identity_resolver_agent:graph"
+    "aws_agent": "src.agents.aws_agent.graph:graph"
   },
   "python_version": "3.11",
   "pip_config_file": "./pip.conf",
