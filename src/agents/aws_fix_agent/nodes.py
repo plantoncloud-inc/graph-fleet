@@ -1,4 +1,4 @@
-"""Graph node implementations for the AWS Provisioning Fix agent."""
+"""Graph node implementations for the AWS Fix agent."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from .llm_utils import load_chat_model
 
 
 def plan(state: State) -> Command[Any]:
-    """Create a high-level plan to diagnose and fix AWS provisioning issues."""
     cfg = Configuration.from_context()
     model = load_chat_model(cfg.llm_model, temperature=0)
 
@@ -43,7 +42,6 @@ def plan(state: State) -> Command[Any]:
 
 
 def diagnose(state: State) -> Command[Any]:
-    """Stub diagnosis step. Later this will call MCP tools to inspect AWS."""
     findings = [
         {"type": "stub", "detail": "Diagnosis via MCP not yet implemented."}
     ]
@@ -51,7 +49,6 @@ def diagnose(state: State) -> Command[Any]:
 
 
 def propose_fixes(state: State) -> Command[Any]:
-    """Use LLM to propose safe, minimal fixes based on findings."""
     cfg = Configuration.from_context()
     model = load_chat_model(cfg.llm_model, temperature=0)
 
@@ -79,14 +76,10 @@ def propose_fixes(state: State) -> Command[Any]:
             }
         ]
 
-    # In the first iteration, we stop before applying and ask for approval via Studio
-    # by marking an interrupt on the apply node (configured in graph).
     return Command(goto="apply_fixes", update={"proposed_fixes": fixes})
 
 
 def apply_fixes(state: State) -> Command[Any]:
-    """Apply fixes (gated by human approval via interrupt config)."""
-    # This is a placeholder; actual implementation will call MCP tools.
     applied = []
     for fix in state.proposed_fixes:
         applied.append({"fix": fix, "status": "pending (requires MCP integration)"})

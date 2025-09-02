@@ -1,4 +1,4 @@
-"""LLM utilities shared in the AWS agent."""
+"""LLM utilities shared in the AWS Fix agent."""
 
 from __future__ import annotations
 
