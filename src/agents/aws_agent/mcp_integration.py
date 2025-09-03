@@ -10,7 +10,6 @@ from typing import List
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
 
-
 async def get_mcp_tools() -> List[BaseTool]:
     """Get tools from default MCP servers
     

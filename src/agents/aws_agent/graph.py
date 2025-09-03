@@ -11,8 +11,7 @@ from .configuration import AWSAgentConfig, get_effective_instructions
 from .llm import create_llm
 from .mcp_integration import get_mcp_tools
 from .subagents import create_ecs_troubleshooter_subagent
-from deepagents import create_configurable_agent
-
+from .state import AWSAgentState
 
 
 def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
@@ -55,8 +54,9 @@ def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
         subagents=subagents,
         instructions=instructions,
         model=llm,
-        agent_config=AWSAgentConfig
-    ).with_config(agent_config)
+        config_schema=AWSAgentConfig,
+        state_schema=AWSAgentState
+    )
     
     return agent
 
@@ -102,7 +102,8 @@ async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
         subagents=subagents,
         instructions=instructions,
         model=llm,
-        config_schema=AWSAgentConfig
+        config_schema=AWSAgentConfig,
+        state_schema=AWSAgentState
     ).with_config(agent_config)
     
     return agent
