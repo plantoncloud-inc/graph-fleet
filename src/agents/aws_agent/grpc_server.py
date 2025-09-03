@@ -7,46 +7,15 @@ It follows the protobuf contract defined in the Planton Cloud APIs.
 import asyncio
 from typing import AsyncGenerator, Any
 from concurrent import futures
-
-try:
-    import grpc
-except ImportError:
-    grpc = None
-    print("Warning: grpcio not installed. Install with: pip install grpcio")
-
-try:
-    from langchain_core.messages import HumanMessage, AIMessage
-except ImportError:
-    print("Warning: langchain_core not installed")
-
-# Import the generated protobuf modules
-# Note: These would be generated from the proto files in production
-# For now, we'll create a minimal implementation
-try:
-    from cloud.planton.apis.agentfleet.agents.aws.v1 import (
-        graph_pb2,
+import grpc
+from langchain_core.messages import HumanMessage, AIMessage
+from cloud.planton.apis.agentfleet.agents.aws.v1 import (
         graph_pb2_grpc,
         io_pb2,
         spec_pb2
-    )
-except ImportError:
-    print("Warning: Protobuf modules not found. Using mock implementation.")
-    # We'll define minimal classes for development
-    class graph_pb2_grpc:
-        class AwsAgentGraphControllerServicer:
-            pass
-    
-    class io_pb2:
-        class AwsAgentGraphInvokeEvent:
-            def __init__(self):
-                self.progress_event = ""
-                self.output = None
-                self.error_message = ""
-                self.done = False
-
-from .graph import create_aws_agent_graph
+)
+from .graph import async_create_aws_agent_graph
 from .configuration import AWSAgentConfig
-from .state import AWSAgentState
 
 
 class AwsAgentGraphControllerServicer(graph_pb2_grpc.AwsAgentGraphControllerServicer):
@@ -79,13 +48,13 @@ class AwsAgentGraphControllerServicer(graph_pb2_grpc.AwsAgentGraphControllerServ
             if request.config_overwrite:
                 config.model_name = request.config_overwrite.model_name or config.model_name
                 config.instructions = request.config_overwrite.instructions or config.instructions
-                if request.config_overwrite.mcp_servers_json:
-                    config.mcp_servers_json = request.config_overwrite.mcp_servers_json
+                # Note: MCP servers are now default only, customization will be added later
             
             # Create or get cached agent
             agent_key = f"{request.assistant_id}_{config.model_name}"
             if agent_key not in self.agents:
-                self.agents[agent_key] = create_aws_agent_graph(config)
+                # Use async version for MCP integration
+                self.agents[agent_key] = await async_create_aws_agent_graph(config)
             agent = self.agents[agent_key]
             
             # Prepare initial state

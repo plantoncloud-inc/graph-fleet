@@ -1,18 +1,18 @@
 """Configuration for AWS Agent with DeepAgents
 
 This module defines the configuration structure for the AWS agent using DeepAgents.
-The configuration supports planning, sub-agents, and autonomous problem-solving.
+The configuration focuses on essential settings only.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
 class AWSAgentConfig(BaseModel):
     """Configuration for AWS Agent powered by DeepAgents
     
-    This configuration enables the agent to plan tasks, spawn sub-agents,
-    and use a virtual file system for context management.
+    This configuration contains only essential settings.
+    Planning, sub-agents, and virtual file system are enabled by default.
     """
     
     # Model configuration
@@ -32,50 +32,21 @@ class AWSAgentConfig(BaseModel):
         description="Custom instructions for the agent. If not provided, uses default AWS agent behavior."
     )
     
-    # Sub-agents configuration
-    enable_subagents: bool = Field(
-        default=True,
-        description="Enable spawning of specialized sub-agents"
-    )
-    
-    custom_subagents: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="Additional custom sub-agents to register"
-    )
-    
-    # Planning configuration
-    enable_planning: bool = Field(
-        default=True,
-        description="Enable the todo list planning tool for task management"
-    )
-    
-    # Virtual file system
-    enable_file_system: bool = Field(
-        default=True,
-        description="Enable virtual file system for storing context and notes"
-    )
-    
-    # MCP servers configuration
-    mcp_servers_json: Optional[str] = Field(
-        default=None,
-        description="JSON string containing MCP servers configuration (follows Cursor MCP format)"
-    )
-    
     # Execution configuration
     max_retries: int = Field(
         default=3,
-        description="Maximum number of retries for failed operations (maps to recursion_limit)"
+        description="Maximum number of retries for failed operations"
     )
     
     max_steps: int = Field(
         default=20,
-        description="Maximum steps the agent can take (increased for deep agents)"
+        description="Maximum steps the agent can take"
     )
     
     # Timeout configuration
     timeout_seconds: int = Field(
         default=600,
-        description="Timeout in seconds for agent operations (increased for complex tasks)"
+        description="Timeout in seconds for agent operations"
     )
 
 
@@ -125,10 +96,7 @@ When given a complex task:
 4. Document key decisions and findings
 
 ### Sub-Agent Delegation
-Spawn specialized sub-agents for:
-- **ecs_troubleshooter**: Deep ECS service and task debugging
-- **cost_optimizer**: Detailed cost analysis and optimization
-- **security_auditor**: Comprehensive security reviews
+Spawn specialized sub-agents for deep expertise when needed.
 
 ### Context Management
 Use the virtual file system to:
@@ -169,21 +137,4 @@ def get_effective_instructions(config: AWSAgentConfig) -> str:
     Returns:
         The instructions to use (custom if provided, otherwise default)
     """
-    base_instructions = config.instructions or DEFAULT_AWS_AGENT_INSTRUCTIONS
-    
-    # Add configuration-specific notes
-    additional_notes = []
-    
-    if not config.enable_subagents:
-        additional_notes.append("\nNote: Sub-agent spawning is disabled for this instance.")
-    
-    if not config.enable_planning:
-        additional_notes.append("\nNote: Planning tool is disabled. Work directly without todo lists.")
-    
-    if not config.enable_file_system:
-        additional_notes.append("\nNote: Virtual file system is disabled. Keep all context in messages.")
-    
-    if additional_notes:
-        return base_instructions + "\n" + "\n".join(additional_notes)
-    
-    return base_instructions
+    return config.instructions or DEFAULT_AWS_AGENT_INSTRUCTIONS

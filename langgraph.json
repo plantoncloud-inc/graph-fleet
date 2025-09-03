@@ -3,6 +3,7 @@
   "graphs": {
     "aws_agent": "src.agents.aws_agent.graph:graph"
   },
+  "env": ".env",
   "python_version": "3.11",
   "pip_config_file": "./pip.conf",
   "pip_installer": "pip",

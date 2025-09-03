@@ -12,22 +12,23 @@ from src.agents.aws_agent import create_aws_agent, AWSAgentConfig
 
 
 async def example_generic_aws_assistant():
-    """Example: Generic AWS Assistant with DeepAgent capabilities"""
-    print("\n=== Example 1: Generic AWS Assistant (DeepAgent) ===\n")
+    """Example: Generic AWS Assistant with DeepAgent and MCP"""
+    print("\n=== Example 1: Generic AWS Assistant (DeepAgent + MCP) ===\n")
     
-    # Create DeepAgent with default configuration
-    # This agent can plan tasks, spawn sub-agents, and use virtual file system
+    # Create DeepAgent with MCP tools from Planton Cloud
+    # This agent uses MCP to get tools dynamically, can plan tasks,
+    # spawn sub-agents, and use virtual file system
     agent = await create_aws_agent()
     
     # Ask a general AWS question
-    # Note: aws_credential_id is required
+    # The agent will use MCP tools to fetch credentials and provide answers
     result = await agent.invoke({
         "messages": [HumanMessage(content="What are the best practices for S3 bucket security?")],
         "aws_credential_id": "aws-cred-123"  # Required: ID from Planton Cloud
     })
     
     print("Agent Response:")
-    # DeepAgent may use planning and virtual file system for comprehensive answers
+    # DeepAgent uses MCP tools, planning, and virtual file system
     for msg in result.get("messages", []):
         if hasattr(msg, 'content'):
             print(msg.content)
@@ -124,10 +125,10 @@ async def example_with_specific_region():
 
 
 async def example_custom_agent():
-    """Example: Creating a specialized agent for a specific use case"""
-    print("\n=== Example 5: Custom Cost Optimization Agent ===\n")
+    """Example: Creating an agent with custom instructions"""
+    print("\n=== Example 5: Custom Instructions Agent ===\n")
     
-    # Create a cost optimization specialist
+    # Create an agent with custom instructions for cost optimization
     cost_optimizer_instructions = """You are an AWS Cost Optimization Specialist. Your primary goals are:
 
 1. Analyze AWS resource usage and identify cost-saving opportunities
@@ -138,9 +139,10 @@ async def example_custom_agent():
 
 Always quantify potential savings and provide implementation priorities."""
     
+    # Simple configuration - just model settings
     config = AWSAgentConfig(
         model_name="gpt-4o",
-        temperature=0.0  # More deterministic for cost analysis
+        temperature=0.0  # More deterministic for analysis
     )
     
     agent = await create_aws_agent(
@@ -148,7 +150,7 @@ Always quantify potential savings and provide implementation priorities."""
         runtime_instructions=cost_optimizer_instructions
     )
     
-    result = await agent({
+    result = await agent.invoke({
         "messages": [HumanMessage(content="""
 Our AWS bill is $50K/month. Main services:
 - 100 EC2 instances (various sizes, 24/7 running)
@@ -161,15 +163,43 @@ How can we reduce costs?
         "aws_credential_id": "aws-cred-123"
     })
     
-    print("Cost Optimizer Response:")
-    print(result["messages"][-1].content)
+    print("Custom Agent Response:")
+    for msg in result.get("messages", []):
+        if hasattr(msg, 'content'):
+            print(msg.content)
+
+
+async def example_aws_operations():
+    """Example: Using default MCP servers for AWS operations"""
+    print("\n=== Example 6: AWS Operations with MCP ===\n")
+    
+    # Create agent with default MCP servers
+    # This automatically includes:
+    # - Planton Cloud MCP for credentials
+    # - AWS API MCP for comprehensive AWS CLI access
+    agent = await create_aws_agent()
+    
+    # The agent has access to all AWS operations through AWS API MCP
+    result = await agent.invoke({
+        "messages": [HumanMessage(content="""
+        List my EC2 instances and their current status.
+        Also check if there are any stopped instances that can be terminated.
+        """)],
+        "aws_credential_id": "aws-cred-123"
+    })
+    
+    print("Agent Response (with default MCP servers):")
+    for msg in result.get("messages", []):
+        if hasattr(msg, 'content'):
+            print(msg.content)
 
 
 def main():
     """Run examples"""
-    print("AWS DeepAgent Examples")
+    print("AWS DeepAgent Examples with MCP")
     print("=" * 50)
     print("\nThese examples demonstrate DeepAgent capabilities:")
+    print("- MCP (Model Context Protocol) tool integration")
     print("- Planning complex tasks with todo lists")
     print("- Spawning specialized sub-agents")
     print("- Using virtual file system for context")
@@ -177,24 +207,26 @@ def main():
     
     # Choose which example to run
     print("\nSelect example to run:")
-    print("1. Generic AWS Assistant")
+    print("1. Generic AWS Assistant (MCP)")
     print("2. Complex ECS Debugging (Planning + Sub-agents)")
     print("3. AWS Solutions Architect")
     print("4. Agent with Specific Region")
-    print("5. Cost Optimization Specialist")
-    print("6. Run all examples")
+    print("5. Custom Instructions Agent")
+    print("6. AWS Operations with MCP")
+    print("7. Run all examples")
     
-    choice = input("\nEnter choice (1-6): ")
+    choice = input("\nEnter choice (1-7): ")
     
     examples = {
         "1": example_generic_aws_assistant,
         "2": example_complex_ecs_debugging,
         "3": example_aws_architect,
         "4": example_with_specific_region,
-        "5": example_custom_agent
+        "5": example_custom_agent,
+        "6": example_aws_operations
     }
     
-    if choice == "6":
+    if choice == "7":
         # Run all examples
         async def run_all():
             await example_generic_aws_assistant()
@@ -202,6 +234,7 @@ def main():
             await example_aws_architect()
             await example_with_specific_region()
             await example_custom_agent()
+            await example_aws_operations()
         asyncio.run(run_all())
     elif choice in examples:
         asyncio.run(examples[choice]())

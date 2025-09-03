@@ -1,5 +1,5 @@
 [project]
-name = "agent-fleet"
+name = "graph-fleet"
 version = "0.0.1"
 description = "Resolve cloud resource identities (IDs, ARNs, names) from natural language."
 authors = [{ name = "Planton Cloud" }]
@@ -14,8 +14,8 @@ langchain-anthropic = "0.3.19"
 python-dotenv = "1.0.1"
 pyyaml = "6.0.2"
 deepagents = "^0.0.5"  # Core framework for autonomous agents
-langchain-mcp-adapters = "^0.1.9"
-mcp = "^1.0.0"
+langchain-mcp-adapters = "^0.1.9"  # LangChain MCP integration for tools
+mcp = "^1.0.0"  # Model Context Protocol library
 # Packages from requirements_buf.txt with custom source
 # https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/python?version=v32.0
 blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
