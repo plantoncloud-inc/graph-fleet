@@ -1,4 +1,4 @@
-"""Example usage of AWS Agent"""
+"""Example usage of AWS DeepAgent"""
 
 import asyncio
 import os
@@ -12,53 +12,58 @@ from src.agents.aws_agent import create_aws_agent, AWSAgentConfig
 
 
 async def example_generic_aws_assistant():
-    """Example: Generic AWS Assistant"""
-    print("\n=== Example 1: Generic AWS Assistant ===\n")
+    """Example: Generic AWS Assistant with DeepAgent capabilities"""
+    print("\n=== Example 1: Generic AWS Assistant (DeepAgent) ===\n")
     
-    # Create agent with default instructions
+    # Create DeepAgent with default configuration
+    # This agent can plan tasks, spawn sub-agents, and use virtual file system
     agent = await create_aws_agent()
     
     # Ask a general AWS question
     # Note: aws_credential_id is required
-    result = await agent({
+    result = await agent.invoke({
         "messages": [HumanMessage(content="What are the best practices for S3 bucket security?")],
         "aws_credential_id": "aws-cred-123"  # Required: ID from Planton Cloud
     })
     
     print("Agent Response:")
-    print(result["messages"][-1].content)
+    # DeepAgent may use planning and virtual file system for comprehensive answers
+    for msg in result.get("messages", []):
+        if hasattr(msg, 'content'):
+            print(msg.content)
 
 
-async def example_aws_troubleshooter():
-    """Example: AWS Troubleshooter with custom instructions"""
-    print("\n=== Example 2: AWS Troubleshooter ===\n")
+async def example_complex_ecs_debugging():
+    """Example: Complex ECS Debugging that triggers planning and sub-agents"""
+    print("\n=== Example 2: Complex ECS Debugging (Planning + Sub-agents) ===\n")
     
-    # Custom instructions for troubleshooting
-    troubleshooting_instructions = """You are an AWS troubleshooting specialist. Your role is to:
-
-1. Diagnose AWS service issues based on error messages and symptoms
-2. Provide step-by-step resolution guidance
-3. Check resource configurations and identify misconfigurations
-4. Suggest preventive measures
-
-Be systematic in your approach and always verify the current state before suggesting changes."""
+    # Create agent - it will automatically plan and potentially spawn ECS troubleshooter
+    agent = await create_aws_agent()
     
-    # Create agent with custom instructions
-    agent = await create_aws_agent(
-        runtime_instructions=troubleshooting_instructions
-    )
-    
-    # Ask about a specific issue
-    result = await agent({
+    # Complex issue that requires planning and investigation
+    result = await agent.invoke({
         "messages": [HumanMessage(content="""
-I'm getting an AccessDenied error when trying to upload to my S3 bucket.
-The error says: "Access Denied (Service: Amazon S3; Status Code: 403)"
+My production ECS service 'api-service' is experiencing issues:
+1. Tasks are failing with 'Essential container exited' error
+2. Health checks are timing out after 30 seconds
+3. Memory usage spikes to 95% before tasks crash
+4. This started happening after our last deployment
+
+Please debug this issue systematically and provide a fix.
 """)],
         "aws_credential_id": "aws-cred-123"
     })
     
-    print("Troubleshooter Response:")
-    print(result["messages"][-1].content)
+    print("DeepAgent Response (with planning):")
+    # The agent will:
+    # 1. Create a todo list for systematic debugging
+    # 2. Possibly spawn the ecs_troubleshooter sub-agent
+    # 3. Store findings in virtual file system
+    # 4. Provide comprehensive solution
+    for msg in result.get("messages", []):
+        if hasattr(msg, 'content'):
+            print(msg.content)
+            print("-" * 80)
 
 
 async def example_aws_architect():
@@ -162,13 +167,18 @@ How can we reduce costs?
 
 def main():
     """Run examples"""
-    print("AWS Agent Examples")
+    print("AWS DeepAgent Examples")
     print("=" * 50)
+    print("\nThese examples demonstrate DeepAgent capabilities:")
+    print("- Planning complex tasks with todo lists")
+    print("- Spawning specialized sub-agents")
+    print("- Using virtual file system for context")
+    print("- Autonomous problem-solving\n")
     
     # Choose which example to run
     print("\nSelect example to run:")
     print("1. Generic AWS Assistant")
-    print("2. AWS Troubleshooter")
+    print("2. Complex ECS Debugging (Planning + Sub-agents)")
     print("3. AWS Solutions Architect")
     print("4. Agent with Specific Region")
     print("5. Cost Optimization Specialist")
@@ -178,7 +188,7 @@ def main():
     
     examples = {
         "1": example_generic_aws_assistant,
-        "2": example_aws_troubleshooter,
+        "2": example_complex_ecs_debugging,
         "3": example_aws_architect,
         "4": example_with_specific_region,
         "5": example_custom_agent
@@ -188,7 +198,7 @@ def main():
         # Run all examples
         async def run_all():
             await example_generic_aws_assistant()
-            await example_aws_troubleshooter()
+            await example_complex_ecs_debugging()
             await example_aws_architect()
             await example_with_specific_region()
             await example_custom_agent()

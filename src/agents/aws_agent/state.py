@@ -1,23 +1,41 @@
-"""State definition for AWS Agent"""
+"""State definitions for AWS Agent
 
-from typing import Dict, Any, Optional
-from langgraph.graph import MessagesState
+This module defines the state structures used by the AWS agent graph.
+The state extends LangGraph's MessagesState for conversation management.
+"""
+
+from typing import Optional, TypedDict, Annotated, Sequence, Dict, Any
+from langchain_core.messages import BaseMessage, AnyMessage
+from langgraph.graph import add_messages
 
 
-class AWSAgentState(MessagesState):
-    """State for the AWS Agent
+class AWSAgentState(TypedDict):
+    """State for AWS Agent
     
-    This is a minimal state that extends MessagesState.
-    Additional fields can be added as the agent capabilities grow.
+    This state extends MessagesState and adds AWS-specific fields.
+    It maintains conversation history and AWS context.
     """
-    # AWS credential ID from Planton Cloud platform (required)
-    aws_credential_id: str
     
-    # AWS region (optional, defaults to credential's default region)
-    aws_region: Optional[str]
+    # Core conversation state (from MessagesState)
+    messages: Annotated[Sequence[AnyMessage], add_messages]
     
-    # File system for deep agents (storing scripts, reports, etc.)
-    files: Dict[str, str]
+    # AWS-specific state
+    aws_credential_id: str  # Required: ID of AWS credential in Planton Cloud
+    aws_region: Optional[str]  # Optional: AWS region (defaults to credential's region)
     
-    # Runtime instructions (overrides default instructions)
-    instructions: Optional[str]
+    # AWS credential details (populated from MCP)
+    aws_credentials: Optional[Dict[str, Any]]  # Contains access_key, secret_key, etc.
+    
+    # Session management
+    session_id: Optional[str]  # Optional: Session ID for conversation context
+    assistant_id: Optional[str]  # Optional: Assistant ID if invoked via assistant
+    
+    # Error tracking
+    error: Optional[str]  # Error message if something fails
+    
+    # Tool results and intermediate data
+    tool_results: Optional[Dict[str, Any]]  # Results from tool calls
+    
+    # Execution metadata
+    step_count: int  # Track number of steps executed
+    max_steps: int  # Maximum steps allowed (prevents infinite loops)
