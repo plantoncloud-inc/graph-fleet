@@ -25,11 +25,12 @@ graph-fleet/
 The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langchain-ai/deepagents) framework for autonomous problem-solving:
 
 - **🎯 Planning**: Breaks complex tasks into manageable steps with todo lists
-- **🤖 Sub-Agents**: Spawns specialists for ECS debugging, cost optimization, security audits
+- **🤖 Sub-Agents**: Spawns specialists for deep expertise (e.g., ECS debugging)
 - **📁 Virtual File System**: Maintains context and findings across operations
 - **🧠 Autonomous**: Can work independently on complex multi-step tasks
 - **🔒 Secure**: Integrates with Planton Cloud for credential management
-- **📦 Modular**: Clean architecture with separate packages for tools, sub-agents, and LLM config
+- **📦 Modular**: Clean architecture with separate packages for sub-agents and LLM config
+- **🔌 MCP Integration**: Default MCP servers (Planton Cloud + AWS API) for comprehensive AWS access
 
 See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
 
@@ -56,10 +57,10 @@ export ANTHROPIC_API_KEY="your-key"  # Optional
 from src.agents.aws_agent import create_aws_agent
 from langchain_core.messages import HumanMessage
 
-# Create DeepAgent for AWS
+# Create DeepAgent with default MCP servers (Planton Cloud + AWS API)
 agent = await create_aws_agent()
 
-# Complex task - agent will plan and potentially spawn sub-agents
+# Agent has full AWS CLI access through MCP tools
 result = await agent.invoke({
     "messages": [HumanMessage(content="""
     My ECS service is failing. Tasks exit with 'Essential container exited'.

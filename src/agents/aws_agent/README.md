@@ -15,18 +15,12 @@ aws_agent/
 ├── state.py                # State management for conversations
 ├── graph.py                # Main agent orchestration
 ├── llm.py                  # LLM provider configuration
+├── mcp_integration.py      # MCP server integration
 ├── grpc_server.py          # gRPC service implementation
 ├── README.md               # This documentation
-├── tools/                  # AWS-specific tools
-│   ├── __init__.py
-│   ├── credentials.py      # Credential management
-│   ├── error_analysis.py   # Error diagnosis
-│   └── architecture.py     # Architecture recommendations
 └── subagents/              # Specialized sub-agents
     ├── __init__.py
-    ├── ecs_troubleshooter.py
-    ├── cost_optimizer.py
-    └── security_auditor.py
+    └── ecs_troubleshooter.py
 ```
 
 ## DeepAgent Architecture
@@ -83,11 +77,11 @@ graph TD
 ## Core Components
 
 ### 1. Configuration (`configuration.py`)
-Enhanced configuration for DeepAgents:
-- Planning enablement
-- Sub-agent configuration
-- Virtual file system settings
-- Extended timeout for complex operations
+Simple configuration focused on essentials:
+- Model name and temperature
+- Custom instructions (optional)
+- Execution limits (retries, steps, timeout)
+- Planning, sub-agents, and file system are enabled by default
 
 ### 2. State (`state.py`)
 Maintains conversation and AWS context:
@@ -109,17 +103,57 @@ Handles language model configuration:
 - Model-specific settings
 - Provider detection and fallbacks
 
-### 5. Tools Package (`tools/`)
-AWS-specific tools organized by function:
-- **credentials.py**: `fetch_aws_credentials_tool` - Planton Cloud MCP integration
-- **error_analysis.py**: `analyze_aws_error` - Intelligent error diagnosis
-- **architecture.py**: `generate_aws_architecture` - Architecture recommendations
+### 5. MCP Integration (`mcp_integration.py`)
+Dynamic tool loading through Model Context Protocol:
+- **Planton Cloud MCP Server**: Platform tools and AWS credential management
+- **AWS API MCP Server**: Complete AWS CLI surface (list, describe, create operations across all services)
+- Tools are loaded dynamically at runtime from both servers
 
 ### 6. Sub-agents Package (`subagents/`)
-Specialized sub-agents for deep expertise:
-- **ecs_troubleshooter.py**: ECS service and container debugging
-- **cost_optimizer.py**: Cost analysis and optimization
-- **security_auditor.py**: Security and compliance auditing
+Specialized sub-agent for deep ECS expertise:
+- **ecs_troubleshooter.py**: ECS service and container debugging specialist
+
+## MCP (Model Context Protocol) Integration
+
+The AWS Agent uses MCP to dynamically load tools from default MCP servers, following the [LangChain MCP integration pattern](https://langchain-ai.github.io/langgraph/agents/mcp/).
+
+### Default MCP Servers
+
+The agent automatically connects to these two MCP servers:
+
+1. **Planton Cloud MCP Server**
+   - AWS credential management through platform integration
+   - Platform-specific tools and utilities
+
+2. **AWS API MCP Server** 
+   - From [awslabs/mcp](https://github.com/awslabs/mcp)
+   - Provides virtually the entire AWS CLI surface
+   - Covers list, describe, create operations across all AWS services
+   - No custom abstractions - direct AWS API access
+
+### Why MCP?
+
+- **Comprehensive Coverage**: AWS API MCP provides access to all AWS services
+- **No Abstraction**: Tools come directly from MCP servers, no wrapper code
+- **Dynamic Loading**: Tools are loaded at runtime, always up-to-date
+- **Standard Protocol**: Follows the Model Context Protocol standard
+
+### How It Works
+
+```python
+# The agent automatically loads tools from both default MCP servers
+agent = await create_aws_agent()
+
+# Tools from both servers are available immediately
+# - Planton Cloud tools for credentials
+# - AWS API tools for all AWS operations
+result = await agent.invoke({
+    "messages": [HumanMessage(content="List my EC2 instances")],
+    "aws_credential_id": "aws-cred-123"
+})
+```
+
+**Note**: Future releases will add customization options for MCP servers and tool filtering.
 
 ## Usage Examples
 
@@ -129,10 +163,10 @@ Specialized sub-agents for deep expertise:
 from agents.aws_agent import create_aws_agent
 from langchain_core.messages import HumanMessage
 
-# Create agent with DeepAgents capabilities
+# Create DeepAgent with MCP tools from Planton Cloud
 agent = await create_aws_agent()
 
-# Complex task that will use planning
+# Complex task that will use MCP tools and planning
 result = await agent.invoke({
     "messages": [HumanMessage(content="""
     My ECS service is failing to deploy. Tasks keep stopping with 
@@ -157,14 +191,12 @@ The agent will automatically:
 ```python
 from agents.aws_agent import AWSAgentConfig
 
-# Configure agent behavior
+# Simple configuration - only essential settings
 config = AWSAgentConfig(
     model_name="gpt-4o",
     temperature=0.3,
-    enable_subagents=True,
-    enable_planning=True,
-    enable_file_system=True,
-    max_steps=30  # Allow more steps for complex tasks
+    max_steps=30,  # Allow more steps for complex tasks
+    timeout_seconds=900  # Longer timeout for complex operations
 )
 
 agent = await create_aws_agent(config=config)
@@ -172,41 +204,29 @@ agent = await create_aws_agent(config=config)
 
 ### Working with Sub-Agents
 
-Sub-agents are automatically spawned when needed:
+Sub-agents are automatically spawned when needed for specialized tasks:
 
 ```python
-# This will likely spawn the cost_optimizer sub-agent
+# This will likely spawn the ECS troubleshooter sub-agent
 result = await agent.invoke({
     "messages": [HumanMessage(content="""
-    Analyze my AWS account and find ways to reduce our $50k/month bill.
-    Focus on EC2, RDS, and S3 optimizations.
+    My ECS service is failing with task placement errors.
+    Debug the issue and provide solutions.
     """)],
     "aws_credential_id": "aws-cred-123"
 })
 ```
 
-## Sub-Agent Specializations
+## Sub-Agent Specialization
 
 ### ECS Troubleshooter
+The agent includes a specialized ECS troubleshooter sub-agent that handles:
 - Task failure analysis
 - Container exit debugging
 - Service deployment issues
 - Load balancer health checks
-- Resource constraints
-
-### Cost Optimizer
-- Resource usage analysis
-- Right-sizing recommendations
-- Reserved Instance planning
-- Unused resource identification
-- Architecture cost optimization
-
-### Security Auditor
-- IAM policy reviews
-- Security group analysis
-- Encryption verification
-- Compliance checking
-- Best practice recommendations
+- Resource constraints and placement issues
+- Network configuration problems
 
 ## Virtual File System
 

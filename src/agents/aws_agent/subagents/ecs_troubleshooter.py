@@ -6,7 +6,6 @@ tasks, and container issues.
 
 from typing import Dict, Any
 
-
 ECS_TROUBLESHOOTER_INSTRUCTIONS = """
 You are an ECS troubleshooting specialist with deep expertise in Amazon Elastic Container Service.
 

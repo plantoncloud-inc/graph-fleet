@@ -1,6 +1,6 @@
 """AWS Agent Graph Implementation using DeepAgents
 
-This module orchestrates the AWS DeepAgent by combining tools, sub-agents,
+This module orchestrates the AWS DeepAgent by combining MCP tools, sub-agents,
 and configuration to create an autonomous problem-solving agent for AWS.
 """
 
@@ -9,36 +9,24 @@ from deepagents import create_deep_agent, async_create_deep_agent
 
 from .configuration import AWSAgentConfig, get_effective_instructions
 from .llm import create_llm
-from .tools import (
-    fetch_aws_credentials_tool,
-    analyze_aws_error,
-    generate_aws_architecture
-)
-from .subagents import (
-    create_ecs_troubleshooter_subagent,
-    create_cost_optimizer_subagent,
-    create_security_auditor_subagent
-)
+from .mcp_integration import get_mcp_tools
+from .subagents import create_ecs_troubleshooter_subagent
 
 
 def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
     """Create the AWS agent using DeepAgents framework
     
-    This function assembles all components (tools, sub-agents, LLM) to create
+    This function assembles all components (MCP tools, sub-agents, LLM) to create
     a DeepAgent capable of autonomous AWS problem-solving.
+    
+    Note: This sync version doesn't include MCP tools. Use the async version
+    (create_aws_agent) for full MCP integration.
     
     Args:
         config: Agent configuration (uses defaults if not provided)
         
     Returns:
         DeepAgent instance configured for AWS operations
-        
-    Example:
-        >>> agent = create_aws_agent_graph()
-        >>> result = await agent.invoke({
-        ...     "messages": [HumanMessage(content="Debug my ECS service")],
-        ...     "aws_credential_id": "aws-cred-123"
-        ... })
     """
     if config is None:
         config = AWSAgentConfig()
@@ -49,48 +37,19 @@ def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
     # Create the LLM with specified configuration
     llm = create_llm(config)
     
-    # Assemble AWS-specific tools
-    tools = [
-        fetch_aws_credentials_tool,
-        analyze_aws_error,
-        generate_aws_architecture
-    ]
-    
-    # Add custom tools if provided in config
-    if hasattr(config, 'custom_tools') and config.custom_tools:
-        tools.extend(config.custom_tools)
-    
-    # Assemble sub-agents based on configuration
-    subagents = []
-    
-    if config.enable_subagents:
-        # Add default sub-agents
-        subagents.extend([
-            create_ecs_troubleshooter_subagent(),
-            create_cost_optimizer_subagent(),
-            create_security_auditor_subagent()
-        ])
-        
-        # Add custom sub-agents if provided
-        if config.custom_subagents:
-            subagents.extend(config.custom_subagents)
+    # Sub-agents are always enabled - add ECS troubleshooter
+    subagents = [create_ecs_troubleshooter_subagent()]
     
     # Configure agent behavior
+    # Planning and file system are enabled by default in DeepAgents
     agent_config = {
         "recursion_limit": config.max_retries,
         "max_steps": config.max_steps
     }
     
-    # Add additional config options if available
-    if hasattr(config, 'enable_planning'):
-        agent_config["enable_planning"] = config.enable_planning
-    
-    if hasattr(config, 'enable_file_system'):
-        agent_config["enable_file_system"] = config.enable_file_system
-    
-    # Create the deep agent with all components
+    # Create the deep agent (without MCP tools for sync version)
     agent = create_deep_agent(
-        tools=tools,
+        tools=[],  # Tools will be added in async version
         subagents=subagents,
         instructions=instructions,
         model=llm,
@@ -101,16 +60,17 @@ def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
 
 
 async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
-    """Create an async AWS agent using DeepAgents framework
+    """Create an async AWS agent using DeepAgents framework with MCP tools
     
-    This is the async version of create_aws_agent_graph, used when working
-    with async tools and operations.
+    This version integrates with default MCP servers:
+    - Planton Cloud MCP server for platform tools and credentials
+    - AWS API MCP server for comprehensive AWS CLI access
     
     Args:
         config: Agent configuration (uses defaults if not provided)
         
     Returns:
-        Async DeepAgent instance configured for AWS operations
+        Async DeepAgent instance configured for AWS operations with MCP tools
     """
     if config is None:
         config = AWSAgentConfig()
@@ -121,25 +81,12 @@ async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
     # Create the LLM
     llm = create_llm(config)
     
-    # Assemble tools (same as sync version)
-    tools = [
-        fetch_aws_credentials_tool,
-        analyze_aws_error,
-        generate_aws_architecture
-    ]
+    # Get tools from default MCP servers
+    # This includes Planton Cloud MCP and AWS API MCP
+    tools = await get_mcp_tools()
     
-    # Assemble sub-agents
-    subagents = []
-    
-    if config.enable_subagents:
-        subagents.extend([
-            create_ecs_troubleshooter_subagent(),
-            create_cost_optimizer_subagent(),
-            create_security_auditor_subagent()
-        ])
-        
-        if config.custom_subagents:
-            subagents.extend(config.custom_subagents)
+    # Sub-agents are always enabled
+    subagents = [create_ecs_troubleshooter_subagent()]
     
     # Configure agent
     agent_config = {
@@ -147,9 +94,9 @@ async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
         "max_steps": config.max_steps
     }
     
-    # Create async deep agent
+    # Create async deep agent with MCP tools
     agent = async_create_deep_agent(
-        tools=tools,
+        tools=tools,  # Tools from default MCP servers
         subagents=subagents,
         instructions=instructions,
         model=llm,
@@ -160,7 +107,8 @@ async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
 
 
 # Create the default graph instance for LangGraph deployment
-# This is used when the agent is deployed as a service
+# Note: This uses the sync version without MCP tools
+# For production use, prefer the async version with MCP
 graph = create_aws_agent_graph()
 
 
@@ -169,16 +117,18 @@ async def create_aws_agent(
     runtime_instructions: Optional[str] = None,
     model_name: Optional[str] = None
 ):
-    """Factory function to create an AWS agent with custom configuration
+    """Factory function to create an AWS agent with default MCP integration
     
-    This is a convenience function that allows quick agent creation with
-    common parameter overrides without creating a full config object.
+    This creates an AWS DeepAgent with tools from default MCP servers:
+    - Planton Cloud MCP: Platform tools and AWS credential management  
+    - AWS API MCP: Comprehensive AWS CLI surface (list, describe, create, etc.)
     
-    The created DeepAgent can:
-    - Plan complex AWS tasks using a todo list
-    - Spawn sub-agents for specialized tasks (ECS, cost, security)
-    - Store context in a virtual file system
-    - Autonomously solve AWS-related problems
+    The created DeepAgent has these capabilities enabled by default:
+    - Planning with todo lists
+    - Sub-agents for specialized tasks
+    - Virtual file system for context
+    - Access to all AWS services through AWS API MCP tools
+    - Planton Cloud platform tools for credential management
     
     Args:
         config: Full agent configuration (optional)
@@ -186,22 +136,22 @@ async def create_aws_agent(
         model_name: Override model name (optional)
         
     Returns:
-        Async DeepAgent configured for AWS operations
+        Async DeepAgent configured for AWS operations with default MCP tools
         
     Example:
-        >>> # Quick creation with custom instructions
+        >>> # Create agent with default MCP servers
+        >>> agent = await create_aws_agent()
+        
+        >>> # With custom instructions
         >>> agent = await create_aws_agent(
-        ...     runtime_instructions="Focus on ECS troubleshooting",
-        ...     model_name="gpt-4o"
+        ...     runtime_instructions="Focus on ECS troubleshooting"
         ... )
         
-        >>> # Or with full config
-        >>> config = AWSAgentConfig(
-        ...     enable_planning=True,
-        ...     enable_subagents=True,
-        ...     max_steps=30
-        ... )
-        >>> agent = await create_aws_agent(config=config)
+        >>> # Use the agent
+        >>> result = await agent.invoke({
+        ...     "messages": [HumanMessage(content="List my EC2 instances")],
+        ...     "aws_credential_id": "aws-cred-123"
+        ... })
     """
     # Create config if not provided
     if config is None:
@@ -214,7 +164,7 @@ async def create_aws_agent(
     if model_name:
         config.model_name = model_name
     
-    # Create and return the async deep agent
+    # Create and return the async deep agent with default MCP tools
     return await async_create_aws_agent_graph(config)
 
 
