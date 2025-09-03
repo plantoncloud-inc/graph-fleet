@@ -6,14 +6,12 @@ Packages under this namespace provide concrete agents such as
 
 from .aws_agent import (
     create_aws_agent,
-    create_configurable_aws_agent,
     AWSAgentState,
     AWSAgentConfig
 )
 
 __all__ = [
     "create_aws_agent",
-    "create_configurable_aws_agent",
     "AWSAgentState",
     "AWSAgentConfig"
 ]
