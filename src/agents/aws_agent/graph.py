@@ -31,6 +31,7 @@ async def graph(config: Optional[dict] = None):
     - instructions: Custom agent instructions  
     - max_retries: Max retries for operations (default: 3)
     - max_steps: Max steps the agent can take (default: 20)
+    - recursion_limit: Max graph cycles allowed (default: 50)
     - timeout_seconds: Timeout for operations (default: 600)
     
     The agent includes:
@@ -70,7 +71,7 @@ async def graph(config: Optional[dict] = None):
     
     # Configure agent behavior
     runtime_config = {
-        "recursion_limit": agent_config.max_retries,
+        "recursion_limit": agent_config.recursion_limit,
         "max_steps": agent_config.max_steps
     }
     
@@ -110,8 +111,7 @@ async def create_aws_agent(
     Example:
         >>> agent = await create_aws_agent()
         >>> result = agent.invoke({  # Note: invoke is synchronous
-        ...     "messages": [HumanMessage(content="List my EC2 instances")],
-        ...     "aws_credential_id": "aws-cred-123"
+        ...     "messages": [HumanMessage(content="List my EC2 instances")]
         ... })
     """
     # Create config if not provided

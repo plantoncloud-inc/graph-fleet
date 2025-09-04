@@ -13,7 +13,12 @@ except ImportError:
     from server import run_server
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the command line script"""
     run_server()
+
+
+if __name__ == "__main__":
+    main()
 
 

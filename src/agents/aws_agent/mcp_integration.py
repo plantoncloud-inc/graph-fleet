@@ -6,7 +6,6 @@ This module handles the integration with default MCP servers:
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -57,16 +56,16 @@ def get_mcp_servers_config() -> Dict[str, Any]:
     
     Returns configuration that works in both development and production environments.
     """
-    # Get the project root dynamically
+    # Get the project root dynamically for PYTHONPATH
     project_root = find_project_root()
     
-    # Use current Python interpreter (works in venv, Docker, etc.)
-    python_executable = sys.executable
-    
+    # Planton Cloud MCP server configuration
+    # For now, we use python -m approach for development
+    # In the future, when planton-cloud-mcp-server is published as a package,
+    # we can use it similar to awslabs.aws-api-mcp-server
     mcp_servers = {
-        # Planton Cloud MCP server for platform integration
         "planton_cloud": {
-            "command": python_executable,
+            "command": "python",
             "args": [
                 "-m", 
                 "src.mcp.planton_cloud.entry_point"
