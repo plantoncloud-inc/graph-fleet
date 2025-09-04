@@ -16,13 +16,49 @@ from langchain_core.tools import BaseTool
 _mcp_tools_cache: Optional[List[BaseTool]] = None
 _mcp_client_cache: Optional[MultiServerMCPClient] = None
 
+def find_project_root() -> Path:
+    """Find the project root by looking for pyproject.toml or .git directory
+    
+    This is more robust than using parent.parent.parent.parent and supports:
+    1. Environment variable override (GRAPH_FLEET_ROOT)
+    2. Automatic detection via project markers
+    3. Fallback for backwards compatibility
+    """
+    # First, check if project root is explicitly set via environment variable
+    env_root = os.getenv("GRAPH_FLEET_ROOT")
+    if env_root:
+        root_path = Path(env_root).resolve()
+        if root_path.exists():
+            return root_path
+        else:
+            print(f"Warning: GRAPH_FLEET_ROOT set to {env_root} but path doesn't exist")
+    
+    # Otherwise, auto-detect by walking up the directory tree
+    current = Path(__file__).resolve()
+    
+    # Walk up the directory tree looking for project markers
+    for parent in current.parents:
+        # Check for pyproject.toml (Poetry project)
+        if (parent / "pyproject.toml").exists():
+            return parent
+        # Check for .git directory (git repository root)
+        if (parent / ".git").exists():
+            return parent
+        # Check for langgraph.json (LangGraph project)
+        if (parent / "langgraph.json").exists():
+            return parent
+    
+    # Fallback to 4 levels up if no markers found (backwards compatibility)
+    # This should rarely happen in practice
+    return Path(__file__).parent.parent.parent.parent
+
 def get_mcp_servers_config() -> Dict[str, Any]:
     """Get MCP servers configuration
     
     Returns configuration that works in both development and production environments.
     """
-    # Get the path to the project root
-    project_root = Path(__file__).parent.parent.parent.parent
+    # Get the project root dynamically
+    project_root = find_project_root()
     
     # Use current Python interpreter (works in venv, Docker, etc.)
     python_executable = sys.executable
