@@ -19,7 +19,7 @@ from .state import AWSAgentState
 from .utils.session import cleanup_session
 
 # MCP integration
-from .mcp_integration import MCPClientManager
+from .mcp import MCPClientManager
 
 # Sub-agent imports
 from .subagents import create_ecs_troubleshooter_subagent

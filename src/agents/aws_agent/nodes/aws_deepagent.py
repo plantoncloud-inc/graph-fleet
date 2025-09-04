@@ -16,7 +16,7 @@ from deepagents import async_create_deep_agent
 from ..state import AWSAgentState
 from ..configuration import AWSAgentConfig, get_effective_instructions
 from ..llm import create_llm
-from ..mcp_integration import get_planton_mcp_tools, get_combined_mcp_tools
+from ..mcp import get_planton_mcp_tools, get_combined_mcp_tools
 from ..subagents import create_ecs_troubleshooter_subagent
 
 logger = logging.getLogger(__name__)
