@@ -12,11 +12,9 @@ The AWS Agent is built using the [DeepAgents](https://github.com/langchain-ai/de
 aws_agent/
 ├── __init__.py              # Package exports and imports
 ├── configuration.py         # Agent configuration and settings
-├── state.py                # State management for conversations
-├── graph.py                # Main agent orchestration
+├── graph.py                # Main agent orchestration (simplified for LangGraph Studio)
 ├── llm.py                  # LLM provider configuration
 ├── mcp_integration.py      # MCP server integration
-├── grpc_server.py          # gRPC service implementation
 ├── README.md               # This documentation
 └── subagents/              # Specialized sub-agents
     ├── __init__.py
@@ -83,33 +81,26 @@ Simple configuration focused on essentials:
 - Execution limits (retries, steps, timeout)
 - Planning, sub-agents, and file system are enabled by default
 
-### 2. State (`state.py`)
-Maintains conversation and AWS context:
-- AWS credentials and region
-- Session management
-- Error tracking
-- Virtual file system state (via DeepAgents)
+### 2. Graph (`graph.py`)
+Main orchestration module (simplified for LangGraph Studio):
+- Single async `graph()` function for LangGraph Studio
+- Assembles MCP tools and sub-agents
+- Creates DeepAgent instances with full configuration support
+- Ensures dev/prod parity with MCP tools
 
-### 3. Graph (`graph.py`)
-Main orchestration module that:
-- Assembles tools and sub-agents
-- Creates DeepAgent instances
-- Manages configuration
-- Provides factory functions
-
-### 4. LLM Module (`llm.py`)
+### 3. LLM Module (`llm.py`)
 Handles language model configuration:
 - Supports OpenAI and Anthropic models
 - Model-specific settings
 - Provider detection and fallbacks
 
-### 5. MCP Integration (`mcp_integration.py`)
+### 4. MCP Integration (`mcp_integration.py`)
 Dynamic tool loading through Model Context Protocol:
 - **Planton Cloud MCP Server**: Platform tools and AWS credential management
 - **AWS API MCP Server**: Complete AWS CLI surface (list, describe, create operations across all services)
 - Tools are loaded dynamically at runtime from both servers
 
-### 6. Sub-agents Package (`subagents/`)
+### 5. Sub-agents Package (`subagents/`)
 Specialized sub-agent for deep ECS expertise:
 - **ecs_troubleshooter.py**: ECS service and container debugging specialist
 
@@ -141,39 +132,98 @@ The agent automatically connects to these two MCP servers:
 ### How It Works
 
 ```python
-# The agent automatically loads tools from both default MCP servers
-agent = await create_aws_agent()
-
-# Tools from both servers are available immediately
+# In LangGraph Studio, the agent automatically loads tools from both MCP servers
+# Tools are available when you interact through the Studio UI:
 # - Planton Cloud tools for credentials
 # - AWS API tools for all AWS operations
-result = await agent.invoke({
-    "messages": [HumanMessage(content="List my EC2 instances")],
-    "aws_credential_id": "aws-cred-123"
-})
+
+# Example interaction in Studio:
+"List my EC2 instances"
+# With state: {"aws_credential_id": "aws-cred-123"}
 ```
 
 **Note**: Future releases will add customization options for MCP servers and tool filtering.
 
+## LangGraph Studio Integration
+
+### Configuration
+
+The agent is now simplified for LangGraph Studio deployment. Configure through the Studio UI:
+
+```json
+{
+  "model_name": "gpt-4o",           // LLM model selection
+  "temperature": 0.7,               // Response creativity (0.0-1.0)
+  "instructions": "Custom prompt",  // Override default instructions
+  "max_retries": 3,                // Retry limit for operations
+  "max_steps": 20,                 // Maximum execution steps
+  "timeout_seconds": 600           // Operation timeout
+}
+```
+
+### Entry Points
+
+The agent provides two entry points for different use cases:
+
+1. **`graph(config: dict)`** - For LangGraph Studio deployment
+   - Called directly by LangGraph Studio
+   - Accepts configuration as a dictionary
+   - Async function that works within Studio's event loop
+
+2. **`create_aws_agent(...)`** - For examples and CLI demos
+   - Wrapper function for standalone use
+   - Accepts typed configuration objects
+   - Perfect for quick demos and testing
+
+### Recent Changes (December 2024)
+
+1. **Simplified graph.py**: Main `graph()` function for LangGraph Studio
+2. **Added create_aws_agent**: Restored for examples and CLI demos
+3. **Fixed async issues**: Resolved `asyncio.run()` error in event loop context
+4. **Removed gRPC server**: Focusing on LangGraph Studio integration first
+5. **Dev/prod parity**: MCP tools now available in both environments
+
 ## Usage Examples
 
-### Basic Usage
+### Basic Usage in LangGraph Studio
+
+In LangGraph Studio, the agent is automatically instantiated with your configuration:
 
 ```python
-from agents.aws_agent import create_aws_agent
+# The graph function is called by LangGraph Studio with your config
+# You interact through the Studio UI, not directly in code
+
+# Example input in Studio:
+"My ECS service is failing to deploy. Tasks keep stopping with 
+'Essential container exited' error. Can you help me debug and fix this?"
+
+# Provide state variables:
+{
+  "aws_credential_id": "aws-cred-123"
+}
+```
+
+### Basic Usage for CLI Demos
+
+For quick demos and testing outside of LangGraph Studio:
+
+```python
+from src.agents.aws_agent import create_aws_agent
 from langchain_core.messages import HumanMessage
 
-# Create DeepAgent with MCP tools from Planton Cloud
-agent = await create_aws_agent()
+# Create agent for demo
+agent = await create_aws_agent(
+    model_name="gpt-4o",
+    runtime_instructions="Focus on cost optimization"
+)
 
-# Complex task that will use MCP tools and planning
+# Use the agent
 result = await agent.invoke({
-    "messages": [HumanMessage(content="""
-    My ECS service is failing to deploy. Tasks keep stopping with 
-    'Essential container exited' error. Can you help me debug and fix this?
-    """)],
+    "messages": [HumanMessage(content="Analyze my EC2 costs")],
     "aws_credential_id": "aws-cred-123"
 })
+
+print(result["messages"][-1].content)
 ```
 
 ### Observing Agent Planning
@@ -186,20 +236,17 @@ The agent will automatically:
 5. Store findings in virtual file system
 6. Provide step-by-step resolution
 
-### Custom Configuration
+### Custom Configuration in LangGraph Studio
 
-```python
-from agents.aws_agent import AWSAgentConfig
+Configure through the Studio UI configuration panel:
 
-# Simple configuration - only essential settings
-config = AWSAgentConfig(
-    model_name="gpt-4o",
-    temperature=0.3,
-    max_steps=30,  # Allow more steps for complex tasks
-    timeout_seconds=900  # Longer timeout for complex operations
-)
-
-agent = await create_aws_agent(config=config)
+```json
+{
+  "model_name": "gpt-4o",
+  "temperature": 0.3,
+  "max_steps": 30,         // Allow more steps for complex tasks
+  "timeout_seconds": 900   // Longer timeout for complex operations
+}
 ```
 
 ### Working with Sub-Agents
@@ -322,22 +369,21 @@ pip install deepagents langchain-openai
 python examples/aws_agent_example.py
 ```
 
-### Testing Planning Behavior
+### Testing Planning Behavior in LangGraph Studio
 
-```python
-# Test complex task planning
-agent = await create_aws_agent()
-result = await agent.invoke({
-    "messages": [HumanMessage(content="""
-    1. Audit my S3 buckets for public access
-    2. Review IAM policies for overly permissive access  
-    3. Check EC2 instances for unencrypted volumes
-    4. Create a security remediation plan
-    """)],
-    "aws_credential_id": "aws-cred-123"
-})
+Test complex task planning through the Studio UI:
 
-# Observe todo list creation and systematic execution
+```
+Input:
+"1. Audit my S3 buckets for public access
+2. Review IAM policies for overly permissive access  
+3. Check EC2 instances for unencrypted volumes
+4. Create a security remediation plan"
+
+State:
+{"aws_credential_id": "aws-cred-123"}
+
+# Observe todo list creation and systematic execution in the Studio interface
 ```
 
 ## Limitations and Considerations

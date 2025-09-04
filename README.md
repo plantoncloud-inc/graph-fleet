@@ -53,6 +53,8 @@ export ANTHROPIC_API_KEY="your-key"  # Optional
 
 ### Running the AWS Agent
 
+#### For Examples and CLI Demos
+
 ```python
 from src.agents.aws_agent import create_aws_agent
 from langchain_core.messages import HumanMessage
@@ -120,16 +122,15 @@ from mcp.planton_cloud import mcp, run_server
 
 ## Deployment
 
-### LangGraph Deployment
+### LangGraph Studio
 
-The fleet is configured for LangGraph deployment:
+The AWS agent is optimized for LangGraph Studio deployment:
 
 ```bash
-# Deploy all agents
-langgraph deploy --config langgraph.json
+# Start LangGraph Studio locally
+langgraph dev
 
-# Test deployment
-langgraph test
+# The graph will be available at http://localhost:8123
 ```
 
 Configuration in `langgraph.json`:
@@ -137,16 +138,29 @@ Configuration in `langgraph.json`:
 - Python 3.11 runtime
 - Buf.build integration for protobuf
 
-### gRPC Service
+**Note:** The agent has two entry points:
+- `graph()` - For LangGraph Studio (async, accepts dict config)
+- `create_aws_agent()` - For examples and CLI demos (wrapper for standalone use)
 
-Each agent exposes a gRPC service for integration:
+#### Configuration in LangGraph Studio
 
-```python
-# Start gRPC server
-python -m src.agents.aws_agent.grpc_server
+You can configure the agent through LangGraph Studio's UI:
 
-# Default port: 50051
+```json
+{
+  "model_name": "gpt-4o",           // or "claude-3-5-sonnet-20241022"
+  "temperature": 0.7,               // 0.0 (deterministic) to 1.0 (creative)
+  "instructions": "Custom prompt",  // Override default AWS agent behavior
+  "max_retries": 3,                // Retry failed operations
+  "max_steps": 20,                 // Maximum agent steps
+  "timeout_seconds": 600           // Operation timeout
+}
 ```
+
+The agent includes full MCP tool support in LangGraph Studio:
+- Planton Cloud MCP tools for credentials and platform operations
+- AWS API MCP tools for comprehensive AWS CLI access
+- Same tools in dev (LangGraph Studio) and production
 
 ## Examples
 

@@ -12,8 +12,7 @@ The agent is organized into modular components:
 
 # Core imports
 from .configuration import AWSAgentConfig, DEFAULT_AWS_AGENT_INSTRUCTIONS
-from .state import AWSAgentState
-from .graph import create_aws_agent, graph
+from .graph import graph, create_aws_agent
 
 # MCP integration
 from .mcp_integration import get_mcp_tools
@@ -27,9 +26,8 @@ from .llm import create_llm, get_model_info
 __all__ = [
     # Core components
     "AWSAgentConfig",
-    "AWSAgentState", 
-    "create_aws_agent",
     "graph",
+    "create_aws_agent",  # For examples and CLI demos
     "DEFAULT_AWS_AGENT_INSTRUCTIONS",
     
     # MCP integration
