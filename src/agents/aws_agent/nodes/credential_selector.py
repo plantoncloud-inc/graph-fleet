@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from ..state import AWSAgentState
 from ..configuration import AWSAgentConfig
 from ..llm import create_llm
-from ..mcp_integration import MCPClientManager, get_planton_mcp_tools
+from ..mcp import MCPClientManager, get_planton_mcp_tools
 
 logger = logging.getLogger(__name__)
 

@@ -15,7 +15,14 @@ aws_agent/
 ├── state.py                # Extended state with credential management
 ├── graph.py                # Main graph orchestration
 ├── llm.py                  # LLM provider configuration
-├── mcp_integration.py      # MCP server integration
+├── mcp/                    # MCP integration package
+│   ├── __init__.py         # Package exports
+│   ├── client_manager.py   # MCP client lifecycle management
+│   ├── config.py           # Configuration and environment setup
+│   ├── planton.py          # Planton Cloud MCP integration
+│   ├── aws.py              # AWS API MCP integration
+│   ├── tools.py            # Tool combination logic
+│   └── README.md           # MCP package documentation
 ├── nodes/                  # Graph nodes (modular architecture)
 │   ├── __init__.py
 │   ├── credential_selector.py  # Node A: Credential selection & logic
@@ -138,12 +145,15 @@ LLM-based credential selection logic and node implementation:
 - Returns structured selection response
 - Handles ambiguous cases with questions
 
-### 5. MCP Integration (`mcp_integration.py`)
-Session-scoped MCP client management:
-- **MCPClientManager**: Manages client lifecycle
-- **Planton Cloud MCP**: Credential and platform tools
-- **AWS API MCP**: Complete AWS CLI surface after STS mint
+### 5. MCP Integration (`mcp/` package)
+Modular MCP integration with session-scoped management:
+- **client_manager.py**: MCPClientManager for lifecycle management
+- **config.py**: Environment setup and project root detection
+- **planton.py**: Planton Cloud MCP integration
+- **aws.py**: AWS API MCP integration with STS minting
+- **tools.py**: Tool combination and caching logic
 - Automatic STS refresh before expiration
+- See [MCP package documentation](mcp/README.md) for details
 
 ### 6. Session Management (`utils/session.py`)
 Handles session-scoped data:
@@ -236,6 +246,7 @@ The agent provides two entry points for different use cases:
 5. **Session Management**: Isolated sessions for multi-tenant safety
 6. **STS Refresh**: Automatic credential refresh before expiration
 7. **No-Credential Handling**: Graceful first-turn credential selection
+8. **MCP Package Refactoring**: Split `mcp_integration.py` into a clean package structure with separate modules for client management, configuration, and provider-specific logic
 
 ## Usage Examples
 

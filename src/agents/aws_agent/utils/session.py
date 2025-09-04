@@ -6,7 +6,7 @@ Handles session-scoped data and cleanup.
 import logging
 from typing import Dict, Any, Optional
 
-from ..mcp_integration import MCPClientManager
+from ..mcp import MCPClientManager
 
 logger = logging.getLogger(__name__)
 
