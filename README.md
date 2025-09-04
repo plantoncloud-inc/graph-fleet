@@ -24,6 +24,7 @@ graph-fleet/
 
 The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langchain-ai/deepagents) framework for autonomous problem-solving:
 
+#### Core Capabilities
 - **🎯 Planning**: Breaks complex tasks into manageable steps with todo lists
 - **🤖 Sub-Agents**: Spawns specialists for deep expertise (e.g., ECS debugging)
 - **📁 Virtual File System**: Maintains context and findings across operations
@@ -31,6 +32,12 @@ The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langcha
 - **🔒 Secure**: Integrates with Planton Cloud for credential management
 - **📦 Modular**: Clean architecture with separate packages for sub-agents and LLM config
 - **🔌 MCP Integration**: Default MCP servers (Planton Cloud + AWS API) for comprehensive AWS access
+
+#### Performance Features
+- **⚡ Tool Caching**: MCP tools cached after first load
+- **🚀 Fast Startup**: Pre-installed dependencies, no runtime installation
+- **📊 Efficient**: Uses installed packages instead of runtime uvx
+- **🔍 Debug Logging**: Shows loaded MCP tools for transparency
 
 See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
 
@@ -46,9 +53,16 @@ cd graph-fleet
 # Create virtual environment and install dependencies
 make venvs
 
-# Set environment variables
+# Install AWS API MCP server for better performance (recommended)
+poetry add awslabs.aws-api-mcp-server
+
+# Set environment variables (or use .env_export file)
 export OPENAI_API_KEY="your-key"
 export ANTHROPIC_API_KEY="your-key"  # Optional
+export AWS_REGION="us-east-1"  # Optional, defaults to us-east-1
+
+# Or source the example environment file
+source .env_export
 ```
 
 ### Running the AWS Agent
@@ -82,7 +96,8 @@ from langchain_core.messages import HumanMessage
 agent = await create_aws_agent()
 
 # Agent has full AWS CLI access through MCP tools
-result = await agent.invoke({
+# Note: invoke() is synchronous, not async
+result = agent.invoke({
     "messages": [HumanMessage(content="""
     My ECS service is failing. Tasks exit with 'Essential container exited'.
     Debug the issue and provide a fix.
@@ -92,8 +107,8 @@ result = await agent.invoke({
 
 # Agent will:
 # 1. Create a todo list for debugging
-# 2. Fetch AWS credentials
-# 3. Analyze the error
+# 2. Fetch AWS credentials via MCP
+# 3. Analyze the error using AWS API tools
 # 4. Possibly spawn ECS troubleshooter sub-agent
 # 5. Store findings in virtual file system
 # 6. Provide comprehensive solution
@@ -119,38 +134,82 @@ agent = await create_aws_agent(
 
 ## MCP Integration
 
-The Graph Fleet integrates with Planton Cloud MCP for:
+The Graph Fleet uses Model Context Protocol (MCP) for dynamic tool loading:
 
-- **Credential Management**: Secure AWS credential retrieval
-- **Context Access**: Organization and environment information
-- **Tool Extensions**: Additional cloud operations capabilities
+### Default MCP Servers
 
-### MCP Server
+1. **Planton Cloud MCP Server** (built-in)
+   - AWS credential management
+   - Platform-specific tools
+   - Organization context
 
-Run the Planton Cloud MCP server:
+2. **AWS API MCP Server** (awslabs)
+   - Comprehensive AWS CLI surface
+   - All AWS services (EC2, S3, ECS, RDS, etc.)
+   - Direct AWS API access
+
+### Key Features
+
+- **Tool Caching**: MCP tools are cached after first load for performance
+- **Automatic Installation**: Falls back to `uvx` if AWS API MCP not installed
+- **Zero Configuration**: Works out of the box with sensible defaults
+- **Production Ready**: Pre-install dependencies in Docker for production
+
+### Running MCP Servers Manually
 
 ```bash
-python src/mcp/planton_cloud/entry_point.py
+# Planton Cloud MCP server (if needed separately)
+poetry run python -m src.mcp.planton_cloud.entry_point
+
+# AWS API MCP server (installed via poetry)
+awslabs.aws-api-mcp-server
 ```
 
-Or import in Python:
+### Performance Optimization
 
-```python
-from mcp.planton_cloud import mcp, run_server
+For best performance, install AWS API MCP server locally:
+```bash
+poetry add awslabs.aws-api-mcp-server
 ```
+
+This avoids runtime installation and speeds up agent initialization.
 
 ## Deployment
 
-### LangGraph Studio
+### Development Mode
 
-The AWS agent is optimized for LangGraph Studio deployment:
+For local development with automatic MCP server management:
 
 ```bash
 # Start LangGraph Studio locally
-langgraph dev
+make run  # or langgraph dev
 
 # The graph will be available at http://localhost:8123
 ```
+
+### Production Mode (Docker)
+
+For production deployment with pre-installed dependencies:
+
+```bash
+# Build Docker image
+docker build -t graph-fleet .
+
+# Run with Docker Compose
+docker-compose up
+
+# Or run directly
+docker run -e OPENAI_API_KEY=$OPENAI_API_KEY graph-fleet
+```
+
+### Production Optimizations
+
+1. **MCP Tools Caching**: Tools are cached after first load to avoid reinitialization
+2. **Pre-installed Dependencies**: AWS API MCP server is installed in the Docker image
+3. **No Runtime Installation**: All dependencies are resolved at build time
+4. **Fast Startup**: No package installation at runtime when properly configured
+
+### Configuration
 
 Configuration in `langgraph.json`:
 - AWS Agent: `src.agents.aws_agent.graph:graph`
@@ -304,6 +363,43 @@ Each agent supports:
 - [ ] Cross-cloud agent coordination
 - [ ] Visual agent workflow builder
 - [ ] Agent marketplace for specialized sub-agents
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Installing 73 packages" on every run**
+   - **Solution**: Install AWS API MCP server locally with `poetry add awslabs.aws-api-mcp-server`
+   - This is uvx installing packages at runtime, which is avoided with local installation
+
+2. **"No module named 'mcp.planton_cloud'"**
+   - **Solution**: Ensure you're in the Poetry environment: `poetry shell` or use `poetry run`
+   - The PYTHONPATH needs to include the project root
+
+3. **"OpenAI API key not found"**
+   - **Solution**: Export the API key or source `.env_export`:
+   ```bash
+   export OPENAI_API_KEY="your-key"
+   # Or
+   source .env_export
+   ```
+
+4. **Slow agent startup**
+   - **Solution**: Install AWS API MCP server to avoid runtime installation
+   - Enable caching (already enabled by default in latest version)
+
+5. **MCP tools not loading**
+   - **Solution**: Check the logs - you should see "Loaded X MCP tools from servers"
+   - Ensure MCP servers can start properly
+
+### Debug Logging
+
+To see what MCP tools are loaded:
+```python
+# The agent logs MCP tools at INFO level
+# Look for: "Loaded 3 MCP tools from servers"
+# And: "MCP tools available: ['get_aws_credential', 'suggest_aws_commands', 'call_aws']..."
+```
 
 ## Contributing
 
