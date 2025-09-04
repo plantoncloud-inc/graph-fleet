@@ -6,9 +6,29 @@ This module handles the integration with default MCP servers:
 """
 
 import os
-from typing import List
+import sys
+import subprocess
+from pathlib import Path
+from typing import List, Optional
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
+
+def get_poetry_python() -> Optional[str]:
+    """Get the path to the Poetry virtual environment Python executable"""
+    try:
+        result = subprocess.run(
+            ["poetry", "env", "info", "--path"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        venv_path = result.stdout.strip()
+        python_path = Path(venv_path) / "bin" / "python"
+        if python_path.exists():
+            return str(python_path)
+    except:
+        pass
+    return None
 
 async def get_mcp_tools() -> List[BaseTool]:
     """Get tools from default MCP servers
@@ -24,18 +44,25 @@ async def get_mcp_tools() -> List[BaseTool]:
         >>> tools = await get_mcp_tools()
         >>> # tools now contains all MCP tools from both servers
     """
+    # Get the path to the project root
+    project_root = Path(__file__).parent.parent.parent.parent
+    
+    # Use Poetry Python if available, otherwise current interpreter
+    python_executable = get_poetry_python() or sys.executable
+    
     # Default MCP servers configuration
     mcp_servers = {
         # Planton Cloud MCP server for platform integration
         "planton_cloud": {
-            "command": "python",
+            "command": python_executable,
             "args": [
                 "-m", 
-                "mcp.planton_cloud.entry_point"
+                "src.mcp.planton_cloud.entry_point"
             ],
             "transport": "stdio",
             "env": {
-                "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR")
+                "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+                "PYTHONPATH": str(project_root)
             }
         },
         

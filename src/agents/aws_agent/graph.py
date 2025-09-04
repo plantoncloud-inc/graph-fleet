@@ -100,7 +100,7 @@ async def create_aws_agent(
         
     Example:
         >>> agent = await create_aws_agent()
-        >>> result = await agent.invoke({
+        >>> result = agent.invoke({  # Note: invoke is synchronous
         ...     "messages": [HumanMessage(content="List my EC2 instances")],
         ...     "aws_credential_id": "aws-cred-123"
         ... })

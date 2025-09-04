@@ -6,7 +6,11 @@ Central server that registers all Planton Cloud MCP tools.
 from mcp.server.fastmcp import FastMCP
 
 # Import tools from their respective modules
-from .connect.awscredential import get_aws_credential
+try:
+    from .connect.awscredential import get_aws_credential
+except ImportError:
+    # Handle direct execution
+    from connect.awscredential import get_aws_credential
 
 # Initialize the MCP server
 mcp = FastMCP("PlantonCloud")
