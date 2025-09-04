@@ -55,9 +55,7 @@ def create_llm(config: AWSAgentConfig) -> BaseChatModel:
         return ChatOpenAI(
             model=model_name,
             temperature=temperature,
-            model_kwargs={
-                "timeout": config.timeout_seconds
-            }
+            timeout=config.timeout_seconds
         )
     
     # Check if it's an Anthropic model
@@ -74,9 +72,7 @@ def create_llm(config: AWSAgentConfig) -> BaseChatModel:
         return ChatOpenAI(
             model=model_name,
             temperature=temperature,
-            model_kwargs={
-                "timeout": config.timeout_seconds
-            }
+            timeout=config.timeout_seconds
         )
     
     elif "claude" in model_lower:
@@ -93,9 +89,7 @@ def create_llm(config: AWSAgentConfig) -> BaseChatModel:
         return ChatOpenAI(
             model=model_name,
             temperature=temperature,
-            model_kwargs={
-                "timeout": config.timeout_seconds
-            }
+            timeout=config.timeout_seconds
         )
 
 

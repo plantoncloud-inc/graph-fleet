@@ -29,37 +29,37 @@ examples:
 example-1:
 	@echo "Running Example 1: Generic AWS Assistant (MCP)"
 	@echo "=============================================="
-	cd $(ROOT_DIR) && echo "1" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "1" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-2:
 	@echo "Running Example 2: Complex ECS Debugging (Planning + Sub-agents)"
 	@echo "=============================================================="
-	cd $(ROOT_DIR) && echo "2" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "2" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-3:
 	@echo "Running Example 3: AWS Solutions Architect"
 	@echo "========================================="
-	cd $(ROOT_DIR) && echo "3" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "3" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-4:
 	@echo "Running Example 4: Agent with Specific Region"
 	@echo "============================================"
-	cd $(ROOT_DIR) && echo "4" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "4" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-5:
 	@echo "Running Example 5: Custom Instructions Agent"
 	@echo "==========================================="
-	cd $(ROOT_DIR) && echo "5" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "5" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-6:
 	@echo "Running Example 6: AWS Operations with MCP"
 	@echo "========================================="
-	cd $(ROOT_DIR) && echo "6" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "6" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 example-all:
 	@echo "Running All AWS Agent Examples"
 	@echo "============================="
-	cd $(ROOT_DIR) && echo "7" | $(PYTHON) $(EXAMPLE_SCRIPT)
+	cd $(ROOT_DIR) && source .env_export 2>/dev/null || true && echo "7" | $(PYTHON) $(EXAMPLE_SCRIPT)
 
 help:
 	@echo "AWS Agent Makefile Commands"

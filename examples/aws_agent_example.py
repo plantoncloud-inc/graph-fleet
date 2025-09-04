@@ -30,7 +30,7 @@ async def example_generic_aws_assistant():
     
     # Ask a general AWS question
     # The agent will use MCP tools to fetch credentials and provide answers
-    result = await agent.invoke({
+    result = agent.invoke({
         "messages": [HumanMessage(content="What are the best practices for S3 bucket security?")],
         "aws_credential_id": "aws-cred-123"  # Required: ID from Planton Cloud
     })
@@ -50,7 +50,7 @@ async def example_complex_ecs_debugging():
     agent = await create_aws_agent()
     
     # Complex issue that requires planning and investigation
-    result = await agent.invoke({
+    result = agent.invoke({
         "messages": [HumanMessage(content="""
 My production ECS service 'api-service' is experiencing issues:
 1. Tasks are failing with 'Essential container exited' error
@@ -96,7 +96,7 @@ Focus on Well-Architected Framework principles in your recommendations."""
     )
     
     # Ask for architecture recommendation
-    result = await agent({
+    result = agent.invoke({
         "messages": [HumanMessage(content="""
 I need to design a scalable web application that can handle 100K concurrent users.
 Requirements:
@@ -122,7 +122,7 @@ async def example_with_specific_region():
     agent = await create_aws_agent()
     
     # Use with specific region (overrides default from credential)
-    result = await agent({
+    result = agent.invoke({
         "messages": [HumanMessage(content="List EC2 instances in eu-west-1")],
         "aws_credential_id": "aws-cred-123",
         "aws_region": "eu-west-1"  # Override region
@@ -158,7 +158,7 @@ Always quantify potential savings and provide implementation priorities."""
         runtime_instructions=cost_optimizer_instructions
     )
     
-    result = await agent.invoke({
+    result = agent.invoke({
         "messages": [HumanMessage(content="""
 Our AWS bill is $50K/month. Main services:
 - 100 EC2 instances (various sizes, 24/7 running)
@@ -188,7 +188,7 @@ async def example_aws_operations():
     agent = await create_aws_agent()
     
     # The agent has access to all AWS operations through AWS API MCP
-    result = await agent.invoke({
+    result = agent.invoke({
         "messages": [HumanMessage(content="""
         List my EC2 instances and their current status.
         Also check if there are any stopped instances that can be terminated.
