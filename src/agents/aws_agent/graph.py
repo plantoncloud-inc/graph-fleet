@@ -4,6 +4,7 @@ This module creates an AWS DeepAgent with MCP tools for LangGraph Studio deploym
 Simplified to focus on LangGraph Studio integration.
 """
 
+import logging
 from typing import Optional
 from deepagents import async_create_deep_agent
 from deepagents import DeepAgentState
@@ -12,6 +13,10 @@ from .configuration import AWSAgentConfig, get_effective_instructions
 from .llm import create_llm
 from .mcp_integration import get_mcp_tools
 from .subagents import create_ecs_troubleshooter_subagent
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 async def graph(config: Optional[dict] = None):
@@ -55,6 +60,10 @@ async def graph(config: Optional[dict] = None):
     
     # Get MCP tools - includes both Planton Cloud and AWS API tools
     tools = await get_mcp_tools()
+    
+    # Log MCP tools information (will change to debug later)
+    logger.info(f"Loaded {len(tools)} MCP tools from servers")
+    logger.info(f"MCP tools available: {[tool.name for tool in tools[:10]]}...")  # Show first 10 tool names
     
     # Create sub-agents
     subagents = [create_ecs_troubleshooter_subagent()]

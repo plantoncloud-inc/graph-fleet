@@ -7,50 +7,26 @@ This module handles the integration with default MCP servers:
 
 import os
 import sys
-import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Dict, Any, Optional
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
 
-def get_poetry_python() -> Optional[str]:
-    """Get the path to the Poetry virtual environment Python executable"""
-    try:
-        result = subprocess.run(
-            ["poetry", "env", "info", "--path"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        venv_path = result.stdout.strip()
-        python_path = Path(venv_path) / "bin" / "python"
-        if python_path.exists():
-            return str(python_path)
-    except:
-        pass
-    return None
+# Cache for MCP tools to avoid reloading on every call
+_mcp_tools_cache: Optional[List[BaseTool]] = None
+_mcp_client_cache: Optional[MultiServerMCPClient] = None
 
-async def get_mcp_tools() -> List[BaseTool]:
-    """Get tools from default MCP servers
+def get_mcp_servers_config() -> Dict[str, Any]:
+    """Get MCP servers configuration
     
-    This function connects to the default MCP servers and retrieves tools:
-    1. Planton Cloud MCP server - Platform tools including AWS credential management
-    2. AWS API MCP server - Comprehensive AWS CLI surface (list, describe, create, etc.)
-    
-    Returns:
-        List of tools from both MCP servers
-        
-    Example:
-        >>> tools = await get_mcp_tools()
-        >>> # tools now contains all MCP tools from both servers
+    Returns configuration that works in both development and production environments.
     """
     # Get the path to the project root
     project_root = Path(__file__).parent.parent.parent.parent
     
-    # Use Poetry Python if available, otherwise current interpreter
-    python_executable = get_poetry_python() or sys.executable
+    # Use current Python interpreter (works in venv, Docker, etc.)
+    python_executable = sys.executable
     
-    # Default MCP servers configuration
     mcp_servers = {
         # Planton Cloud MCP server for platform integration
         "planton_cloud": {
@@ -64,26 +40,70 @@ async def get_mcp_tools() -> List[BaseTool]:
                 "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
                 "PYTHONPATH": str(project_root)
             }
-        },
-        
-        # AWS API MCP server - provides comprehensive AWS CLI surface
-        # This single server covers virtually all AWS services and operations
-        "aws_api": {
+        }
+    }
+    
+    # AWS API MCP server configuration
+    # Try to import awslabs.aws_api_mcp_server to check if it's installed
+    try:
+        from awslabs import aws_api_mcp_server
+        # AWS API MCP server is installed, use the command directly
+        # The package installs a command: awslabs.aws-api-mcp-server
+        mcp_servers["aws_api"] = {
+            "command": "awslabs.aws-api-mcp-server",
+            "args": [],
+            "transport": "stdio",
+            "env": {
+                "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+                "AWS_REGION": os.getenv("AWS_REGION", "us-east-1")
+            }
+        }
+    except ImportError:
+        # AWS API MCP server not installed - fall back to uvx
+        # Note: uvx will install on first run and cache in ~/.local/share/uv/tools/
+        print("Warning: AWS API MCP server not installed. Using uvx to run it.")
+        print("For better performance, install: poetry add awslabs.aws-api-mcp-server")
+        mcp_servers["aws_api"] = {
             "command": "uvx",
             "args": ["awslabs.aws-api-mcp-server@latest"],
             "transport": "stdio",
             "env": {
                 "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
-                # AWS credentials will be set by the agent when needed
                 "AWS_REGION": os.getenv("AWS_REGION", "us-east-1")
             }
         }
-    }
+    
+    return mcp_servers
+
+async def get_mcp_tools(force_reload: bool = False) -> List[BaseTool]:
+    """Get tools from default MCP servers with caching
+    
+    This function connects to the default MCP servers and retrieves tools.
+    Tools are cached after first load to avoid repeated initialization.
+    
+    Args:
+        force_reload: If True, bypass cache and reload tools
+    
+    Returns:
+        List of tools from both MCP servers
+        
+    Example:
+        >>> tools = await get_mcp_tools()
+        >>> # tools now contains all MCP tools from both servers (cached)
+    """
+    global _mcp_tools_cache, _mcp_client_cache
+    
+    # Return cached tools if available and not forcing reload
+    if not force_reload and _mcp_tools_cache is not None:
+        return _mcp_tools_cache
+    
+    # Get MCP servers configuration
+    mcp_servers = get_mcp_servers_config()
     
     # Create MCP client with default servers
-    client = MultiServerMCPClient(mcp_servers)
+    _mcp_client_cache = MultiServerMCPClient(mcp_servers)
     
     # Get tools from both MCP servers
-    tools = await client.get_tools()
+    _mcp_tools_cache = await _mcp_client_cache.get_tools()
     
-    return tools
+    return _mcp_tools_cache
