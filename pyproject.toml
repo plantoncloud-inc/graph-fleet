@@ -1,5 +1,5 @@
 [project]
-name = "agent-fleet"
+name = "graph-fleet"
 version = "0.0.1"
 description = "Resolve cloud resource identities (IDs, ARNs, names) from natural language."
 authors = [{ name = "Planton Cloud" }]
@@ -13,19 +13,23 @@ langchain-openai = "0.3.32"
 langchain-anthropic = "0.3.19"
 python-dotenv = "1.0.1"
 pyyaml = "6.0.2"
-deepagents = "^0.0.5"
-langchain-mcp-adapters = "^0.1.9"
-mcp = "^1.0.0"
+deepagents = "^0.0.5"  # Core framework for autonomous agents
+langchain-mcp-adapters = "^0.1.9"  # LangChain MCP integration for tools
+mcp = "^1.0.0"  # Model Context Protocol library
 # Packages from requirements_buf.txt with custom source
-# https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/python?version=v32.0
-blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
-# https://buf.build/blintora/apis/sdks/v0.2.309:protocolbuffers/pyi?version=v32.0
-blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+f7b5c812ed6f", source = "buf-build" }
-# https://buf.build/blintora/apis/sdks/v0.2.309:grpc/python?version=v1.74.1
-blintora-apis-grpc-python = { version = "==1.74.1.1.dev+f7b5c812ed6f", source = "buf-build" }
+# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/python?version=v32.0
+blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
+# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/pyi?version=v32.0
+blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
+# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:grpc/python?version=v1.74.1
+blintora-apis-grpc-python = { version = "==1.74.1.1.dev+6f15602dc75b", source = "buf-build" }
+awslabs-aws-api-mcp-server = "^0.2.11"
 
 [tool.poetry.extras]
 mcp = ["langchain-mcp-adapters"]
+
+[tool.poetry.scripts]
+planton-cloud-mcp-server = "mcp.planton_cloud.entry_point:main"
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
@@ -43,6 +47,7 @@ include = ["agents*", "mcp*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
 
 [[tool.poetry.source]]
 name = "buf-build"

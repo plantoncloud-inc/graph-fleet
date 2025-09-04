@@ -1,197 +1,163 @@
-"""Graph implementation for AWS Agent using deep agents architecture"""
+"""AWS Agent Graph Implementation for LangGraph Studio
 
-from typing import List, Dict, Any, Optional
-from langchain_core.tools import BaseTool
-from deepagents import async_create_deep_agent
-from langchain_mcp_adapters.client import MultiServerMCPClient
-import os
-from langgraph.graph import StateGraph
-from pydantic import BaseModel
-from langchain_core.runnables import RunnableConfig
+This module creates an AWS DeepAgent with MCP tools for LangGraph Studio deployment.
+Implements two-node flow with credential selection and switching.
+
+The graph is organized as:
+- Node A: Credential selection (Planton MCP only)
+- Node B: AWS DeepAgent execution (Planton + AWS MCP)
+- Router: Determines which node to execute
+- Session management: Handles MCP clients and agent lifecycle
+"""
+
+import logging
+from typing import Optional
+from langgraph.graph import StateGraph, END
+from functools import partial
 
 from .state import AWSAgentState
 from .configuration import AWSAgentConfig
+from .nodes import credential_selector_node, aws_deepagent_node
+from .nodes.router import should_select_credential
+from .utils.session import get_session_manager, cleanup_session
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+async def graph(config: Optional[dict] = None):
+    """Main graph function for LangGraph Studio
+    
+    This is the entry point that LangGraph Studio calls. It creates a two-node
+    graph that handles credential selection and AWS operations.
+    
+    Configuration can be passed through LangGraph Studio UI:
+    - model_name: LLM model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')
+    - temperature: Temperature for LLM responses (0.0-1.0)
+    - instructions: Custom agent instructions  
+    - max_retries: Max retries for operations (default: 3)
+    - max_steps: Max steps the agent can take (default: 20)
+    - recursion_limit: Max graph cycles allowed (default: 50)
+    - timeout_seconds: Timeout for operations (default: 600)
+    
+    The graph implements:
+    - Node A: Credential selection using Planton MCP
+    - Node B: AWS DeepAgent with combined MCP tools
+    - Automatic credential switching on user request
+    - STS credential refresh handling
+    
+    Args:
+        config: Optional configuration dictionary from LangGraph Studio
+        
+    Returns:
+        Configured StateGraph for AWS operations
+    """
+    # Get session manager
+    session = get_session_manager()
+    
+    # Store config in session
+    if config:
+        session.set_config(AWSAgentConfig(**config))
+    else:
+        session.set_config(AWSAgentConfig())
+    
+    # Create wrapper functions that pass session data
+    credential_selector_with_session = partial(
+        credential_selector_node, 
+        session_data=session.data
+    )
+    
+    aws_deepagent_with_session = partial(
+        aws_deepagent_node,
+        session_data=session.data
+    )
+    
+    # Create the state graph
+    workflow = StateGraph(AWSAgentState)
+    
+    # Add nodes with session data
+    workflow.add_node("select_credential", credential_selector_with_session)
+    workflow.add_node("execute_aws", aws_deepagent_with_session)
+    
+    # Add conditional edge from start
+    workflow.add_conditional_edges(
+        "__start__",
+        should_select_credential,
+        {
+            "select": "select_credential",
+            "execute": "execute_aws"
+        }
+    )
+    
+    # Add edges
+    workflow.add_edge("select_credential", "execute_aws")
+    workflow.add_edge("execute_aws", END)
+    
+    # Compile the graph
+    compiled_graph = workflow.compile()
+    
+    return compiled_graph
 
 
 async def create_aws_agent(
     config: Optional[AWSAgentConfig] = None,
     runtime_instructions: Optional[str] = None,
-    model_name: Optional[str] = None
+    model_name: Optional[str] = None,
+    org_id: Optional[str] = None,
+    env_id: Optional[str] = None,
+    actor_token: Optional[str] = None
 ):
-    """Create an AWS Agent using deep agents architecture with MCP integration
+    """Create an AWS agent for examples and CLI demos
     
-    This agent uses:
-    1. Planton Cloud MCP server to fetch AWS credentials
-    2. AWS MCP server for AWS operations
+    This function is specifically for running examples and quick demos outside
+    of LangGraph Studio. It wraps the main graph() function for standalone use.
     
-    The aws_credential_id must be provided in the state when invoking the agent.
+    For LangGraph Studio deployment, use the graph() function directly.
     
     Args:
-        config: Configuration for the agent (uses defaults if not provided)
-        runtime_instructions: Override default instructions at runtime
-        model_name: Override the default model name
+        config: Full agent configuration (optional)
+        runtime_instructions: Override default instructions (optional) 
+        model_name: Override model name (optional)
+        org_id: Planton Cloud organization ID
+        env_id: Planton Cloud environment ID (optional)
+        actor_token: Actor token for API calls
         
     Returns:
-        A configured deep agent with AWS MCP tools
+        Compiled StateGraph for AWS operations
+        
+    Example:
+        >>> agent = await create_aws_agent(org_id="my-org")
+        >>> result = await agent.ainvoke({
+        ...     "messages": [HumanMessage(content="List my EC2 instances")],
+        ...     "orgId": "my-org"
+        ... })
     """
+    # Create config if not provided
     if config is None:
         config = AWSAgentConfig()
     
-    # Override model name if provided
+    # Apply runtime overrides
+    if runtime_instructions:
+        config.instructions = runtime_instructions
+    
     if model_name:
         config.model_name = model_name
     
-    # Use runtime instructions if provided, otherwise use default
-    instructions = runtime_instructions or config.default_instructions
+    # Convert config to dict for graph function
+    config_dict = config.model_dump()
     
-    # Create the deep agent
-    # Note: The agent will need to:
-    # 1. Use Planton Cloud MCP to get AWS credentials based on aws_credential_id from state
-    # 2. Use those credentials to configure AWS MCP server
-    # This is handled by the agent wrapper function below
-    
-    async def agent_with_credential_fetch(state: AWSAgentState) -> Dict[str, Any]:
-        """Agent wrapper that fetches credentials and configures AWS MCP"""
-        
-        # Get aws_credential_id from state
-        aws_credential_id = state.get("aws_credential_id")
-        if not aws_credential_id:
-            raise ValueError("aws_credential_id is required in state")
-        
-        # Initialize Planton Cloud MCP client
-        planton_mcp_config = {
-            "planton": {
-                "command": "python",
-                "args": [os.path.join(os.path.dirname(__file__), "..", "..", "mcp", "planton_cloud", "entry_point.py")],
-                "transport": "stdio"
-            }
-        }
-        
-        planton_client = MultiServerMCPClient(planton_mcp_config)
-        planton_tools = await planton_client.get_tools()
-        
-        # Use the get_aws_credential tool to fetch credentials
-        get_cred_tool = next((t for t in planton_tools if t.name == "get_aws_credential"), None)
-        if not get_cred_tool:
-            raise ValueError("get_aws_credential tool not found in Planton Cloud MCP")
-        
-        # Fetch AWS credentials
-        cred_result = await get_cred_tool.ainvoke({"credential_id": aws_credential_id})
-        
-        # Configure AWS MCP with the fetched credentials
-        aws_mcp_config = {
-            "aws": {
-                "command": "uvx",
-                "args": ["awslabs.core-mcp-server@latest"],
-                "transport": "stdio",
-                "env": {
-                    "AWS_ACCESS_KEY_ID": cred_result["access_key_id"],
-                    "AWS_SECRET_ACCESS_KEY": cred_result["secret_access_key"],
-                    "AWS_REGION": state.get("aws_region") or cred_result.get("region", "us-east-1"),
-                    "FASTMCP_LOG_LEVEL": "ERROR"
-                }
-            }
-        }
-        
-        # Initialize AWS MCP client with credentials
-        aws_client = MultiServerMCPClient(aws_mcp_config)
-        aws_tools = await aws_client.get_tools()
-        
-        # Combine tools from both MCP servers
-        all_tools = planton_tools + aws_tools
-        
-        # Create the deep agent with all tools
-        agent = async_create_deep_agent(
-            tools=all_tools,
-            instructions=instructions,
-            state_type=AWSAgentState,
-            model=config.model_name,
-            model_kwargs={"temperature": config.temperature}
-        )
-        
-        # Invoke the agent with the state
-        return await agent.ainvoke(state)
-    
-    return agent_with_credential_fetch
-
-
-def create_configurable_aws_agent():
-    """Return a factory function to build a configured AWS agent at runtime.
-
-    This is intended for LangGraph deployments that expect an entry point
-    returning a callable which, when awaited, yields a runnable agent.
-
-    The returned async factory accepts an optional configuration mapping with
-    keys: "model_name", "temperature", and "instructions".
-    """
-
-    async def factory(config: Optional[Dict[str, Any]] = None):
-        config = config or {}
-
-        # Build AWSAgentConfig from provided mapping
-        agent_config = AWSAgentConfig()
-        if isinstance(config, dict):
-            if "model_name" in config and isinstance(config["model_name"], str):
-                agent_config.model_name = config["model_name"]
-            if "temperature" in config:
-                try:
-                    agent_config.temperature = float(config["temperature"])  # type: ignore[assignment]
-                except (TypeError, ValueError):
-                    pass
-
-            runtime_instructions: Optional[str] = None
-            if "instructions" in config and isinstance(config["instructions"], str):
-                runtime_instructions = config["instructions"]
-        else:
-            runtime_instructions = None
-
-        # Build and return the agent
-        return await create_aws_agent(
-            config=agent_config,
-            runtime_instructions=runtime_instructions,
-            model_name=agent_config.model_name,
-        )
-
-    return factory
-
-
-# LangGraph compiled graph for Studio preview and execution
-# The graph consists of a single node that invokes the deep agent.
-class AWSAgentGraphConfig(BaseModel):
-    model_name: str = "gpt-4o"
-    temperature: float = 0.1
-    # Optional runtime instruction override at config-time (Studio UI)
-    instructions: Optional[str] = None
-
-
-builder = StateGraph(AWSAgentState, context_schema=AWSAgentGraphConfig)
-
-
-async def _invoke_agent(state: AWSAgentState, config: RunnableConfig) -> Dict[str, Any]:
-    # Get graph configuration from the configurable context
-    configurable: Dict[str, Any] = config.get("configurable", {}) if isinstance(config, dict) else {}
-    model_name = configurable.get("model_name", "gpt-4o")
-    temperature = configurable.get("temperature", 0.1)
-    graph_instructions: Optional[str] = configurable.get("instructions")
-
-    # Allow state.instructions to override graph instructions at runtime
-    runtime_instructions: Optional[str] = state.get("instructions") or graph_instructions
-
-    runtime_agent_config = AWSAgentConfig(
-        model_name=str(model_name),
-        temperature=float(temperature),
+    # Set session defaults if provided
+    session = get_session_manager()
+    session.set_defaults(
+        org_id=org_id,
+        env_id=env_id,
+        actor_token=actor_token
     )
-
-    agent = await create_aws_agent(
-        config=runtime_agent_config,
-        runtime_instructions=runtime_instructions,
-        model_name=runtime_agent_config.model_name,
-    )
-    return await agent.ainvoke(state)
+    
+    # Create and return the graph
+    return await graph(config_dict)
 
 
-builder.add_node("invoke", _invoke_agent)
-builder.add_edge("__start__", "invoke")
-builder.add_edge("invoke", "__end__")
-
-graph = builder.compile(name="AWS Agent")
+# Export for LangGraph and examples
+__all__ = ["graph", "create_aws_agent", "cleanup_session", "AWSAgentState"]
