@@ -43,8 +43,8 @@ See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
 git clone https://github.com/plantoncloud-inc/graph-fleet.git
 cd graph-fleet
 
-# Install dependencies
-pip install -r requirements.txt
+# Create virtual environment and install dependencies
+make venvs
 
 # Set environment variables
 export OPENAI_API_KEY="your-key"
@@ -53,7 +53,26 @@ export ANTHROPIC_API_KEY="your-key"  # Optional
 
 ### Running the AWS Agent
 
-#### For Examples and CLI Demos
+#### Using Make Commands (Recommended)
+
+```bash
+# Run interactive examples menu
+make aws-examples
+
+# Run specific examples
+make aws-example-1    # Generic AWS assistant
+make aws-example-2    # Complex ECS debugging
+make aws-example-3    # AWS solutions architect
+make aws-example-4    # Agent with specific region
+make aws-example-5    # Custom instructions agent
+make aws-example-6    # AWS operations with MCP
+make aws-example-all  # Run all examples
+
+# Start LangGraph Studio for interactive development
+make run
+```
+
+#### For Custom CLI Demos
 
 ```python
 from src.agents.aws_agent import create_aws_agent
@@ -164,6 +183,29 @@ The agent includes full MCP tool support in LangGraph Studio:
 
 ## Examples
 
+### Available Make Commands
+
+```bash
+# Core commands
+make help          # Show all available commands
+make venvs         # Create virtual environment and install dependencies
+make run           # Start LangGraph Studio for interactive development
+make build         # Run lints and type checks
+make clean         # Clean up cache files
+
+# AWS Agent Examples
+make aws-examples     # Interactive menu to choose examples
+make aws-example-1    # Generic AWS assistant
+make aws-example-2    # Complex ECS debugging (planning + sub-agents)
+make aws-example-3    # AWS solutions architect
+make aws-example-4    # Agent with specific region
+make aws-example-5    # Custom instructions agent
+make aws-example-6    # AWS operations with MCP
+make aws-example-all  # Run all examples sequentially
+```
+
+### Example Scenarios
+
 See [examples/](examples/) for detailed usage:
 
 - `aws_agent_example.py`: Various AWS agent scenarios
@@ -172,9 +214,13 @@ See [examples/](examples/) for detailed usage:
 - Solutions architect
 - Cost optimizer
 
-Run examples:
+Run examples manually:
 
 ```bash
+# Using make commands (recommended)
+make aws-examples
+
+# Or run directly
 python examples/aws_agent_example.py
 ```
 
