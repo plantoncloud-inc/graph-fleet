@@ -1,16 +1,48 @@
-"""AWS Agent
+"""AWS Agent for Planton Cloud Agent Fleet
 
-A generic AWS agent that can be configured with different instructions
-to perform various AWS-related tasks using MCP integration.
+This agent provides AWS cloud expertise and operations capabilities using
+the DeepAgents framework for autonomous problem-solving with MCP integration.
+
+The agent is organized into modular components:
+- mcp_integration.py: MCP server integration for dynamic tool loading
+- subagents/: Specialized sub-agents for deep expertise
+- llm.py: LLM configuration and creation
+- graph.py: Main agent orchestration
 """
 
-from .graph import create_aws_agent, create_configurable_aws_agent
+# Core imports
+from .configuration import AWSAgentConfig, DEFAULT_AWS_AGENT_INSTRUCTIONS
+from .graph import graph, create_aws_agent
 from .state import AWSAgentState
-from .configuration import AWSAgentConfig
+
+# Utilities
+from .utils.session import cleanup_session
+
+# MCP integration
+from .mcp import MCPClientManager
+
+# Sub-agent imports
+from .subagents import create_ecs_troubleshooter_subagent
+
+# LLM utilities
+from .llm import create_llm, get_model_info
 
 __all__ = [
-    "create_aws_agent",
-    "create_configurable_aws_agent",
-    "AWSAgentState",
+    # Core components
     "AWSAgentConfig",
+    "AWSAgentState",
+    "graph",
+    "create_aws_agent",  # For examples and CLI demos
+    "cleanup_session",
+    "DEFAULT_AWS_AGENT_INSTRUCTIONS",
+    
+    # MCP integration
+    "MCPClientManager",
+    
+    # Sub-agents
+    "create_ecs_troubleshooter_subagent",
+    
+    # Utilities
+    "create_llm",
+    "get_model_info"
 ]

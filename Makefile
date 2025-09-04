@@ -1,4 +1,4 @@
-.PHONY: all build run deps lint clean help venvs
+.PHONY: all build run deps lint clean help venvs aws-examples aws-example-1 aws-example-2 aws-example-3 aws-example-4 aws-example-5 aws-example-6 aws-example-all
 
 SHELL := /bin/bash
 
@@ -56,6 +56,10 @@ clean:
 	find . -type d -name "__pycache__" -delete
 	rm -rf .mypy_cache .ruff_cache dist build *.egg-info
 
+# AWS Agent Examples - delegate to aws_agent Makefile
+aws-examples:
+	@$(MAKE) -C src/agents/aws_agent examples
+
 help:
 	@echo 'build  - run lints/type checks (non-fatal)'
 	@echo 'run     - start LangGraph Studio'
@@ -63,5 +67,13 @@ help:
 	@echo 'venvs  - create Poetry venv'
 	@echo 'lint   - strict lints/type checks'
 	@echo 'clean  - remove caches and build artifacts'
+	@echo ''
+	@echo 'Agent Examples:'
+	@echo 'aws-examples     - run AWS agent examples (interactive menu)'
+
+.PHONY: clean-pyc
+clean-pyc:
+	find . -name '*.pyc' -delete
+	find . -type d -name '__pycache__' -exec rm -rf {} +
 
 
