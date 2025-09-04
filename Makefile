@@ -60,27 +60,6 @@ clean:
 aws-examples:
 	@$(MAKE) -C src/agents/aws_agent examples
 
-aws-example-1:
-	@$(MAKE) -C src/agents/aws_agent example-1
-
-aws-example-2:
-	@$(MAKE) -C src/agents/aws_agent example-2
-
-aws-example-3:
-	@$(MAKE) -C src/agents/aws_agent example-3
-
-aws-example-4:
-	@$(MAKE) -C src/agents/aws_agent example-4
-
-aws-example-5:
-	@$(MAKE) -C src/agents/aws_agent example-5
-
-aws-example-6:
-	@$(MAKE) -C src/agents/aws_agent example-6
-
-aws-example-all:
-	@$(MAKE) -C src/agents/aws_agent example-all
-
 help:
 	@echo 'build  - run lints/type checks (non-fatal)'
 	@echo 'run     - start LangGraph Studio'
@@ -91,12 +70,10 @@ help:
 	@echo ''
 	@echo 'Agent Examples:'
 	@echo 'aws-examples     - run AWS agent examples (interactive menu)'
-	@echo 'aws-example-1    - generic AWS assistant'
-	@echo 'aws-example-2    - complex ECS debugging'
-	@echo 'aws-example-3    - AWS solutions architect'
-	@echo 'aws-example-4    - agent with specific region'
-	@echo 'aws-example-5    - custom instructions agent'
-	@echo 'aws-example-6    - AWS operations with MCP'
-	@echo 'aws-example-all  - run all AWS examples'
+
+.PHONY: clean-pyc
+clean-pyc:
+	find . -name '*.pyc' -delete
+	find . -type d -name '__pycache__' -exec rm -rf {} +
 
 
