@@ -185,6 +185,26 @@ The agent provides two entry points for different use cases:
 
 ## Usage Examples
 
+### Quick Start with Make Commands
+
+```bash
+# Prerequisites: Set up environment
+export OPENAI_API_KEY="your-key"
+export ANTHROPIC_API_KEY="your-key"  # Optional
+
+# From root directory
+make venvs           # Install dependencies
+make aws-examples    # Run interactive examples menu
+
+# Or run specific examples
+make aws-example-1   # Generic AWS assistant
+make aws-example-2   # Complex ECS debugging
+# ... (see make help for all options)
+
+# Start LangGraph Studio for interactive development
+make run
+```
+
 ### Basic Usage in LangGraph Studio
 
 In LangGraph Studio, the agent is automatically instantiated with your configuration:
@@ -359,13 +379,39 @@ Track agent progress through:
 
 ## Development
 
-### Running with DeepAgents
+### Running Examples
+
+#### Using Make Commands (Recommended)
+
+```bash
+# From the root directory, run interactive examples menu
+make aws-examples
+
+# Or run specific examples
+make aws-example-1    # Generic AWS assistant
+make aws-example-2    # Complex ECS debugging (planning + sub-agents)
+make aws-example-3    # AWS solutions architect
+make aws-example-4    # Agent with specific region
+make aws-example-5    # Custom instructions agent
+make aws-example-6    # AWS operations with MCP
+make aws-example-all  # Run all examples sequentially
+
+# From the aws_agent directory directly
+cd src/agents/aws_agent
+make examples         # Show examples menu
+make example-1        # Run specific example
+```
+
+#### Manual Installation and Running
 
 ```bash
 # Install dependencies including deepagents
+make venvs  # From root directory
+
+# Or manually:
 pip install deepagents langchain-openai
 
-# Run example
+# Run example directly
 python examples/aws_agent_example.py
 ```
 
