@@ -6,14 +6,45 @@ This module handles the integration with default MCP servers:
 """
 
 import os
+import time
+import json
+import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
 
-# Cache for MCP tools to avoid reloading on every call
-_mcp_tools_cache: Optional[List[BaseTool]] = None
-_mcp_client_cache: Optional[MultiServerMCPClient] = None
+logger = logging.getLogger(__name__)
+
+# Session-scoped MCP client management
+# No global caches for multi-tenant safety
+class MCPClientManager:
+    """Manages MCP clients for a single agent session"""
+    
+    def __init__(self):
+        self.planton_client: Optional[MultiServerMCPClient] = None
+        self.aws_client: Optional[MultiServerMCPClient] = None
+        self.current_credential_id: Optional[str] = None
+        self.sts_expires_at: Optional[int] = None
+        
+    async def close_all(self):
+        """Close all active MCP clients"""
+        if self.planton_client:
+            try:
+                # MCP client cleanup if needed
+                self.planton_client = None
+            except Exception as e:
+                logger.error(f"Error closing Planton client: {e}")
+                
+        if self.aws_client:
+            try:
+                # MCP client cleanup if needed
+                self.aws_client = None
+            except Exception as e:
+                logger.error(f"Error closing AWS client: {e}")
+                
+        self.current_credential_id = None
+        self.sts_expires_at = None
 
 def find_project_root() -> Path:
     """Find the project root by looking for pyproject.toml or .git directory
@@ -110,35 +141,157 @@ def get_mcp_servers_config() -> Dict[str, Any]:
     
     return mcp_servers
 
-async def get_mcp_tools(force_reload: bool = False) -> List[BaseTool]:
-    """Get tools from default MCP servers with caching
-    
-    This function connects to the default MCP servers and retrieves tools.
-    Tools are cached after first load to avoid repeated initialization.
+async def get_planton_mcp_tools(client_manager: MCPClientManager) -> List[BaseTool]:
+    """Get tools from Planton Cloud MCP server only
     
     Args:
-        force_reload: If True, bypass cache and reload tools
-    
-    Returns:
-        List of tools from both MCP servers
+        client_manager: MCP client manager for the session
         
-    Example:
-        >>> tools = await get_mcp_tools()
-        >>> # tools now contains all MCP tools from both servers (cached)
+    Returns:
+        List of tools from Planton Cloud MCP server
     """
-    global _mcp_tools_cache, _mcp_client_cache
+    if not client_manager.planton_client:
+        # Get the project root dynamically for PYTHONPATH
+        project_root = find_project_root()
+        
+        # Create Planton-only config
+        planton_config = {
+            "planton_cloud": {
+                "command": "python",
+                "args": [
+                    "-m", 
+                    "src.mcp.planton_cloud.entry_point"
+                ],
+                "transport": "stdio",
+                "env": {
+                    "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+                    "PYTHONPATH": str(project_root)
+                }
+            }
+        }
+        
+        client_manager.planton_client = MultiServerMCPClient(planton_config)
     
-    # Return cached tools if available and not forcing reload
-    if not force_reload and _mcp_tools_cache is not None:
-        return _mcp_tools_cache
+    return await client_manager.planton_client.get_tools()
+
+
+async def mint_sts_and_get_aws_tools(
+    client_manager: MCPClientManager,
+    credential_id: str,
+    planton_tools: List[BaseTool]
+) -> Tuple[List[BaseTool], int]:
+    """Mint STS credentials and get AWS MCP tools
     
-    # Get MCP servers configuration
-    mcp_servers = get_mcp_servers_config()
+    Args:
+        client_manager: MCP client manager
+        credential_id: AWS credential ID to mint STS for
+        planton_tools: Planton MCP tools (must include fetch_awscredential_sts)
+        
+    Returns:
+        Tuple of (AWS MCP tools, STS expiration timestamp)
+    """
+    # Find the STS minting tool
+    sts_tool = None
+    for tool in planton_tools:
+        if tool.name == "fetch_awscredential_sts":
+            sts_tool = tool
+            break
+            
+    if not sts_tool:
+        raise ValueError("fetch_awscredential_sts tool not found")
     
-    # Create MCP client with default servers
-    _mcp_client_cache = MultiServerMCPClient(mcp_servers)
+    # Mint STS credentials
+    try:
+        result = await sts_tool.ainvoke({"credential_id": credential_id})
+        sts_data = json.loads(result) if isinstance(result, str) else result
+        
+        # Extract credentials (never log these!)
+        access_key = sts_data.get("access_key_id")
+        secret_key = sts_data.get("secret_access_key")
+        session_token = sts_data.get("session_token")
+        expiration = sts_data.get("expiration", int(time.time()) + 3600)
+        
+        if not all([access_key, secret_key, session_token]):
+            raise ValueError("Incomplete STS credentials received")
+            
+    except Exception as e:
+        logger.error(f"Error minting STS credentials: {e}")
+        raise
     
-    # Get tools from both MCP servers
-    _mcp_tools_cache = await _mcp_client_cache.get_tools()
+    # Close existing AWS client if any
+    if client_manager.aws_client:
+        await client_manager.close_all()
     
-    return _mcp_tools_cache
+    # Create new AWS MCP client with STS credentials
+    # Try to import awslabs.aws_api_mcp_server to check if it's installed
+    try:
+        from awslabs import aws_api_mcp_server
+        aws_config = {
+            "aws_api": {
+                "command": "awslabs.aws-api-mcp-server",
+                "args": [],
+                "transport": "stdio",
+                "env": {
+                    "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+                    "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
+                    "AWS_ACCESS_KEY_ID": access_key,
+                    "AWS_SECRET_ACCESS_KEY": secret_key,
+                    "AWS_SESSION_TOKEN": session_token
+                }
+            }
+        }
+    except ImportError:
+        # Fallback to uvx
+        aws_config = {
+            "aws_api": {
+                "command": "uvx",
+                "args": ["awslabs.aws-api-mcp-server@latest"],
+                "transport": "stdio",
+                "env": {
+                    "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+                    "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
+                    "AWS_ACCESS_KEY_ID": access_key,
+                    "AWS_SECRET_ACCESS_KEY": secret_key,
+                    "AWS_SESSION_TOKEN": session_token
+                }
+            }
+        }
+    
+    client_manager.aws_client = MultiServerMCPClient(aws_config)
+    client_manager.current_credential_id = credential_id
+    client_manager.sts_expires_at = expiration
+    
+    aws_tools = await client_manager.aws_client.get_tools()
+    
+    return aws_tools, expiration
+
+
+async def get_combined_mcp_tools(
+    client_manager: MCPClientManager,
+    credential_id: str,
+    planton_tools: List[BaseTool]
+) -> List[BaseTool]:
+    """Get combined tools from both Planton and AWS MCP servers
+    
+    Args:
+        client_manager: MCP client manager
+        credential_id: AWS credential ID
+        planton_tools: Already loaded Planton tools
+        
+    Returns:
+        Combined list of tools from both servers
+    """
+    # Check if we need to refresh STS
+    if (client_manager.current_credential_id != credential_id or
+        not client_manager.sts_expires_at or
+        time.time() >= client_manager.sts_expires_at - 300):  # Refresh 5 min before expiry
+        
+        aws_tools, _ = await mint_sts_and_get_aws_tools(
+            client_manager, credential_id, planton_tools
+        )
+    else:
+        # Use existing AWS client
+        aws_tools = await client_manager.aws_client.get_tools()
+    
+    # Combine tools
+    return planton_tools + aws_tools
