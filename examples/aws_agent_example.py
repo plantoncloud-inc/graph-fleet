@@ -29,10 +29,9 @@ async def example_generic_aws_assistant():
     agent = await create_aws_agent()
     
     # Ask a general AWS question
-    # The agent will use MCP tools to fetch credentials and provide answers
+    # The agent will use MCP tools to access AWS services
     result = agent.invoke({
-        "messages": [HumanMessage(content="What are the best practices for S3 bucket security?")],
-        "aws_credential_id": "aws-cred-123"  # Required: ID from Planton Cloud
+        "messages": [HumanMessage(content="What are the best practices for S3 bucket security?")]
     })
     
     print("Agent Response:")
@@ -59,8 +58,7 @@ My production ECS service 'api-service' is experiencing issues:
 4. This started happening after our last deployment
 
 Please debug this issue systematically and provide a fix.
-""")],
-        "aws_credential_id": "aws-cred-123"
+""")]
     })
     
     print("DeepAgent Response (with planning):")
@@ -106,8 +104,7 @@ Requirements:
 - 99.9% uptime SLA
 
 What AWS architecture would you recommend?
-""")],
-        "aws_credential_id": "aws-cred-123"
+""")]
     })
     
     print("Architect Response:")
@@ -121,11 +118,9 @@ async def example_with_specific_region():
     # Create agent
     agent = await create_aws_agent()
     
-    # Use with specific region (overrides default from credential)
+    # Use with specific region
     result = agent.invoke({
-        "messages": [HumanMessage(content="List EC2 instances in eu-west-1")],
-        "aws_credential_id": "aws-cred-123",
-        "aws_region": "eu-west-1"  # Override region
+        "messages": [HumanMessage(content="List EC2 instances in eu-west-1")]
     })
     
     print("Agent Response:")
@@ -167,8 +162,7 @@ Our AWS bill is $50K/month. Main services:
 - CloudFront serving 10TB/month
 
 How can we reduce costs?
-""")],
-        "aws_credential_id": "aws-cred-123"
+""")]
     })
     
     print("Custom Agent Response:")
@@ -192,8 +186,7 @@ async def example_aws_operations():
         "messages": [HumanMessage(content="""
         List my EC2 instances and their current status.
         Also check if there are any stopped instances that can be terminated.
-        """)],
-        "aws_credential_id": "aws-cred-123"
+        """)]
     })
     
     print("Agent Response (with default MCP servers):")

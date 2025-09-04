@@ -139,7 +139,6 @@ The agent automatically connects to these two MCP servers:
 
 # Example interaction in Studio:
 "List my EC2 instances"
-# With state: {"aws_credential_id": "aws-cred-123"}
 ```
 
 **Note**: Future releases will add customization options for MCP servers and tool filtering.
@@ -157,6 +156,7 @@ The agent is now simplified for LangGraph Studio deployment. Configure through t
   "instructions": "Custom prompt",  // Override default instructions
   "max_retries": 3,                // Retry limit for operations
   "max_steps": 20,                 // Maximum execution steps
+  "recursion_limit": 50,           // Max graph cycles (super-steps) - critical for DeepAgents
   "timeout_seconds": 600           // Operation timeout
 }
 ```
@@ -217,10 +217,7 @@ In LangGraph Studio, the agent is automatically instantiated with your configura
 "My ECS service is failing to deploy. Tasks keep stopping with 
 'Essential container exited' error. Can you help me debug and fix this?"
 
-# Provide state variables:
-{
-  "aws_credential_id": "aws-cred-123"
-}
+# The agent will automatically handle AWS credentials via MCP
 ```
 
 ### Basic Usage for CLI Demos
@@ -238,9 +235,8 @@ agent = await create_aws_agent(
 )
 
 # Use the agent
-result = await agent.invoke({
-    "messages": [HumanMessage(content="Analyze my EC2 costs")],
-    "aws_credential_id": "aws-cred-123"
+result = agent.invoke({
+    "messages": [HumanMessage(content="Analyze my EC2 costs")]
 })
 
 print(result["messages"][-1].content)
@@ -275,12 +271,11 @@ Sub-agents are automatically spawned when needed for specialized tasks:
 
 ```python
 # This will likely spawn the ECS troubleshooter sub-agent
-result = await agent.invoke({
+result = agent.invoke({
     "messages": [HumanMessage(content="""
     My ECS service is failing with task placement errors.
     Debug the issue and provide solutions.
-    """)],
-    "aws_credential_id": "aws-cred-123"
+    """)]
 })
 ```
 
@@ -426,8 +421,7 @@ Input:
 3. Check EC2 instances for unencrypted volumes
 4. Create a security remediation plan"
 
-State:
-{"aws_credential_id": "aws-cred-123"}
+# The agent handles AWS credentials automatically via MCP
 
 # Observe todo list creation and systematic execution in the Studio interface
 ```
@@ -475,6 +469,22 @@ State:
 - Ensure `enable_file_system=True`
 - Check state persistence configuration
 - Verify sufficient context window
+
+### GraphRecursionError: "Recursion limit reached"
+- **Cause**: The agent needs more graph cycles to complete complex tasks
+- **Default**: `recursion_limit=50` (increased from LangGraph's default of 25)
+- **For complex tasks**: Increase to 100-200 for tasks involving:
+  - Multiple planning iterations
+  - Spawning several sub-agents
+  - Complex troubleshooting with many tool calls
+  - Long-running investigations
+- **Configuration**: Set in LangGraph Studio UI or via config:
+  ```json
+  {
+    "recursion_limit": 100  // Adjust based on task complexity
+  }
+  ```
+- **Note**: This is NOT about retry attempts, but graph execution cycles
 
 ## Contributing
 

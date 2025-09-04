@@ -101,8 +101,7 @@ result = agent.invoke({
     "messages": [HumanMessage(content="""
     My ECS service is failing. Tasks exit with 'Essential container exited'.
     Debug the issue and provide a fix.
-    """)],
-    "aws_credential_id": "aws-cred-123"
+    """)]
 })
 
 # Agent will:

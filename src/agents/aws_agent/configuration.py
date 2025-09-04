@@ -43,6 +43,11 @@ class AWSAgentConfig(BaseModel):
         description="Maximum steps the agent can take"
     )
     
+    recursion_limit: int = Field(
+        default=50,
+        description="Maximum number of graph cycles (super-steps) allowed. For DeepAgents that plan, use tools, and spawn sub-agents, this should be higher than the default LangGraph value of 25."
+    )
+    
     # Timeout configuration
     timeout_seconds: int = Field(
         default=600,
