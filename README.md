@@ -30,14 +30,23 @@ The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langcha
 - **📁 Virtual File System**: Maintains context and findings across operations
 - **🧠 Autonomous**: Can work independently on complex multi-step tasks
 - **🔒 Secure**: Integrates with Planton Cloud for credential management
-- **📦 Modular**: Clean architecture with separate packages for sub-agents and LLM config
+- **📦 Modular**: Clean architecture with separate packages for nodes, utilities, and sub-agents
 - **🔌 MCP Integration**: Default MCP servers (Planton Cloud + AWS API) for comprehensive AWS access
+- **🔄 Credential Switching**: Dynamic AWS account switching mid-conversation
+- **🎭 Smart Selection**: Auto-selects single credential or asks clarifying questions
+
+#### Two-Node Architecture
+- **Node A (Credential Selector)**: Handles AWS credential selection using Planton MCP
+- **Node B (AWS DeepAgent)**: Executes AWS operations with combined MCP tools
+- **Router**: Intelligent routing based on credential state and user intent
+- **Session Management**: Isolated sessions for multi-tenant safety
 
 #### Performance Features
 - **⚡ Tool Caching**: MCP tools cached after first load
 - **🚀 Fast Startup**: Pre-installed dependencies, no runtime installation
 - **📊 Efficient**: Uses installed packages instead of runtime uvx
 - **🔍 Debug Logging**: Shows loaded MCP tools for transparency
+- **♻️ STS Refresh**: Automatic credential refresh before expiration
 
 See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
 
@@ -89,28 +98,36 @@ make run
 #### For Custom CLI Demos
 
 ```python
-from src.agents.aws_agent import create_aws_agent
+from src.agents.aws_agent import create_aws_agent, AWSAgentState
 from langchain_core.messages import HumanMessage
 
-# Create DeepAgent with default MCP servers (Planton Cloud + AWS API)
-agent = await create_aws_agent()
+# Create DeepAgent with organization context
+agent = await create_aws_agent(
+    org_id="my-org",  # Required for credential selection
+    env_id="production"  # Optional environment filter
+)
 
-# Agent has full AWS CLI access through MCP tools
-# Note: invoke() is synchronous, not async
-result = agent.invoke({
-    "messages": [HumanMessage(content="""
-    My ECS service is failing. Tasks exit with 'Essential container exited'.
-    Debug the issue and provide a fix.
-    """)]
-})
+# First turn - agent will select credential automatically or ask
+state = AWSAgentState(
+    messages=[HumanMessage(content="List my EC2 instances")],
+    orgId="my-org"
+)
+result = await agent.ainvoke(state)
+
+# If multiple credentials exist, agent asks which one to use
+# User can specify: "Use the production account"
+
+# Mid-conversation credential switching
+result['messages'].append(
+    HumanMessage(content="Switch to staging account and show RDS databases")
+)
+result = await agent.ainvoke(result)
 
 # Agent will:
-# 1. Create a todo list for debugging
-# 2. Fetch AWS credentials via MCP
-# 3. Analyze the error using AWS API tools
-# 4. Possibly spawn ECS troubleshooter sub-agent
-# 5. Store findings in virtual file system
-# 6. Provide comprehensive solution
+# 1. Detect switch intent and re-select credential
+# 2. Mint new STS credentials for staging account
+# 3. Create new DeepAgent instance with updated context
+# 4. Execute the RDS query in staging account
 ```
 
 ### Creating Custom Assistants
@@ -267,10 +284,14 @@ make aws-example-all  # Run all examples sequentially
 See [examples/](examples/) for detailed usage:
 
 - `aws_agent_example.py`: Various AWS agent scenarios
-- Generic AWS assistant
-- Troubleshooting specialist
-- Solutions architect
-- Cost optimizer
+  - Generic AWS assistant
+  - Troubleshooting specialist
+  - Solutions architect
+  - Cost optimizer
+- `aws_agent_credential_switching_example.py`: Credential switching demos
+  - No-credential first turn handling
+  - Mid-conversation account switching
+  - Credential clearing and re-selection
 
 Run examples manually:
 
@@ -280,6 +301,7 @@ make aws-examples
 
 # Or run directly
 python examples/aws_agent_example.py
+python examples/aws_agent_credential_switching_example.py
 ```
 
 ## Development

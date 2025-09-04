@@ -12,13 +12,23 @@ The AWS Agent is built using the [DeepAgents](https://github.com/langchain-ai/de
 aws_agent/
 ├── __init__.py              # Package exports and imports
 ├── configuration.py         # Agent configuration and settings
-├── graph.py                # Main agent orchestration (simplified for LangGraph Studio)
+├── state.py                # Extended state with credential management
+├── graph.py                # Main graph orchestration
 ├── llm.py                  # LLM provider configuration
 ├── mcp_integration.py      # MCP server integration
-├── README.md               # This documentation
-└── subagents/              # Specialized sub-agents
-    ├── __init__.py
-    └── ecs_troubleshooter.py
+├── nodes/                  # Graph nodes (modular architecture)
+│   ├── __init__.py
+│   ├── credential_selector.py  # Node A: Credential selection & logic
+│   ├── aws_deepagent.py       # Node B: AWS operations
+│   ├── router.py              # Routing logic
+│   └── CREDENTIAL_SWITCHING.md # Credential switching details
+├── utils/                  # Utilities
+│   ├── __init__.py
+│   └── session.py          # Session management
+├── subagents/              # Specialized sub-agents
+│   ├── __init__.py
+│   └── ecs_troubleshooter.py
+└── README.md               # This documentation
 ```
 
 ## DeepAgent Architecture
@@ -49,12 +59,24 @@ Based on LangChain's DeepAgents framework, our AWS agent implements four key cap
    - Examples and best practices built-in
    - Guides autonomous problem-solving behavior
 
-### Agent Flow
+### Two-Node Architecture
+
+The AWS Agent implements a two-node flow for secure credential management:
 
 ```mermaid
 graph TD
-    A[User Request] --> B[Planning Phase]
-    B --> C{Complex Task?}
+    A[User Request] --> R{Router}
+    R -->|No Credential| CS[Node A: Credential Selector]
+    R -->|Switch Request| CS
+    R -->|Has Credential| DA[Node B: AWS DeepAgent]
+    
+    CS --> S{Selection Result}
+    S -->|Selected| DA
+    S -->|Question| U[User Response]
+    U --> CS
+    
+    DA --> P[Planning Phase]
+    P --> C{Complex Task?}
     C -->|Yes| D[Create Todo List]
     C -->|No| E[Direct Execution]
     D --> F[Execute Tasks]
@@ -72,37 +94,67 @@ graph TD
     E --> N
 ```
 
+#### Node A: Credential Selector
+- Uses Planton MCP tools only
+- Lists available AWS credentials
+- Auto-selects if single credential
+- Asks clarifying question if multiple
+- Detects switch/clear intents
+
+#### Node B: AWS DeepAgent
+- Mints STS credentials
+- Combines Planton + AWS MCP tools
+- Executes DeepAgent with full AWS access
+- Handles planning, sub-agents, and file system
+
 ## Core Components
 
-### 1. Configuration (`configuration.py`)
-Simple configuration focused on essentials:
-- Model name and temperature
-- Custom instructions (optional)
-- Execution limits (retries, steps, timeout)
-- Planning, sub-agents, and file system are enabled by default
+### 1. State Management (`state.py`)
+Extended DeepAgentState with credential tracking:
+- `selectedCredentialId`: Current AWS credential
+- `selectedCredentialSummary`: Non-secret credential info
+- `stsExpiresAt`: STS expiration tracking
+- `selectionVersion`: Change tracking
+- Session context (orgId, envId, actorToken)
 
-### 2. Graph (`graph.py`)
-Main orchestration module (simplified for LangGraph Studio):
-- Single async `graph()` function for LangGraph Studio
-- Assembles MCP tools and sub-agents
-- Creates DeepAgent instances with full configuration support
-- Ensures dev/prod parity with MCP tools
+### 2. Graph Orchestration (`graph.py`)
+Main entry point with modular architecture:
+- Creates two-node StateGraph
+- Configures routing logic
+- Manages session lifecycle
+- Provides both LangGraph Studio and CLI interfaces
 
-### 3. LLM Module (`llm.py`)
-Handles language model configuration:
-- Supports OpenAI and Anthropic models
-- Model-specific settings
-- Provider detection and fallbacks
+### 3. Node Components (`nodes/`)
+Modular graph nodes for separation of concerns:
+- **credential_selector.py**: Node A implementation
+- **aws_deepagent.py**: Node B implementation  
+- **router.py**: Conditional routing logic
 
-### 4. MCP Integration (`mcp_integration.py`)
-Dynamic tool loading through Model Context Protocol:
-- **Planton Cloud MCP Server**: Platform tools and AWS credential management
-- **AWS API MCP Server**: Complete AWS CLI surface (list, describe, create operations across all services)
-- Tools are loaded dynamically at runtime from both servers
+### 4. Credential Selection (`nodes/credential_selector.py`)
+LLM-based credential selection logic and node implementation:
+- Contains both selection logic and Node A implementation
+- Lists credentials via Planton MCP
+- Detects switch/clear intents
+- Returns structured selection response
+- Handles ambiguous cases with questions
 
-### 5. Sub-agents Package (`subagents/`)
-Specialized sub-agent for deep ECS expertise:
-- **ecs_troubleshooter.py**: ECS service and container debugging specialist
+### 5. MCP Integration (`mcp_integration.py`)
+Session-scoped MCP client management:
+- **MCPClientManager**: Manages client lifecycle
+- **Planton Cloud MCP**: Credential and platform tools
+- **AWS API MCP**: Complete AWS CLI surface after STS mint
+- Automatic STS refresh before expiration
+
+### 6. Session Management (`utils/session.py`)
+Handles session-scoped data:
+- MCP client instances
+- Agent cache by credential
+- Configuration storage
+- Clean shutdown hooks
+
+### 7. Sub-agents (`subagents/`)
+Specialized DeepAgent extensions:
+- **ecs_troubleshooter.py**: ECS debugging specialist
 
 ## MCP (Model Context Protocol) Integration
 
@@ -177,11 +229,13 @@ The agent provides two entry points for different use cases:
 
 ### Recent Changes (December 2024)
 
-1. **Simplified graph.py**: Main `graph()` function for LangGraph Studio
-2. **Added create_aws_agent**: Restored for examples and CLI demos
-3. **Fixed async issues**: Resolved `asyncio.run()` error in event loop context
-4. **Removed gRPC server**: Focusing on LangGraph Studio integration first
-5. **Dev/prod parity**: MCP tools now available in both environments
+1. **Two-Node Architecture**: Implemented credential selection (Node A) and AWS execution (Node B)
+2. **Credential Switching**: Dynamic AWS account switching mid-conversation
+3. **Smart Selection**: Auto-selects single credential or asks clarifying questions
+4. **Modular Structure**: Reorganized into nodes/, utils/ for better maintainability
+5. **Session Management**: Isolated sessions for multi-tenant safety
+6. **STS Refresh**: Automatic credential refresh before expiration
+7. **No-Credential Handling**: Graceful first-turn credential selection
 
 ## Usage Examples
 
@@ -207,17 +261,24 @@ make run
 
 ### Basic Usage in LangGraph Studio
 
-In LangGraph Studio, the agent is automatically instantiated with your configuration:
+In LangGraph Studio, the agent handles credential selection automatically:
 
 ```python
-# The graph function is called by LangGraph Studio with your config
-# You interact through the Studio UI, not directly in code
+# First turn - no credential context
+"List my EC2 instances"
 
-# Example input in Studio:
-"My ECS service is failing to deploy. Tasks keep stopping with 
-'Essential container exited' error. Can you help me debug and fix this?"
+# Agent response (if multiple credentials):
+"Which AWS account: Production (123456789012), Staging (987654321098)?"
 
-# The agent will automatically handle AWS credentials via MCP
+# User specifies:
+"Use production"
+
+# Agent proceeds with production account...
+
+# Later, user can switch:
+"Switch to staging account and show RDS databases"
+
+# Agent switches credentials and executes in staging
 ```
 
 ### Basic Usage for CLI Demos
@@ -225,21 +286,31 @@ In LangGraph Studio, the agent is automatically instantiated with your configura
 For quick demos and testing outside of LangGraph Studio:
 
 ```python
-from src.agents.aws_agent import create_aws_agent
+from src.agents.aws_agent import create_aws_agent, AWSAgentState, cleanup_session
 from langchain_core.messages import HumanMessage
 
-# Create agent for demo
+# Create agent with organization context
 agent = await create_aws_agent(
+    org_id="my-org",
     model_name="gpt-4o",
     runtime_instructions="Focus on cost optimization"
 )
 
-# Use the agent
-result = agent.invoke({
-    "messages": [HumanMessage(content="Analyze my EC2 costs")]
-})
+# First turn - credential selection happens automatically
+state = AWSAgentState(
+    messages=[HumanMessage(content="Analyze my EC2 costs")],
+    orgId="my-org"
+)
+result = await agent.ainvoke(state)
 
-print(result["messages"][-1].content)
+# Switch accounts mid-conversation
+result['messages'].append(
+    HumanMessage(content="Switch to production and check RDS costs")
+)
+result = await agent.ainvoke(result)
+
+# Clean up when done
+await cleanup_session()
 ```
 
 ### Observing Agent Planning
