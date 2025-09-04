@@ -1,118 +1,81 @@
-"""AWS Agent Graph Implementation using DeepAgents
+"""AWS Agent Graph Implementation for LangGraph Studio
 
-This module orchestrates the AWS DeepAgent by combining MCP tools, sub-agents,
-and configuration to create an autonomous problem-solving agent for AWS.
+This module creates an AWS DeepAgent with MCP tools for LangGraph Studio deployment.
+Simplified to focus on LangGraph Studio integration.
 """
 
 from typing import Optional
-from deepagents import create_deep_agent, async_create_deep_agent
+from deepagents import async_create_deep_agent
+from deepagents import DeepAgentState
 
 from .configuration import AWSAgentConfig, get_effective_instructions
 from .llm import create_llm
 from .mcp_integration import get_mcp_tools
 from .subagents import create_ecs_troubleshooter_subagent
-from .state import AWSAgentState
 
 
-def create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
-    """Create the AWS agent using DeepAgents framework
+async def graph(config: Optional[dict] = None):
+    """Main graph function for LangGraph Studio
     
-    This function assembles all components (MCP tools, sub-agents, LLM) to create
-    a DeepAgent capable of autonomous AWS problem-solving.
+    This is the entry point that LangGraph Studio calls. It accepts configuration
+    from the UI and creates a fully configured AWS agent with MCP tools.
     
-    Note: This sync version doesn't include MCP tools. Use the async version
-    (create_aws_agent) for full MCP integration.
+    Configuration can be passed through LangGraph Studio UI:
+    - model_name: LLM model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022')
+    - temperature: Temperature for LLM responses (0.0-1.0)
+    - instructions: Custom agent instructions  
+    - max_retries: Max retries for operations (default: 3)
+    - max_steps: Max steps the agent can take (default: 20)
+    - timeout_seconds: Timeout for operations (default: 600)
+    
+    The agent includes:
+    - MCP tools from Planton Cloud (credentials, platform tools)
+    - MCP tools from AWS API (EC2, S3, ECS, RDS, etc.)
+    - Sub-agents for specialized tasks (ECS troubleshooter)
+    - Planning capabilities with todo lists
+    - Virtual file system for context
     
     Args:
-        config: Agent configuration (uses defaults if not provided)
+        config: Optional configuration dictionary from LangGraph Studio
         
     Returns:
-        DeepAgent instance configured for AWS operations
+        Configured DeepAgent instance for AWS operations
     """
-    if config is None:
-        config = AWSAgentConfig()
+    # Convert dict config to AWSAgentConfig
+    if config:
+        agent_config = AWSAgentConfig(**config)
+    else:
+        agent_config = AWSAgentConfig()
     
-    # Get effective instructions based on configuration
-    instructions = get_effective_instructions(config)
+    # Get effective instructions
+    instructions = get_effective_instructions(agent_config)
     
-    # Create the LLM with specified configuration
-    llm = create_llm(config)
+    # Create the LLM
+    llm = create_llm(agent_config)
     
-    # Sub-agents are always enabled - add ECS troubleshooter
+    # Get MCP tools - includes both Planton Cloud and AWS API tools
+    tools = await get_mcp_tools()
+    
+    # Create sub-agents
     subagents = [create_ecs_troubleshooter_subagent()]
     
     # Configure agent behavior
-    # Planning and file system are enabled by default in DeepAgents
-    agent_config = {
-        "recursion_limit": config.max_retries,
-        "max_steps": config.max_steps
+    runtime_config = {
+        "recursion_limit": agent_config.max_retries,
+        "max_steps": agent_config.max_steps
     }
     
-    # Create the deep agent (without MCP tools for sync version)
-    agent = create_deep_agent(
-        tools=[],  # Tools will be added in async version
-        subagents=subagents,
-        instructions=instructions,
-        model=llm,
-        config_schema=AWSAgentConfig,
-        state_schema=AWSAgentState
-    )
-    
-    return agent
-
-
-async def async_create_aws_agent_graph(config: Optional[AWSAgentConfig] = None):
-    """Create an async AWS agent using DeepAgents framework with MCP tools
-    
-    This version integrates with default MCP servers:
-    - Planton Cloud MCP server for platform tools and credentials
-    - AWS API MCP server for comprehensive AWS CLI access
-    
-    Args:
-        config: Agent configuration (uses defaults if not provided)
-        
-    Returns:
-        Async DeepAgent instance configured for AWS operations with MCP tools
-    """
-    if config is None:
-        config = AWSAgentConfig()
-    
-    # Get effective instructions
-    instructions = get_effective_instructions(config)
-    
-    # Create the LLM
-    llm = create_llm(config)
-    
-    # Get tools from default MCP servers
-    # This includes Planton Cloud MCP and AWS API MCP
-    tools = await get_mcp_tools()
-    
-    # Sub-agents are always enabled
-    subagents = [create_ecs_troubleshooter_subagent()]
-    
-    # Configure agent
-    agent_config = {
-        "recursion_limit": config.max_retries,
-        "max_steps": config.max_steps
-    }
-    
-    # Create async deep agent with MCP tools
+    # Create the DeepAgent with all components
     agent = async_create_deep_agent(
-        tools=tools,  # Tools from default MCP servers
+        tools=tools,
         subagents=subagents,
         instructions=instructions,
         model=llm,
         config_schema=AWSAgentConfig,
-        state_schema=AWSAgentState
-    ).with_config(agent_config)
+        state_schema=DeepAgentState
+    ).with_config(runtime_config)
     
     return agent
-
-
-# Create the default graph instance for LangGraph deployment
-# Note: This uses the sync version without MCP tools
-# For production use, prefer the async version with MCP
-graph = create_aws_agent_graph()
 
 
 async def create_aws_agent(
@@ -120,37 +83,23 @@ async def create_aws_agent(
     runtime_instructions: Optional[str] = None,
     model_name: Optional[str] = None
 ):
-    """Factory function to create an AWS agent with default MCP integration
+    """Create an AWS agent for examples and CLI demos
     
-    This creates an AWS DeepAgent with tools from default MCP servers:
-    - Planton Cloud MCP: Platform tools and AWS credential management  
-    - AWS API MCP: Comprehensive AWS CLI surface (list, describe, create, etc.)
+    This function is specifically for running examples and quick demos outside
+    of LangGraph Studio. It wraps the main graph() function for standalone use.
     
-    The created DeepAgent has these capabilities enabled by default:
-    - Planning with todo lists
-    - Sub-agents for specialized tasks
-    - Virtual file system for context
-    - Access to all AWS services through AWS API MCP tools
-    - Planton Cloud platform tools for credential management
+    For LangGraph Studio deployment, use the graph() function directly.
     
     Args:
         config: Full agent configuration (optional)
-        runtime_instructions: Override default instructions (optional)
+        runtime_instructions: Override default instructions (optional) 
         model_name: Override model name (optional)
         
     Returns:
-        Async DeepAgent configured for AWS operations with default MCP tools
+        Configured DeepAgent instance for AWS operations
         
     Example:
-        >>> # Create agent with default MCP servers
         >>> agent = await create_aws_agent()
-        
-        >>> # With custom instructions
-        >>> agent = await create_aws_agent(
-        ...     runtime_instructions="Focus on ECS troubleshooting"
-        ... )
-        
-        >>> # Use the agent
         >>> result = await agent.invoke({
         ...     "messages": [HumanMessage(content="List my EC2 instances")],
         ...     "aws_credential_id": "aws-cred-123"
@@ -167,14 +116,12 @@ async def create_aws_agent(
     if model_name:
         config.model_name = model_name
     
-    # Create and return the async deep agent with default MCP tools
-    return await async_create_aws_agent_graph(config)
+    # Convert config to dict for graph function
+    config_dict = config.model_dump()
+    
+    # Create and return the agent using the main graph function
+    return await graph(config_dict)
 
 
-# Export key components for use in other modules
-__all__ = [
-    "create_aws_agent",
-    "create_aws_agent_graph", 
-    "async_create_aws_agent_graph",
-    "graph"
-]
+# Export for LangGraph and examples
+__all__ = ["graph", "create_aws_agent"]

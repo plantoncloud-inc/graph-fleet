@@ -1,4 +1,12 @@
-"""Example usage of AWS DeepAgent"""
+"""Example usage of AWS DeepAgent
+
+These examples demonstrate how to use the AWS agent for CLI demos and testing.
+For production deployment in LangGraph Studio, the agent uses the simplified
+graph() function that LangGraph Studio calls directly.
+
+The create_aws_agent() function is provided specifically for these examples
+and quick CLI demonstrations.
+"""
 
 import asyncio
 import os
