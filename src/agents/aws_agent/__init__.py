@@ -12,8 +12,11 @@ The agent is organized into modular components:
 
 # Core imports
 from .configuration import AWSAgentConfig, DEFAULT_AWS_AGENT_INSTRUCTIONS
-from .graph import graph, create_aws_agent, cleanup_session
+from .graph import graph, create_aws_agent
 from .state import AWSAgentState
+
+# Utilities
+from .utils.session import cleanup_session
 
 # MCP integration
 from .mcp_integration import MCPClientManager

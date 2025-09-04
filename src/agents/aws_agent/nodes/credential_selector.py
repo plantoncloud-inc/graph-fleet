@@ -1,16 +1,24 @@
-"""Credential selector for AWS Agent (Node A)
+"""Credential Selector Node (Node A)
 
-This module implements LLM-based credential selection using 
-Planton Cloud MCP tools.
+This node handles AWS credential selection using Planton MCP tools.
+It runs when:
+1. No credential is selected yet (first turn)
+2. User requests to switch accounts
+3. User requests to clear selection
 """
 
 import json
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
+
+from ..state import AWSAgentState
+from ..configuration import AWSAgentConfig
+from ..llm import create_llm
+from ..mcp_integration import MCPClientManager, get_planton_mcp_tools
 
 logger = logging.getLogger(__name__)
 
@@ -202,3 +210,146 @@ def detect_switch_intent(user_text: str) -> bool:
     
     text_lower = user_text.lower()
     return any(keyword in text_lower for keyword in switch_keywords)
+
+
+async def credential_selector_node(
+    state: AWSAgentState, 
+    session_data: Dict[str, Any]
+) -> AWSAgentState:
+    """Node A: LLM-based credential selector using Planton MCP only
+    
+    This node handles credential selection based on user input.
+    It runs when:
+    1. No credential is selected yet (first turn)
+    2. User requests to switch accounts
+    3. User requests to clear selection
+    
+    Args:
+        state: Current agent state
+        session_data: Session-scoped data storage
+        
+    Returns:
+        Updated agent state
+    """
+    # Get the latest user message
+    if not state.messages:
+        return state
+        
+    last_message = state.messages[-1]
+    if not isinstance(last_message, HumanMessage):
+        return state
+        
+    user_text = last_message.content
+    
+    # Get or create MCP client manager
+    if "mcp_manager" not in session_data:
+        session_data["mcp_manager"] = MCPClientManager()
+    
+    mcp_manager = session_data["mcp_manager"]
+    
+    # Get Planton MCP tools
+    planton_tools = await get_planton_mcp_tools(mcp_manager)
+    
+    # Get LLM from config
+    config = session_data.get("config", AWSAgentConfig())
+    llm = create_llm(config)
+    
+    # Check if we need to select/switch credential
+    should_select = False
+    
+    # Case 1: No credential selected yet
+    if not state.selectedCredentialId:
+        should_select = True
+        
+    # Case 2: User wants to switch or clear
+    elif detect_switch_intent(user_text):
+        should_select = True
+        
+    if not should_select:
+        return state
+    
+    # Use default org if not set
+    org_id = state.orgId or session_data.get("default_org_id")
+    if not org_id:
+        state.messages.append(AIMessage(
+            content="Organization ID not provided. Please set orgId in the state."
+        ))
+        return state
+    
+    # Perform credential selection
+    current_summary = state.selectedCredentialSummary
+    
+    selected_id, clarifying_question, switch_requested, clear_requested = await select_credential(
+        user_text=user_text,
+        org_id=org_id,
+        env_id=state.envId or session_data.get("default_env_id"),
+        mcp_tools=planton_tools,
+        llm=llm,
+        current_selection=current_summary
+    )
+    
+    # Handle clear request
+    if clear_requested:
+        state.selectedCredentialId = None
+        state.selectedCredentialSummary = None
+        state.stsExpiresAt = None
+        state.selectionVersion += 1
+        
+        # Close AWS client if exists
+        await mcp_manager.close_all()
+        
+        # Add response
+        state.messages.append(AIMessage(
+            content="AWS credential selection cleared. Please specify which account to use."
+        ))
+        return state
+    
+    # Handle clarifying question
+    if clarifying_question:
+        state.messages.append(AIMessage(content=clarifying_question))
+        return state
+    
+    # Handle successful selection
+    if selected_id:
+        # Get full credential info
+        list_tool = next((t for t in planton_tools if t.name == "list_awscredentials"), None)
+        if list_tool:
+            try:
+                query = {"org_id": org_id}
+                if state.envId or session_data.get("default_env_id"):
+                    query["env_id"] = state.envId or session_data.get("default_env_id")
+                    
+                result = await list_tool.ainvoke(query)
+                if isinstance(result, str):
+                    try:
+                        credentials = json.loads(result)
+                    except Exception:
+                        credentials = []
+                else:
+                    credentials = result if isinstance(result, list) else []
+                
+                # Find the selected credential
+                for cred in credentials:
+                    if cred.get("id") == selected_id:
+                        state.selectedCredentialId = selected_id
+                        state.selectedCredentialSummary = {
+                            "id": cred.get("id"),
+                            "name": cred.get("name"),
+                            "accountId": cred.get("account_id"),
+                            "defaultRegion": cred.get("default_region", "us-east-1")
+                        }
+                        state.selectionVersion += 1
+                        
+                        # Clear STS expiration (will be set when minting)
+                        state.stsExpiresAt = None
+                        
+                        logger.info(f"Selected AWS credential: {state.selectedCredentialSummary['name']}")
+                        break
+                        
+            except Exception as e:
+                logger.error(f"Error fetching credential details: {e}")
+                state.messages.append(AIMessage(
+                    content=f"Error accessing credential details: {str(e)}"
+                ))
+                
+    return state
