@@ -479,8 +479,324 @@ class AgentRegistry:
         }
 
 
-# Global registry instance
+class AgentCatalog:
+    """Agent catalog for browsing and discovering available agents and templates"""
+    
+    def __init__(self, registry: Optional[AgentRegistry] = None):
+        """Initialize agent catalog
+        
+        Args:
+            registry: Optional registry instance, uses global registry if None
+        """
+        self.registry = registry or get_registry()
+    
+    def browse_templates(
+        self,
+        cloud_provider: Optional[CloudProvider] = None,
+        specialization: Optional[str] = None,
+        capability: Optional[str] = None,
+        status: Optional[AgentStatus] = None
+    ) -> List[AgentTemplate]:
+        """Browse available agent templates with filtering
+        
+        Args:
+            cloud_provider: Filter by cloud provider
+            specialization: Filter by specialization name
+            capability: Filter by capability name
+            status: Filter by template status
+            
+        Returns:
+            List of matching agent templates
+        """
+        templates = list(self.registry.templates.values())
+        
+        # Apply filters
+        if cloud_provider:
+            templates = [t for t in templates if t.cloud_provider == cloud_provider]
+        
+        if specialization:
+            templates = [t for t in templates if specialization in t.specializations]
+        
+        if capability:
+            templates = [t for t in templates 
+                        if any(cap.name == capability for cap in t.capabilities)]
+        
+        if status:
+            templates = [t for t in templates if t.status == status]
+        
+        return templates
+    
+    def search_templates(self, query: str) -> List[AgentTemplate]:
+        """Search templates by name, description, or capabilities
+        
+        Args:
+            query: Search query string
+            
+        Returns:
+            List of matching agent templates
+        """
+        query_lower = query.lower()
+        matching_templates = []
+        
+        for template in self.registry.templates.values():
+            # Search in name and description
+            if (query_lower in template.name.lower() or 
+                query_lower in template.description.lower() or
+                query_lower in template.display_name.lower()):
+                matching_templates.append(template)
+                continue
+            
+            # Search in capabilities
+            if any(query_lower in cap.name.lower() or query_lower in cap.description.lower()
+                   for cap in template.capabilities):
+                matching_templates.append(template)
+                continue
+            
+            # Search in specializations
+            if any(query_lower in spec.lower() for spec in template.specializations):
+                matching_templates.append(template)
+                continue
+        
+        return matching_templates
+    
+    def get_template_details(self, template_id: str) -> Optional[Dict[str, Any]]:
+        """Get detailed information about a template
+        
+        Args:
+            template_id: Template ID
+            
+        Returns:
+            Detailed template information or None if not found
+        """
+        template = self.registry.get_template(template_id)
+        if not template:
+            return None
+        
+        # Get usage statistics
+        instances = [i for i in self.registry.instances.values() 
+                    if i.template_id == template_id]
+        
+        total_invocations = sum(i.total_invocations for i in instances)
+        avg_success_rate = (sum(i.success_rate for i in instances) / len(instances)) if instances else 0
+        
+        return {
+            "template": template.dict(),
+            "usage_stats": {
+                "total_instances": len(instances),
+                "active_instances": len([i for i in instances if i.status == AgentStatus.ACTIVE]),
+                "total_invocations": total_invocations,
+                "average_success_rate": avg_success_rate,
+                "last_used": max((i.last_used for i in instances), default=None)
+            },
+            "compatibility": self._get_template_compatibility(template),
+            "related_templates": self._find_related_templates(template)
+        }
+    
+    def get_popular_templates(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get most popular templates based on usage
+        
+        Args:
+            limit: Maximum number of templates to return
+            
+        Returns:
+            List of popular templates with usage statistics
+        """
+        template_stats = []
+        
+        for template in self.registry.templates.values():
+            if template.status != AgentStatus.ACTIVE:
+                continue
+                
+            instances = [i for i in self.registry.instances.values() 
+                        if i.template_id == template.id]
+            
+            total_invocations = sum(i.total_invocations for i in instances)
+            avg_success_rate = (sum(i.success_rate for i in instances) / len(instances)) if instances else 0
+            
+            template_stats.append({
+                "template": template,
+                "instance_count": len(instances),
+                "total_invocations": total_invocations,
+                "average_success_rate": avg_success_rate,
+                "popularity_score": len(instances) * 0.3 + total_invocations * 0.7
+            })
+        
+        # Sort by popularity score
+        template_stats.sort(key=lambda x: x["popularity_score"], reverse=True)
+        
+        return template_stats[:limit]
+    
+    def get_recommended_templates(
+        self, 
+        cloud_provider: CloudProvider,
+        use_case: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get recommended templates for a specific cloud provider and use case
+        
+        Args:
+            cloud_provider: Target cloud provider
+            use_case: Optional use case (e.g., "cost_optimization", "security", "troubleshooting")
+            
+        Returns:
+            List of recommended templates with recommendation reasons
+        """
+        recommendations = []
+        
+        # Get templates for the cloud provider
+        templates = self.browse_templates(cloud_provider=cloud_provider, status=AgentStatus.ACTIVE)
+        
+        for template in templates:
+            recommendation_score = 0
+            reasons = []
+            
+            # Score based on use case match
+            if use_case:
+                if use_case in template.specializations:
+                    recommendation_score += 50
+                    reasons.append(f"Specialized for {use_case}")
+                
+                if any(use_case.lower() in cap.name.lower() for cap in template.capabilities):
+                    recommendation_score += 30
+                    reasons.append(f"Has {use_case} capabilities")
+            
+            # Score based on popularity
+            instances = [i for i in self.registry.instances.values() 
+                        if i.template_id == template.id]
+            if instances:
+                avg_success_rate = sum(i.success_rate for i in instances) / len(instances)
+                recommendation_score += avg_success_rate * 0.2
+                if avg_success_rate > 80:
+                    reasons.append("High success rate")
+            
+            # Score based on completeness
+            if len(template.capabilities) >= 3:
+                recommendation_score += 10
+                reasons.append("Comprehensive capabilities")
+            
+            if template.supports_sub_agents:
+                recommendation_score += 5
+                reasons.append("Supports specialized sub-agents")
+            
+            if recommendation_score > 0:
+                recommendations.append({
+                    "template": template,
+                    "recommendation_score": recommendation_score,
+                    "reasons": reasons
+                })
+        
+        # Sort by recommendation score
+        recommendations.sort(key=lambda x: x["recommendation_score"], reverse=True)
+        
+        return recommendations[:10]  # Return top 10 recommendations
+    
+    def get_catalog_summary(self) -> Dict[str, Any]:
+        """Get catalog summary with statistics and insights
+        
+        Returns:
+            Catalog summary dictionary
+        """
+        templates = list(self.registry.templates.values())
+        active_templates = [t for t in templates if t.status == AgentStatus.ACTIVE]
+        
+        # Cloud provider distribution
+        provider_distribution = {}
+        for template in active_templates:
+            provider = template.cloud_provider.value
+            provider_distribution[provider] = provider_distribution.get(provider, 0) + 1
+        
+        # Specialization distribution
+        specialization_distribution = {}
+        for template in active_templates:
+            for spec in template.specializations:
+                specialization_distribution[spec] = specialization_distribution.get(spec, 0) + 1
+        
+        # Capability distribution
+        capability_distribution = {}
+        for template in active_templates:
+            for cap in template.capabilities:
+                capability_distribution[cap.name] = capability_distribution.get(cap.name, 0) + 1
+        
+        return {
+            "total_templates": len(templates),
+            "active_templates": len(active_templates),
+            "cloud_provider_distribution": provider_distribution,
+            "specialization_distribution": specialization_distribution,
+            "capability_distribution": capability_distribution,
+            "most_popular_capabilities": sorted(
+                capability_distribution.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )[:5],
+            "registry_stats": self.registry.get_registry_stats()
+        }
+    
+    def _get_template_compatibility(self, template: AgentTemplate) -> Dict[str, Any]:
+        """Get compatibility information for a template
+        
+        Args:
+            template: Template to analyze
+            
+        Returns:
+            Compatibility information
+        """
+        return {
+            "cloud_provider": template.cloud_provider.value,
+            "supported_regions": template.supported_regions,
+            "required_tools": list(set(
+                tool for cap in template.capabilities 
+                for tool in cap.required_tools
+            )),
+            "required_permissions": template.required_permissions,
+            "supports_sub_agents": template.supports_sub_agents,
+            "mcp_servers": template.mcp_servers
+        }
+    
+    def _find_related_templates(self, template: AgentTemplate, limit: int = 5) -> List[str]:
+        """Find templates related to the given template
+        
+        Args:
+            template: Template to find relations for
+            limit: Maximum number of related templates
+            
+        Returns:
+            List of related template IDs
+        """
+        related = []
+        
+        for other_template in self.registry.templates.values():
+            if other_template.id == template.id:
+                continue
+            
+            similarity_score = 0
+            
+            # Same cloud provider
+            if other_template.cloud_provider == template.cloud_provider:
+                similarity_score += 30
+            
+            # Shared specializations
+            shared_specs = set(template.specializations) & set(other_template.specializations)
+            similarity_score += len(shared_specs) * 20
+            
+            # Shared capabilities
+            template_caps = {cap.name for cap in template.capabilities}
+            other_caps = {cap.name for cap in other_template.capabilities}
+            shared_caps = template_caps & other_caps
+            similarity_score += len(shared_caps) * 10
+            
+            if similarity_score > 20:  # Minimum similarity threshold
+                related.append({
+                    "template_id": other_template.id,
+                    "similarity_score": similarity_score
+                })
+        
+        # Sort by similarity and return top results
+        related.sort(key=lambda x: x["similarity_score"], reverse=True)
+        return [r["template_id"] for r in related[:limit]]
+
+
+# Global registry and catalog instances
 _registry: Optional[AgentRegistry] = None
+_catalog: Optional[AgentCatalog] = None
 
 
 def get_registry() -> AgentRegistry:
@@ -489,3 +805,12 @@ def get_registry() -> AgentRegistry:
     if _registry is None:
         _registry = AgentRegistry()
     return _registry
+
+
+def get_catalog() -> AgentCatalog:
+    """Get global agent catalog instance"""
+    global _catalog
+    if _catalog is None:
+        _catalog = AgentCatalog()
+    return _catalog
+
