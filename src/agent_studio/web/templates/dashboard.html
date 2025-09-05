@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Agent Studio{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-3">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Dashboard
+            </h1>
+            <p class="text-muted">Welcome to Agent Studio. Manage your cloud agents and deployments.</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Active Agents</h5>
+                            <h2 class="mb-0" id="active-agents-count">-</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-robot fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Deployments</h5>
+                            <h2 class="mb-0" id="deployments-count">-</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cloud fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Templates</h5>
+                            <h2 class="mb-0" id="templates-count">-</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-layer-group fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Cloud Providers</h5>
+                            <h2 class="mb-0" id="cloud-providers-count">3</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cloud-upload-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="/create" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-2"></i>
+                                Create Agent
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/templates" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-layer-group me-2"></i>
+                                Browse Templates
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/credentials" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-key me-2"></i>
+                                Manage Credentials
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/deployments" class="btn btn-outline-success w-100">
+                                <i class="fas fa-cloud me-2"></i>
+                                View Deployments
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Agents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recent-agents-loading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="recent-agents-list" class="d-none">
+                        <!-- Recent agents will be populated here -->
+                    </div>
+                    <div id="recent-agents-empty" class="text-center py-4 d-none">
+                        <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No agents created yet.</p>
+                        <a href="/create" class="btn btn-primary">Create Your First Agent</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Cloud Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="cloud-distribution-chart" width="300" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load dashboard data
+    loadDashboardStats();
+    loadRecentAgents();
+    loadCloudDistribution();
+});
+
+async function loadDashboardStats() {
+    try {
+        const response = await AgentStudioAPI.get('/stats');
+        const stats = response.data;
+        
+        document.getElementById('active-agents-count').textContent = stats.active_instances || 0;
+        document.getElementById('deployments-count').textContent = stats.total_deployments || 0;
+        document.getElementById('templates-count').textContent = stats.active_templates || 0;
+    } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+    }
+}
+
+async function loadRecentAgents() {
+    try {
+        const response = await AgentStudioAPI.get('/agents/list?limit=5');
+        const agents = response.data;
+        
+        const loadingEl = document.getElementById('recent-agents-loading');
+        const listEl = document.getElementById('recent-agents-list');
+        const emptyEl = document.getElementById('recent-agents-empty');
+        
+        loadingEl.classList.add('d-none');
+        
+        if (agents.length === 0) {
+            emptyEl.classList.remove('d-none');
+        } else {
+            listEl.classList.remove('d-none');
+            listEl.innerHTML = agents.map(agent => `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <h6 class="mb-1">${agent.name}</h6>
+                        <small class="text-muted">
+                            <i class="fas fa-cloud me-1"></i>${agent.cloud_provider}
+                            ${agent.specialization ? `<i class="fas fa-cog ms-2 me-1"></i>${agent.specialization}` : ''}
+                        </small>
+                    </div>
+                    <div>
+                        <span class="badge bg-${getStatusColor(agent.status)}">${agent.status}</span>
+                        <a href="/agents/${agent.id}" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Failed to load recent agents:', error);
+        document.getElementById('recent-agents-loading').classList.add('d-none');
+        document.getElementById('recent-agents-empty').classList.remove('d-none');
+    }
+}
+
+async function loadCloudDistribution() {
+    try {
+        const response = await AgentStudioAPI.get('/stats');
+        const stats = response.data;
+        const distribution = stats.cloud_provider_distribution || {};
+        
+        const ctx = document.getElementById('cloud-distribution-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(distribution).map(key => key.toUpperCase()),
+                datasets: [{
+                    data: Object.values(distribution),
+                    backgroundColor: [
+                        '#FF9500', // AWS Orange
+                        '#4285F4', // GCP Blue
+                        '#0078D4'  // Azure Blue
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load cloud distribution:', error);
+    }
+}
+
+function getStatusColor(status) {
+    switch (status) {
+        case 'active': return 'success';
+        case 'deployed': return 'primary';
+        case 'draft': return 'secondary';
+        case 'archived': return 'warning';
+        default: return 'secondary';
+    }
+}
+</script>
+{% endblock %}
