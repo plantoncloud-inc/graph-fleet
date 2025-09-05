@@ -1,18 +1,19 @@
 # Agent Studio Platform
 
-A comprehensive platform for creating, managing, and deploying specialized cloud agents based on configurable templates. The Agent Studio extends the existing AWS agent pattern to support multiple cloud providers and specialized agent variants through configuration-driven customization.
+Agent Studio is a comprehensive platform for creating, configuring, and deploying specialized AI agents across multiple cloud providers. It extends the existing AWS agent architecture to support multi-cloud operations with configurable specializations and enterprise-grade deployment capabilities.
 
 ## Overview
 
-Agent Studio transforms the concept of having a few base agents into a platform that can generate many specialized agent variants. Similar to how OpenHWE connects to GitHub to modify code, Agent Studio connects to PlantonCloud as the primary system for credential management and extends to other cloud systems.
+Agent Studio transforms the concept of having a few base agents into a platform that can generate many specialized agent variants. The platform provides a unified interface for managing cloud agents across AWS, GCP, and Azure with deep integration into Planton Cloud for credential management and deployment orchestration.
 
 ### Key Concepts
 
-- **Base Agents**: Limited number of core agents (AWS, GCP, Azure) with comprehensive capabilities
-- **Specializations**: Many specialized variants created through configuration-driven customization
-- **Templates**: Cloud-specific agent implementations following established patterns
-- **Registry**: Centralized catalog for agent discovery and management
-- **Platform Integration**: Deep integration with PlantonCloud for unified workflow
+- **Multi-Cloud Support**: Unified agent architecture supporting AWS, GCP, and Azure
+- **Specialization Profiles**: Cost optimization, security auditing, troubleshooting, and architecture
+- **Configuration-Driven**: Agents customized through structured configuration rather than code changes
+- **Enterprise Deployment**: Production-ready deployment with monitoring and lifecycle management
+- **Template System**: Reusable agent templates following established two-node architecture patterns
+- **Registry & Catalog**: Centralized discovery and management of agent variants
 
 ## Architecture
 
@@ -342,3 +343,4 @@ When contributing to Agent Studio:
 ## License
 
 MIT License - see [LICENSE](../../LICENSE) file.
+
