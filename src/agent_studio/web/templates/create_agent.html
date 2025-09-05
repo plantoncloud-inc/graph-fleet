@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Create Agent - Agent Studio{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-3">
+                <i class="fas fa-plus me-2"></i>
+                Create New Agent
+            </h1>
+            <p class="text-muted">Configure and deploy a new cloud agent with specialized capabilities.</p>
+        </div>
+    </div>
+
+    <!-- Creation Form -->
+    <form id="create-agent-form">
+        <div class="row">
+            <!-- Main Configuration -->
+            <div class="col-md-8">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Basic Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="agent-name" class="form-label">Agent Name *</label>
+                                <input type="text" class="form-control" id="agent-name" required 
+                                       placeholder="e.g., Production Cost Optimizer">
+                                <div class="form-text">Choose a descriptive name for your agent</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cloud-provider" class="form-label">Cloud Provider *</label>
+                                <select class="form-select" id="cloud-provider" required>
+                                    <option value="">Select Cloud Provider</option>
+                                    <option value="aws">Amazon Web Services (AWS)</option>
+                                    <option value="gcp">Google Cloud Platform (GCP)</option>
+                                    <option value="azure">Microsoft Azure</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="agent-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="agent-description" rows="3" 
+                                      placeholder="Describe what this agent will be used for..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Template Selection -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-layer-group me-2"></i>
+                            Template Selection
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Choose a Template</label>
+                            <div class="row" id="template-options">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card template-card" data-template="custom">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-cog fa-2x mb-2 text-primary"></i>
+                                            <h6>Custom Configuration</h6>
+                                            <small class="text-muted">Build from scratch</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Template options will be populated based on cloud provider -->
+                            </div>
+                        </div>
+                        
+                        <div id="selected-template-info" class="alert alert-info d-none">
+                            <strong>Selected Template:</strong> <span id="template-name"></span>
+                            <p class="mb-0 mt-2" id="template-description"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specialization -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-star me-2"></i>
+                            Specialization
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="specialization" class="form-label">Agent Specialization</label>
+                            <select class="form-select" id="specialization">
+                                <option value="">No Specialization (General Purpose)</option>
+                                <option value="cost_optimizer">Cost Optimizer</option>
+                                <option value="security_auditor">Security Auditor</option>
+                                <option value="troubleshooter">Troubleshooter</option>
+                                <option value="architect">Solutions Architect</option>
+                            </select>
+                            <div class="form-text">Specializations provide focused expertise and tools</div>
+                        </div>
+                        
+                        <div id="specialization-info" class="alert alert-light d-none">
+                            <div id="specialization-description"></div>
+                            <div class="mt-2">
+                                <strong>Capabilities:</strong>
+                                <ul id="specialization-capabilities" class="mb-0 mt-1"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Instructions -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-edit me-2"></i>
+                            Custom Instructions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="custom-instructions" class="form-label">Additional Instructions</label>
+                            <textarea class="form-control" id="custom-instructions" rows="6" 
+                                      placeholder="Add any specific instructions or context for your agent..."></textarea>
+                            <div class="form-text">These instructions will be added to the base template</div>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable-sub-agents" checked>
+                            <label class="form-check-label" for="enable-sub-agents">
+                                Enable Sub-Agents
+                            </label>
+                            <div class="form-text">Allow the agent to spawn specialized sub-agents for complex tasks</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Configuration -->
+            <div class="col-md-4">
+                <!-- Cloud Credentials -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-key me-2"></i>
+                            Cloud Credentials
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="credential-id" class="form-label">Select Credentials</label>
+                            <select class="form-select" id="credential-id">
+                                <option value="">Loading credentials...</option>
+                            </select>
+                            <div class="form-text">Managed through Planton Cloud</div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="manageCredentials()">
+                                <i class="fas fa-cog me-2"></i>
+                                Manage Credentials
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            Advanced Settings
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="model-selection" class="form-label">LLM Model</label>
+                            <select class="form-select" id="model-selection">
+                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Recommended)</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="temperature" class="form-label">Temperature</label>
+                            <input type="range" class="form-range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+                            <div class="d-flex justify-content-between">
+                                <small>Focused (0)</small>
+                                <small id="temperature-value">0.7</small>
+                                <small>Creative (1)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable-monitoring" checked>
+                            <label class="form-check-label" for="enable-monitoring">
+                                Enable Monitoring
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-tags me-2"></i>
+                            Tags
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="tags-input" 
+                                   placeholder="Add tags (press Enter)">
+                            <div class="form-text">Tags help organize and find your agents</div>
+                        </div>
+                        <div id="tags-container"></div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="create-btn">
+                                <i class="fas fa-plus me-2"></i>
+                                Create Agent
+                            </button>
+                            <button type="button" class="btn btn-success" id="create-deploy-btn">
+                                <i class="fas fa-rocket me-2"></i>
+                                Create & Deploy
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
+                                <i class="fas fa-save me-2"></i>
+                                Save as Draft
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedTemplate = null;
+let selectedTags = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form
+    setupEventListeners();
+    loadCredentials();
+    
+    // Load specialization info
+    loadSpecializationInfo();
+});
+
+function setupEventListeners() {
+    // Cloud provider change
+    document.getElementById('cloud-provider').addEventListener('change', function() {
+        loadTemplatesForProvider(this.value);
+        loadCredentials();
+    });
+    
+    // Specialization change
+    document.getElementById('specialization').addEventListener('change', function() {
+        showSpecializationInfo(this.value);
+    });
+    
+    // Temperature slider
+    document.getElementById('temperature').addEventListener('input', function() {
+        document.getElementById('temperature-value').textContent = this.value;
+    });
+    
+    // Tags input
+    document.getElementById('tags-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag(this.value.trim());
+            this.value = '';
+        }
+    });
+    
+    // Form submission
+    document.getElementById('create-agent-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createAgent(false);
+    });
+    
+    document.getElementById('create-deploy-btn').addEventListener('click', function() {
+        createAgent(true);
+    });
+}
+
+async function loadTemplatesForProvider(cloudProvider) {
+    if (!cloudProvider) return;
+    
+    try {
+        const response = await AgentStudioAPI.get(`/providers/${cloudProvider}/templates`);
+        const templates = response.data;
+        
+        const container = document.getElementById('template-options');
+        container.innerHTML = `
+            <div class="col-md-6 mb-3">
+                <div class="card template-card" data-template="custom">
+                    <div class="card-body text-center">
+                        <i class="fas fa-cog fa-2x mb-2 text-primary"></i>
+                        <h6>Custom Configuration</h6>
+                        <small class="text-muted">Build from scratch</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        templates.forEach(template => {
+            container.innerHTML += `
+                <div class="col-md-6 mb-3">
+                    <div class="card template-card" data-template="${template.id}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-layer-group fa-2x mb-2 text-info"></i>
+                            <h6>${template.display_name}</h6>
+                            <small class="text-muted">${template.description}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Add click handlers
+        document.querySelectorAll('.template-card').forEach(card => {
+            card.addEventListener('click', function() {
+                selectTemplate(this.dataset.template);
+            });
+        });
+        
+    } catch (error) {
+        console.error('Failed to load templates:', error);
+    }
+}
+
+function selectTemplate(templateId) {
+    // Remove previous selection
+    document.querySelectorAll('.template-card').forEach(card => {
+        card.classList.remove('border-primary');
+    });
+    
+    // Select new template
+    const selectedCard = document.querySelector(`[data-template="${templateId}"]`);
+    selectedCard.classList.add('border-primary');
+    selectedTemplate = templateId;
+    
+    // Show template info
+    if (templateId !== 'custom') {
+        showTemplateInfo(templateId);
+    } else {
+        hideTemplateInfo();
+    }
+}
+
+async function showTemplateInfo(templateId) {
+    try {
+        const response = await AgentStudioAPI.get(`/templates/${templateId}`);
+        const template = response.data;
+        
+        document.getElementById('template-name').textContent = template.display_name;
+        document.getElementById('template-description').textContent = template.description;
+        document.getElementById('selected-template-info').classList.remove('d-none');
+    } catch (error) {
+        console.error('Failed to load template info:', error);
+    }
+}
+
+function hideTemplateInfo() {
+    document.getElementById('selected-template-info').classList.add('d-none');
+}
+
+async function loadCredentials() {
+    const cloudProvider = document.getElementById('cloud-provider').value;
+    if (!cloudProvider) return;
+    
+    try {
+        const response = await AgentStudioAPI.get(`/credentials?cloud_provider=${cloudProvider}`);
+        const credentials = response.data;
+        
+        const select = document.getElementById('credential-id');
+        select.innerHTML = '<option value="">Select credentials...</option>';
+        
+        credentials.forEach(cred => {
+            select.innerHTML += `<option value="${cred.id}">${cred.name}</option>`;
+        });
+    } catch (error) {
+        console.error('Failed to load credentials:', error);
+        document.getElementById('credential-id').innerHTML = '<option value="">Failed to load credentials</option>';
+    }
+}
+
+function loadSpecializationInfo() {
+    const specializations = {
+        cost_optimizer: {
+            description: 'Specializes in cloud cost analysis, resource optimization, and financial governance.',
+            capabilities: ['Cost Analysis', 'Resource Right-sizing', 'Reserved Capacity Planning', 'Waste Identification']
+        },
+        security_auditor: {
+            description: 'Focuses on security assessment, compliance monitoring, and vulnerability management.',
+            capabilities: ['Security Assessment', 'Compliance Monitoring', 'Vulnerability Scanning', 'IAM Analysis']
+        },
+        troubleshooter: {
+            description: 'Expert in diagnosing and resolving complex cloud issues and performance problems.',
+            capabilities: ['Issue Diagnosis', 'Performance Analysis', 'Log Analysis', 'Root Cause Analysis']
+        },
+        architect: {
+            description: 'Designs scalable, secure, and cost-effective cloud architectures.',
+            capabilities: ['Solution Architecture', 'Technology Selection', 'Migration Planning', 'Best Practices']
+        }
+    };
+    
+    window.specializationInfo = specializations;
+}
+
+function showSpecializationInfo(specialization) {
+    const infoDiv = document.getElementById('specialization-info');
+    
+    if (!specialization || !window.specializationInfo[specialization]) {
+        infoDiv.classList.add('d-none');
+        return;
+    }
+    
+    const info = window.specializationInfo[specialization];
+    document.getElementById('specialization-description').textContent = info.description;
+    
+    const capabilitiesList = document.getElementById('specialization-capabilities');
+    capabilitiesList.innerHTML = info.capabilities.map(cap => `<li>${cap}</li>`).join('');
+    
+    infoDiv.classList.remove('d-none');
+}
+
+function addTag(tag) {
+    if (!tag || selectedTags.includes(tag)) return;
+    
+    selectedTags.push(tag);
+    updateTagsDisplay();
+}
+
+function removeTag(tag) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+    updateTagsDisplay();
+}
+
+function updateTagsDisplay() {
+    const container = document.getElementById('tags-container');
+    container.innerHTML = selectedTags.map(tag => `
+        <span class="badge bg-secondary me-1 mb-1">
+            ${tag}
+            <button type="button" class="btn-close btn-close-white ms-1" 
+                    onclick="removeTag('${tag}')" style="font-size: 0.7em;"></button>
+        </span>
+    `).join('');
+}
+
+async function createAgent(deploy = false) {
+    const formData = {
+        name: document.getElementById('agent-name').value,
+        cloud_provider: document.getElementById('cloud-provider').value,
+        specialization: document.getElementById('specialization').value || null,
+        template_id: selectedTemplate !== 'custom' ? selectedTemplate : null,
+        custom_instructions: document.getElementById('custom-instructions').value,
+        configuration: {
+            credential_id: document.getElementById('credential-id').value,
+            model: document.getElementById('model-selection').value,
+            temperature: parseFloat(document.getElementById('temperature').value),
+            enable_sub_agents: document.getElementById('enable-sub-agents').checked,
+            enable_monitoring: document.getElementById('enable-monitoring').checked,
+            description: document.getElementById('agent-description').value
+        },
+        tags: selectedTags
+    };
+    
+    // Validation
+    if (!formData.name || !formData.cloud_provider) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    try {
+        // Disable buttons
+        document.getElementById('create-btn').disabled = true;
+        document.getElementById('create-deploy-btn').disabled = true;
+        
+        // Create agent
+        const response = await AgentStudioAPI.post('/agents/create', formData);
+        const agentId = response.data.agent_id;
+        
+        showSuccess('Agent created successfully!');
+        
+        if (deploy) {
+            // Deploy immediately
+            try {
+                await AgentStudioAPI.post(`/agents/${agentId}/deploy`, {
+                    deployment_target: 'langgraph_studio',
+                    environment: 'production'
+                });
+                showSuccess('Agent deployed successfully!');
+                window.location.href = `/agents/${agentId}`;
+            } catch (deployError) {
+                console.error('Deployment failed:', deployError);
+                showWarning('Agent created but deployment failed. You can deploy it later.');
+                window.location.href = `/agents/${agentId}`;
+            }
+        } else {
+            window.location.href = `/agents/${agentId}`;
+        }
+        
+    } catch (error) {
+        console.error('Failed to create agent:', error);
+        showError('Failed to create agent. Please try again.');
+        
+        // Re-enable buttons
+        document.getElementById('create-btn').disabled = false;
+        document.getElementById('create-deploy-btn').disabled = false;
+    }
+}
+
+async function saveDraft() {
+    // Implementation for saving as draft
+    showInfo('Draft functionality coming soon!');
+}
+
+function manageCredentials() {
+    window.open('/credentials', '_blank');
+}
+</script>
+{% endblock %}
