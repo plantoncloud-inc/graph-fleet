@@ -19,13 +19,15 @@ from .base_agent_config import (
     SubAgentConfig,
     InstructionTemplate
 )
-from .base_agent_state import BaseAgentState
+from .base_agent_state import BaseAgentState, CloudAgentState
 
 __all__ = [
     "BaseAgentConfig",
-    "BaseAgentState", 
+    "BaseAgentState",
+    "CloudAgentState",
     "CloudProvider",
     "SpecializationProfile",
     "SubAgentConfig",
     "InstructionTemplate"
 ]
+
