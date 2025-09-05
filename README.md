@@ -11,11 +11,21 @@ Graph Fleet provides both individual intelligent agents for cloud operations and
 ```
 graph-fleet/
 ├── src/
-│   ├── agents/           # Agent implementations
-│   │   └── aws_agent/    # AWS specialist agent
+│   ├── agents/           # Individual agent implementations
+│   │   └── aws_agent/    # AWS specialist agent (original)
+│   ├── agent_studio/     # Agent Studio Platform
+│   │   ├── base/         # Base configuration system
+│   │   ├── templates/    # Multi-cloud agent templates
+│   │   ├── specializations/ # Specialization profiles
+│   │   ├── registry.py   # Agent registry and catalog
+│   │   ├── api.py        # REST API layer
+│   │   ├── mcp/          # Multi-cloud MCP integration
+│   │   ├── web/          # Web interface
+│   │   └── deployment/   # Lifecycle management
 │   └── mcp/              # MCP integrations
 │       └── planton_cloud/ # Planton Cloud MCP server
 └── examples/             # Usage examples
+    └── agent_studio/     # Agent Studio examples
 ```
 
 ## Agents
@@ -449,3 +459,4 @@ Built with:
 - [DeepAgents](https://github.com/deepagents/deepagents) - Agent framework
 - [MCP](https://github.com/modelcontextprotocol/mcp) - Tool protocol
 - [Planton Cloud](https://planton.cloud) - Cloud platform
+
