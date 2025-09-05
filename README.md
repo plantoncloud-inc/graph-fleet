@@ -1,10 +1,10 @@
 # Graph Fleet
 
-Planton Cloud Agent Fleet - A collection of specialized AI agents built with LangGraph.
+Planton Cloud Agent Fleet - A comprehensive platform for creating, managing, and deploying specialized AI agents across multiple cloud providers.
 
 ## Overview
 
-Graph Fleet provides a set of intelligent agents for cloud operations, starting with AWS. Each agent can be used directly or customized through assistants with specialized instructions.
+Graph Fleet provides both individual intelligent agents for cloud operations and the **Agent Studio Platform** - a comprehensive system for creating, configuring, and deploying specialized cloud agents at scale. The platform supports AWS, GCP, and Azure with configurable specializations for cost optimization, security auditing, troubleshooting, and architecture.
 
 ## Architecture
 
