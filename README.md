@@ -28,9 +28,39 @@ graph-fleet/
     └── agent_studio/     # Agent Studio examples
 ```
 
-## Agents
+## Components
 
-### AWS Agent (DeepAgent)
+### Agent Studio Platform
+
+The **Agent Studio Platform** is a comprehensive system for creating, configuring, and deploying specialized cloud agents at scale. It provides:
+
+#### 🏗️ **Multi-Cloud Architecture**
+- **AWS, GCP, Azure Support**: Unified agent templates for all major cloud providers
+- **Two-Node Architecture**: Credential selection + cloud operations pattern
+- **MCP Integration**: Multi-cloud credential and tool management
+- **Configuration-Driven**: Agents customized through structured configuration
+
+#### 🎯 **Specialization Profiles**
+- **Cost Optimizer**: Financial analysis and resource optimization
+- **Security Auditor**: Security assessment and compliance monitoring  
+- **Troubleshooter**: Issue diagnosis and resolution
+- **Architect**: Solution design and best practices
+
+#### 🚀 **Enterprise Features**
+- **Web Interface**: Browser-based agent management with responsive design
+- **REST API**: Programmatic agent management and deployment
+- **Lifecycle Management**: Version control, monitoring, and automated scaling
+- **Registry & Catalog**: Centralized agent discovery and management
+
+#### 📊 **Production Ready**
+- **LangGraph Studio Deployment**: Managed hosting with auto-scaling
+- **Kubernetes Support**: Container orchestration and service mesh
+- **Monitoring & Alerting**: Health checks and performance metrics
+- **Multi-Tenant**: Secure isolation and access control
+
+### Individual Agents
+
+#### AWS Agent (DeepAgent)
 
 The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langchain-ai/deepagents) framework for autonomous problem-solving:
 
@@ -459,4 +489,5 @@ Built with:
 - [DeepAgents](https://github.com/deepagents/deepagents) - Agent framework
 - [MCP](https://github.com/modelcontextprotocol/mcp) - Tool protocol
 - [Planton Cloud](https://planton.cloud) - Cloud platform
+
 
