@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 import click
 from deepagents import async_create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from .prompts import ORCHESTRATOR_PROMPT
 from .subagents import SUBAGENTS
@@ -138,3 +139,4 @@ def loop(cluster: str, service: str, allow_write: bool):
 
 if __name__ == "__main__":
     cli()
+
