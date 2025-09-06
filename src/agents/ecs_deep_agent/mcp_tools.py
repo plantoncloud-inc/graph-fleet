@@ -1,13 +1,19 @@
-"""MCP tools integration for ECS Deep Agent."""
+"""MCP tools integration for ECS Deep Agent - Planton Cloud Context Tools Only.
+
+This module now provides only Planton Cloud context tools for the ECS Deep Agent
+supervisor system. AWS ECS-specific tools have been migrated to the ECS Domain Agent.
+
+The Context Coordinator Agent uses these tools for context establishment:
+- list_aws_credentials: Get available AWS credentials from Planton Cloud
+- list_services: Get available ECS services from Planton Cloud
+"""
 
 import logging
-import os
-from typing import Any
+from typing import Any, List
 
 from langchain_core.tools import BaseTool
-from langchain_mcp_adapters.client import MultiServerMCPClient
 
-# AWS MCP configuration (copied from removed aws_agent)
+logger = logging.getLogger(__name__)
 
 
 def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]:
@@ -185,3 +191,4 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
