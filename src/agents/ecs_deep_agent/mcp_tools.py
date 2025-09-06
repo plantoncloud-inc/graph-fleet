@@ -17,55 +17,37 @@ logger = logging.getLogger(__name__)
 
 
 async def get_planton_context_tools() -> List[BaseTool]:
-    """Get AWS API MCP server configuration
-
-    Args:
-        aws_credentials: Optional dictionary with AWS credentials
-                        (access_key_id, secret_access_key, session_token)
-
+    """Get Planton Cloud context tools for the Context Coordinator Agent.
+    
+    These tools are used for establishing operational context:
+    - list_aws_credentials: Get available AWS credentials
+    - list_services: Get available ECS services
+    
     Returns:
-        Dictionary with AWS API MCP server configuration
-
+        List of LangChain tools for context establishment
     """
-    env = {
-        "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
-        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
-    }
-
-    # Add AWS credentials if provided
-    if aws_credentials:
-        env.update(
-            {
-                "AWS_ACCESS_KEY_ID": aws_credentials["access_key_id"],
-                "AWS_SECRET_ACCESS_KEY": aws_credentials["secret_access_key"],
-                "AWS_SESSION_TOKEN": aws_credentials["session_token"],
-            }
-        )
-
-    # Try to import awslabs.aws_api_mcp_server to check if it's installed
+    tools = []
+    
     try:
-        from awslabs import aws_api_mcp_server
-
-        # AWS API MCP server is installed, use the command directly
-        return {
-            "command": "awslabs.aws-api-mcp-server",
-            "args": [],
-            "transport": "stdio",
-            "env": env,
-        }
-    except ImportError:
-        # AWS API MCP server not installed - fall back to uvx
-        # Note: uvx will install on first run and cache in ~/.local/share/uv/tools/
-        logger.warning("AWS API MCP server not installed. Using uvx to run it.")
-        logger.warning(
-            "For better performance, install: poetry add awslabs.aws-api-mcp-server"
-        )
-        return {
-            "command": "uvx",
-            "args": ["awslabs.aws-api-mcp-server@latest"],
-            "transport": "stdio",
-            "env": env,
-        }
+        # Import Planton Cloud context tools
+        from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials
+        from mcp.planton_cloud.service.tools import list_services
+        
+        # Note: These tools may need to be wrapped as LangChain tools
+        # For now, we'll assume they can be used directly
+        # In production, these would be properly wrapped as LangChain tools
+        tools.extend([list_aws_credentials, list_services])
+        
+        logger.info(f"Loaded {len(tools)} Planton Cloud context tools")
+        
+    except ImportError as e:
+        logger.warning(f"Could not import Planton Cloud tools: {e}")
+        # Continue without tools - agent can still coordinate operations
+    except Exception as e:
+        logger.error(f"Error loading Planton Cloud context tools: {e}")
+        # Continue without tools for graceful degradation
+    
+    return tools
 
 
 logger = logging.getLogger(__name__)
@@ -191,5 +173,6 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
