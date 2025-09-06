@@ -1,0 +1,37 @@
+"""Sub-agent definitions for ECS Deep Agent."""
+
+from .prompts import (
+    TRIAGE_AGENT_PROMPT,
+    CHANGE_PLANNER_PROMPT,
+    REMEDIATOR_PROMPT,
+    VERIFIER_PROMPT,
+    REPORTER_PROMPT
+)
+
+SUBAGENTS = [
+    {
+        "name": "triage-agent",
+        "description": "Diagnoses ECS service issues using read-only tools",
+        "prompt": TRIAGE_AGENT_PROMPT
+    },
+    {
+        "name": "change-planner",
+        "description": "Creates minimal, reversible repair plans",
+        "prompt": CHANGE_PLANNER_PROMPT
+    },
+    {
+        "name": "remediator",
+        "description": "Executes approved repair steps with minimal blast radius",
+        "prompt": REMEDIATOR_PROMPT
+    },
+    {
+        "name": "verifier",
+        "description": "Verifies service health after changes",
+        "prompt": VERIFIER_PROMPT
+    },
+    {
+        "name": "reporter",
+        "description": "Summarizes actions and results for audit",
+        "prompt": REPORTER_PROMPT
+    }
+]

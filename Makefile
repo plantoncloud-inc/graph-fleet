@@ -1,4 +1,4 @@
-.PHONY: all build run deps lint clean help venvs aws-examples aws-example-1 aws-example-2 aws-example-3 aws-example-4 aws-example-5 aws-example-6 aws-example-all
+.PHONY: all build run deps lint clean help venvs aws-examples ecs-triage ecs-loop ecs-loop-write
 
 SHELL := /bin/bash
 
@@ -60,6 +60,34 @@ clean:
 aws-examples:
 	@$(MAKE) -C src/agents/aws_agent examples
 
+# ECS Deep Agent Commands
+ecs-triage:
+	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
+		echo "❌ Error: CLUSTER and SERVICE are required"; \
+		echo "Usage: make ecs-triage CLUSTER=my-cluster SERVICE=my-service"; \
+		exit 1; \
+	fi
+	@echo "Running ECS triage for cluster: $(CLUSTER), service: $(SERVICE)"
+	poetry run ecs-agent triage --cluster $(CLUSTER) --service $(SERVICE)
+
+ecs-loop:
+	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
+		echo "❌ Error: CLUSTER and SERVICE are required"; \
+		echo "Usage: make ecs-loop CLUSTER=my-cluster SERVICE=my-service"; \
+		exit 1; \
+	fi
+	@echo "Running ECS diagnostic loop for cluster: $(CLUSTER), service: $(SERVICE)"
+	poetry run ecs-agent loop --cluster $(CLUSTER) --service $(SERVICE)
+
+ecs-loop-write:
+	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
+		echo "❌ Error: CLUSTER and SERVICE are required"; \
+		echo "Usage: make ecs-loop-write CLUSTER=my-cluster SERVICE=my-service"; \
+		exit 1; \
+	fi
+	@echo "Running ECS diagnostic loop with write permissions for cluster: $(CLUSTER), service: $(SERVICE)"
+	poetry run ecs-agent loop --cluster $(CLUSTER) --service $(SERVICE) --allow-write
+
 help:
 	@echo 'build  - run lints/type checks (non-fatal)'
 	@echo 'run     - start LangGraph Studio'
@@ -70,6 +98,11 @@ help:
 	@echo ''
 	@echo 'Agent Examples:'
 	@echo 'aws-examples     - run AWS agent examples (interactive menu)'
+	@echo ''
+	@echo 'ECS Deep Agent:'
+	@echo 'ecs-triage CLUSTER=x SERVICE=y    - run ECS service triage'
+	@echo 'ecs-loop CLUSTER=x SERVICE=y      - run full ECS diagnostic loop'
+	@echo 'ecs-loop-write CLUSTER=x SERVICE=y - run loop with write permissions'
 
 .PHONY: clean-pyc
 clean-pyc:
