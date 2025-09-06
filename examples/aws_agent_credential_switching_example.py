@@ -17,10 +17,10 @@ from src.agents import AWSAgentState, cleanup_session, create_aws_agent
 async def main():
     """Run example demonstrating credential switching"""
     # Create the AWS agent
-    # In real usage, you'd provide org_id and optionally env_id
+    # In real usage, you'd provide org_id and optionally env_name
     agent = await create_aws_agent(
         org_id=os.getenv("PLANTON_ORG_ID", "example-org"),
-        env_id=os.getenv("PLANTON_ENV_ID"),  # Optional
+        env_name=os.getenv("PLANTON_ENV_NAME"),  # Optional
         model_name="gpt-4o-mini",  # or your preferred model
     )
 
@@ -34,7 +34,7 @@ async def main():
     state = AWSAgentState(
         messages=[HumanMessage(content="List my EC2 instances")],
         orgId=os.getenv("PLANTON_ORG_ID", "example-org"),
-        envId=os.getenv("PLANTON_ENV_ID"),
+        envName=os.getenv("PLANTON_ENV_NAME"),
     )
 
     result = await agent.ainvoke(state)

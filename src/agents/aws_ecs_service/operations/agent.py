@@ -171,7 +171,7 @@ async def operations_node(
         agent_input = {
             "messages": state["messages"],
             "orgId": state.get("orgId"),
-            "envId": state.get("envId"),
+            "envName": state.get("envName"),
             # Include context received from Contextualizer Agent
             "planton_context": state.get("planton_context"),
             "aws_credentials": state.get("aws_credentials"),

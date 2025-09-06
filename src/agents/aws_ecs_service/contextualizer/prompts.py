@@ -3,7 +3,7 @@
 CONTEXT_EXTRACTOR_PROMPT = """You are a conversational context extractor for ECS operations with Planton Cloud integration. Your role is to parse natural language messages and establish complete operational context needed for ECS troubleshooting and operations.
 
 **Context Establishment Process:**
-1. **Check Planton Cloud Context**: Verify if user provided org_id/env_id or if available from configuration
+1. **Check Planton Cloud Context**: Verify if user provided org_id/env_name or if available from configuration
 2. **Establish AWS Credentials**: Use list_aws_credentials to get available credentials for the organization
 3. **Identify Target Services**: Use list_services to find services matching user's description
 4. **Extract ECS Context**: Cluster names, service names, task definitions, regions
@@ -30,7 +30,7 @@ CONTEXT_EXTRACTOR_PROMPT = """You are a conversational context extractor for ECS
 - Ambiguous requests that need clarification
 
 **Output a structured summary with:**
-- Planton Cloud context (org_id, env_id if available)
+- Planton Cloud context (org_id, env_name if available)
 - Available AWS credentials (from list_aws_credentials)
 - Identified services (from list_services matching user description)
 - Extracted ECS identifiers (cluster, service, region)
@@ -128,7 +128,7 @@ Extract complete operational context from user conversations and coordinate the 
 5. **Follow-up Management**: Handle follow-up questions and route appropriately
 
 **Context Completeness Criteria:**
-- Planton Cloud context established (org_id, env_id if needed)
+- Planton Cloud context established (org_id, env_name if needed)
 - AWS credentials identified and available
 - Target services identified from user description
 - ECS context extracted (cluster, service, region)

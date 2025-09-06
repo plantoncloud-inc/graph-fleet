@@ -22,6 +22,21 @@ mcp/planton_cloud/
 └── entry_point.py             # Entry point for running the MCP server
 ```
 
+## AWS Credential Structure
+
+The `get_aws_credential` function returns the complete proto message structure from Planton Cloud:
+
+```python
+# Full proto structure
+credential = await get_aws_credential('cred-id')
+# Returns: {'api_version': '...', 'kind': '...', 'metadata': {...}, 'spec': {...}, 'status': {...}}
+
+# For AWS SDK usage, extract the credentials:
+from mcp.planton_cloud.connect.awscredential import extract_aws_credentials_for_sdk
+sdk_creds = extract_aws_credentials_for_sdk(credential)
+# Returns: {'access_key_id': '...', 'secret_access_key': '...', 'region': '...'}
+```
+
 ## Adding New Tools
 
 When adding new MCP tools, follow these steps:

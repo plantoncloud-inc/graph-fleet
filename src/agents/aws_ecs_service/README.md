@@ -46,7 +46,7 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 #### Configuration
 - **`planton_token`**: Authentication token for Planton Cloud API access
 - **`org_id`**: Organization identifier for scoped operations
-- **`env_id`**: Environment identifier for targeted service discovery
+- **`env_name`**: Environment name for targeted service discovery
 - **Environment Variable Fallback**: Supports configuration via environment variables for flexible deployment
 
 ### Agent Architecture
@@ -140,7 +140,7 @@ Configuration options:
 #### Planton Cloud Configuration
 - `planton_token`: Authentication token for Planton Cloud API access
 - `org_id`: Organization identifier for scoped operations
-- `env_id`: Environment identifier for targeted service discovery
+- `env_name`: Environment name for targeted service discovery
 
 The agent configuration automatically ignores extra fields passed by LangGraph Studio for compatibility.
 
@@ -154,7 +154,7 @@ config = ECSDeepAgentConfig(
     allow_write=False,  # Safe read-only mode
     planton_token="your-planton-token",
     org_id="your-org-id",
-    env_id="your-env-id"
+    env_name="your-env-name"
 )
 
 agent = await create_ecs_deep_agent(config=config)

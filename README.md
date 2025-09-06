@@ -1,14 +1,14 @@
 # Graph Fleet
 
-Planton Cloud Agent Fleet - A specialized ECS Deep Agent built with LangGraph.
+Planton Cloud Agent Fleet - A sophisticated multi-agent AWS ECS Service system built with LangGraph.
 
 ## Overview
 
-Graph Fleet provides a conversational ECS Deep Agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
+Graph Fleet provides a conversational AWS ECS Service Agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
 
-## ECS Deep Agent
+## AWS ECS Service Agent
 
-The ECS Deep Agent is a conversational AI agent that specializes in AWS ECS troubleshooting and repair operations. It features:
+The AWS ECS Service Agent is a conversational AI agent that specializes in AWS ECS troubleshooting and repair operations. It features:
 
 - **🗣️ Natural Language Interface**: Interact using plain English instead of technical commands
 - **🔍 Intelligent Diagnosis**: Automated triage and root cause analysis
@@ -25,11 +25,11 @@ make venvs
 # Start LangGraph Studio
 make run
 
-# Open http://localhost:8123 and interact with the ECS Deep Agent
+# Open http://localhost:8123 and interact with the AWS ECS Service Agent
 # Example: "My API service is slow and users are complaining about timeouts"
 ```
 
-📚 **[Complete Documentation →](src/agents/aws_ecs_service/supervisor/README.md)**
+📚 **[Complete Documentation →](src/agents/aws_ecs_service/README.md)**
 
 ## Development
 
@@ -39,7 +39,7 @@ make run
 graph-fleet/
 ├── src/
 │   ├── agents/
-│   │   └── ecs_deep_agent/     # ECS Deep Agent implementation
+│   │   └── aws_ecs_service/    # AWS ECS Service Agent implementation
 │   └── mcp/
 │       └── planton_cloud/      # Planton Cloud MCP server
 ├── langgraph.json              # LangGraph configuration
@@ -52,7 +52,7 @@ graph-fleet/
 ```bash
 make help          # Show all available commands
 make venvs         # Create virtual environment and install dependencies
-make run           # Start LangGraph Studio for ECS Deep Agent
+make run           # Start LangGraph Studio for AWS ECS Service Agent
 make build         # Run lints and type checks
 make clean         # Clean up cache files
 ```
@@ -73,7 +73,7 @@ export AWS_PROFILE="default"
 # Planton Cloud (optional)
 export PLANTON_TOKEN="your-token"
 export PLANTON_ORG_ID="your-org-id"
-export PLANTON_ENV_ID="your-env-id"
+export PLANTON_ENV_NAME="your-env-name"
 
 # PostgreSQL for persistent memory (optional)
 export DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
