@@ -275,43 +275,6 @@ async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfi
 
 
 
-                "timestamp": conversation_entry["timestamp"],
-                "content": state["messages"][-1] if state["messages"] else None,
-            },
-        }
-
-        logger.info(
-            f"Conversational ECS Deep Agent completed. Flow state: {updated_state.get('conversation_flow_state')}"
-        )
-        return updated_state
-
-    except Exception as e:
-        logger.error(f"Error in conversational ECS Deep Agent node: {e}")
-
-        # Update conversation history with error
-        error_entry = {
-            "timestamp": logger.info.__globals__.get("time", __import__("time")).time(),
-            "user_message": state["messages"][-1] if state["messages"] else None,
-            "error": str(e),
-            "flow_state": state.get("conversation_flow_state"),
-        }
-
-        conversation_history = state.get("conversation_history", [])
-        conversation_history.append(error_entry)
-
-        return {
-            **state,
-            "messages": state["messages"]
-            + [
-                {
-                    "role": "assistant",
-                    "content": f"I encountered an error while processing your request: {str(e)}. Please try rephrasing your request or provide more specific details about the ECS service you'd like me to help with.",
-                }
-            ],
-            "status": "error",
-            "error_message": str(e),
-            "conversation_history": conversation_history,
-        }
 
 
 async def graph(config: dict | None = None) -> CompiledStateGraph:
@@ -440,6 +403,7 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
 
