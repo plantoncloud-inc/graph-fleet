@@ -107,6 +107,35 @@ async def ecs_deep_agent_node(
     # Update state with user preferences
     state["user_preferences"] = user_preferences
 
+    # Extract Planton Cloud configuration for context establishment
+    planton_context = {}
+    
+    # Get Planton Cloud config from configuration or environment variables
+    planton_token = config.planton_token or os.environ.get("PLANTON_TOKEN")
+    org_id = config.org_id or os.environ.get("PLANTON_ORG_ID")
+    env_id = config.env_id or os.environ.get("PLANTON_ENV_ID")
+    
+    if planton_token and org_id:
+        planton_context = {
+            "token": planton_token,
+            "org_id": org_id,
+            "env_id": env_id  # Optional, can be None
+        }
+        logger.info(f"Planton Cloud context established: org_id={org_id}, env_id={env_id}")
+    else:
+        logger.warning("Planton Cloud context not available - missing token or org_id")
+    
+    # Update state with Planton Cloud context
+    state["planton_context"] = planton_context
+    
+    # Initialize context establishment tracking
+    if not state.get("established_context"):
+        state["established_context"] = False
+    if not state.get("available_aws_credentials"):
+        state["available_aws_credentials"] = []
+    if not state.get("available_services"):
+        state["available_services"] = []
+
     # Determine write permissions
     env_allow_write = os.environ.get("ALLOW_WRITE", "false").lower() == "true"
     config_allow_write = config.allow_write
@@ -368,4 +397,5 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
