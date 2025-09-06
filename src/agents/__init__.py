@@ -1,9 +1,9 @@
 """Top-level namespace for Planton Cloud agents.
 
 Packages under this namespace provide concrete agents such as
-``agents.aws_agent`` and others.
+``agents.ecs_deep_agent`` and others.
 """
 
-from .aws_agent import AWSAgentConfig
+from .ecs_deep_agent import ECSDeepAgentConfig
 
-__all__ = ["AWSAgentConfig"]
+__all__ = ["ECSDeepAgentConfig"]

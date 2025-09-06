@@ -6,8 +6,52 @@ from typing import List, Any, Optional, Dict
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_core.tools import BaseTool
 
-# Import AWS MCP configuration from the aws_agent
-from ..aws_agent.mcp.config import get_aws_mcp_config
+# AWS MCP configuration (copied from removed aws_agent)
+
+def get_aws_mcp_config(aws_credentials: Dict[str, str] = None) -> Dict[str, Any]:
+    """Get AWS API MCP server configuration
+    
+    Args:
+        aws_credentials: Optional dictionary with AWS credentials
+                        (access_key_id, secret_access_key, session_token)
+    
+    Returns:
+        Dictionary with AWS API MCP server configuration
+    """
+    env = {
+        "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
+        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1")
+    }
+    
+    # Add AWS credentials if provided
+    if aws_credentials:
+        env.update({
+            "AWS_ACCESS_KEY_ID": aws_credentials["access_key_id"],
+            "AWS_SECRET_ACCESS_KEY": aws_credentials["secret_access_key"],
+            "AWS_SESSION_TOKEN": aws_credentials["session_token"]
+        })
+    
+    # Try to import awslabs.aws_api_mcp_server to check if it's installed
+    try:
+        from awslabs import aws_api_mcp_server
+        # AWS API MCP server is installed, use the command directly
+        return {
+            "command": "awslabs.aws-api-mcp-server",
+            "args": [],
+            "transport": "stdio",
+            "env": env
+        }
+    except ImportError:
+        # AWS API MCP server not installed - fall back to uvx
+        # Note: uvx will install on first run and cache in ~/.local/share/uv/tools/
+        logger.warning("AWS API MCP server not installed. Using uvx to run it.")
+        logger.warning("For better performance, install: poetry add awslabs.aws-api-mcp-server")
+        return {
+            "command": "uvx",
+            "args": ["awslabs.aws-api-mcp-server@latest"],
+            "transport": "stdio",
+            "env": env
+        }
 
 logger = logging.getLogger(__name__)
 

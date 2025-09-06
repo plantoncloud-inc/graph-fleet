@@ -99,49 +99,24 @@ Configuration options:
 
 The agent configuration automatically ignores extra fields passed by LangGraph Studio for compatibility.
 
-### Via CLI
-
-```bash
-# Triage mode (read-only diagnosis)
-poetry run ecs-agent triage --cluster my-cluster --service my-service
-
-# Full diagnostic and repair loop (read-only)
-poetry run ecs-agent loop --cluster my-cluster --service my-service
-
-# Full loop with write permissions (requires approval)
-poetry run ecs-agent loop --cluster my-cluster --service my-service --allow-write
-```
-
-### Via Makefile
-
-```bash
-# Quick triage
-make ecs-triage CLUSTER=my-cluster SERVICE=my-service
-
-# Full diagnostic loop
-make ecs-loop CLUSTER=my-cluster SERVICE=my-service
-
-# Loop with write permissions
-make ecs-loop-write CLUSTER=my-cluster SERVICE=my-service
-```
-
-### Programmatic Usage
+### Via Programmatic API
 
 ```python
-from agents.ecs_deep_agent.graph import create_ecs_deep_agent
+from agents.ecs_deep_agent import create_ecs_deep_agent
 
-# Create agent
+# Create agent with configuration
 agent = await create_ecs_deep_agent(
-    cluster="my-cluster",
-    service="my-service",
-    allow_write=True
+    allow_write=False  # Safe read-only mode
 )
 
-# Run diagnosis
-result = await agent.ainvoke({
-    "messages": [{"role": "user", "content": "Diagnose this ECS service"}]
-})
+# Interact conversationally
+state = {
+    "messages": [{"role": "user", "content": "My service is having issues"}]
+}
+result = await agent.ainvoke(state)
 ```
+
+
 
 ## Memory Configuration
 
@@ -194,9 +169,8 @@ If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agen
 
 ### Environment Variables
 
-- `ALLOW_WRITE`: Enable write operations globally (default: "false")
 - `AWS_REGION`: AWS region to use
-- `AWS_PROFILE`: AWS profile to use
+- `AWS_PROFILE`: AWS profile to use  
 - `DATABASE_URL`: PostgreSQL connection string for persistent memory (optional)
 
 ### Configuration File
@@ -440,20 +414,17 @@ The rollback is progressing smoothly. Once complete, I'll implement the monitori
 Current status: 50% traffic now on stable revision, error rate down to 7%!
 ```
 
-### Traditional CLI Usage (Still Supported)
+### LangGraph Studio Integration
 
-For users who prefer traditional parameter-based usage, the agent still supports direct CLI commands:
+The ECS Deep Agent is designed to work seamlessly with LangGraph Studio for interactive conversational troubleshooting:
 
 ```bash
-# Basic triage with parameters
-make ecs-triage CLUSTER=production SERVICE=api-service
+# Start LangGraph Studio
+make run  # From the main graph-fleet directory
 
-# Full repair loop with parameters  
-make ecs-loop-write CLUSTER=staging SERVICE=worker-service
+# Access the agent at http://localhost:8123
+# Select 'ecs_deep_agent' and start conversational interactions
 ```
-
-However, even with CLI usage, the agent now provides conversational feedback and can handle follow-up questions during execution.
-6. Generate complete audit report
 
 ## Troubleshooting
 
@@ -475,9 +446,9 @@ However, even with CLI usage, the agent now provides conversational feedback and
    ```
 
 3. **Write Operations Blocked**
-   - Ensure `ALLOW_WRITE=true` environment variable
-   - Check `allowWrite: true` in agent.yaml
-   - Use `--allow-write` flag for CLI commands
+   - Configure `allow_write: true` in LangGraph Studio UI
+   - Check agent configuration in `agent.yaml`
+   - Ensure proper AWS permissions for write operations
 
 4. **PostgreSQL Connection Issues**
    ```bash
@@ -505,14 +476,11 @@ However, even with CLI usage, the agent now provides conversational feedback and
 
 ### Debug Mode
 
-Enable debug logging:
+Enable debug logging for troubleshooting:
 ```bash
-export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
-poetry run ecs-agent triage --cluster my-cluster --service my-service
+
+# Then start LangGraph Studio to see detailed logs
+make run
 ```
-
-
-
-
 

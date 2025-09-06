@@ -1,10 +1,10 @@
 # Graph Fleet
 
-Planton Cloud Agent Fleet - A collection of specialized AI agents built with LangGraph.
+Planton Cloud Agent Fleet - A specialized ECS Deep Agent built with LangGraph.
 
 ## Overview
 
-Graph Fleet provides a set of intelligent agents for cloud operations, starting with AWS. Each agent can be used directly or customized through assistants with specialized instructions.
+Graph Fleet provides a conversational ECS Deep Agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
 
 ## Architecture
 
@@ -12,44 +12,13 @@ Graph Fleet provides a set of intelligent agents for cloud operations, starting 
 graph-fleet/
 ├── src/
 │   ├── agents/              # Agent implementations
-│   │   ├── aws_agent/       # AWS specialist agent
 │   │   └── ecs_deep_agent/  # ECS service diagnostics agent
 │   └── mcp/                 # MCP integrations
 │       └── planton_cloud/   # Planton Cloud MCP server
 └── examples/                # Usage examples
 ```
 
-## Agents
-
-### AWS Agent (DeepAgent)
-
-The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langchain-ai/deepagents) framework for autonomous problem-solving:
-
-#### Core Capabilities
-- **🎯 Planning**: Breaks complex tasks into manageable steps with todo lists
-- **🤖 Sub-Agents**: Spawns specialists for deep expertise (e.g., ECS debugging)
-- **📁 Virtual File System**: Maintains context and findings across operations
-- **🧠 Autonomous**: Can work independently on complex multi-step tasks
-- **🔒 Secure**: Integrates with Planton Cloud for credential management
-- **📦 Modular**: Clean architecture with separate packages for nodes, utilities, and sub-agents
-- **🔌 MCP Integration**: Default MCP servers (Planton Cloud + AWS API) for comprehensive AWS access
-- **🔄 Credential Switching**: Dynamic AWS account switching mid-conversation
-- **🎭 Smart Selection**: Auto-selects single credential or asks clarifying questions
-
-#### Two-Node Architecture
-- **Node A (Credential Selector)**: Handles AWS credential selection using Planton MCP
-- **Node B (AWS DeepAgent)**: Executes AWS operations with combined MCP tools
-- **Router**: Intelligent routing based on credential state and user intent
-- **Session Management**: Isolated sessions for multi-tenant safety
-
-#### Performance Features
-- **⚡ Tool Caching**: MCP tools cached after first load
-- **🚀 Fast Startup**: Pre-installed dependencies, no runtime installation
-- **📊 Efficient**: Uses installed packages instead of runtime uvx
-- **🔍 Debug Logging**: Shows loaded MCP tools for transparency
-- **♻️ STS Refresh**: Automatic credential refresh before expiration
-
-See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
+## Agent
 
 ### ECS Deep Agent (DeepAgent)
 
@@ -115,95 +84,75 @@ export AWS_REGION="us-east-1"  # Optional, defaults to us-east-1
 source .env_export
 ```
 
-### Running the AWS Agent
+### Running the ECS Deep Agent
 
-#### Using Make Commands (Recommended)
+#### Using LangGraph Studio (Recommended)
 
 ```bash
-# Run interactive examples menu
-make aws-examples
-
-# Run specific examples
-make aws-example-1    # Generic AWS assistant
-make aws-example-2    # Complex ECS debugging
-make aws-example-3    # AWS solutions architect
-make aws-example-4    # Agent with specific region
-make aws-example-5    # Custom instructions agent
-make aws-example-6    # AWS operations with MCP
-make aws-example-all  # Run all examples
-
-# Start LangGraph Studio for interactive development
+# Start LangGraph Studio for interactive conversational agent
 make run
+
+# The ECS Deep Agent will be available at http://localhost:8123
+# You can interact with it using natural language like:
+# "My API service is slow and users are complaining about timeouts"
 ```
 
-#### For Custom CLI Demos
+#### For Programmatic Usage
 
 ```python
-from src.agents.aws_agent import create_aws_agent, AWSAgentState
+from src.agents.ecs_deep_agent import create_ecs_deep_agent
 from langchain_core.messages import HumanMessage
 
-# Create DeepAgent with organization context
-agent = await create_aws_agent(
-    org_id="my-org",  # Required for credential selection
-    env_id="production"  # Optional environment filter
+# Create ECS Deep Agent
+agent = await create_ecs_deep_agent(
+    allow_write=False  # Safe read-only mode
 )
 
-# First turn - agent will select credential automatically or ask
-state = AWSAgentState(
-    messages=[HumanMessage(content="List my EC2 instances")],
-    orgId="my-org"
-)
+# Conversational interaction
+state = {
+    "messages": [HumanMessage(content="My API service is slow and users are complaining about timeouts")]
+}
 result = await agent.ainvoke(state)
 
-# If multiple credentials exist, agent asks which one to use
-# User can specify: "Use the production account"
-
-# Mid-conversation credential switching
+# Follow-up conversation
 result['messages'].append(
-    HumanMessage(content="Switch to staging account and show RDS databases")
+    HumanMessage(content="The issues started after our deployment yesterday at 3 PM")
 )
 result = await agent.ainvoke(result)
 
 # Agent will:
-# 1. Detect switch intent and re-select credential
-# 2. Mint new STS credentials for staging account
-# 3. Create new DeepAgent instance with updated context
-# 4. Execute the RDS query in staging account
+# 1. Extract ECS context from natural language
+# 2. Run conversational diagnosis
+# 3. Provide user-friendly explanations
+# 4. Generate repair recommendations
 ```
 
-### Creating Custom Assistants
+### Custom Configuration
 
 ```python
-# Specialized ECS troubleshooter
-ecs_instructions = """
-You are an ECS specialist. Focus on:
-- Container health and logs
-- Task placement and failures
-- Service auto-scaling
-- Load balancer configuration
-"""
+# Customize the ECS Deep Agent behavior
+from src.agents.ecs_deep_agent import ECSDeepAgentConfig
 
-agent = await create_aws_agent(
-    runtime_instructions=ecs_instructions,
-    model_name="gpt-4o"
+config = ECSDeepAgentConfig(
+    model_name="claude-3-5-sonnet-20241022",
+    allow_write=True,  # Enable write operations with approval
+    max_steps=30,      # Allow more complex operations
+    timeout_seconds=900  # Extended timeout for complex diagnostics
 )
+
+agent = await create_ecs_deep_agent(config=config)
 ```
 
 ## MCP Integration
 
-The Graph Fleet uses Model Context Protocol (MCP) for dynamic tool loading:
+The ECS Deep Agent uses Model Context Protocol (MCP) for AWS ECS operations:
 
-### Default MCP Servers
+### MCP Servers
 
-1. **Planton Cloud MCP Server** (built-in)
-   - AWS credential management
-   - Platform-specific tools
-   - Organization context
-
-2. **AWS API MCP Server** (awslabs)
-   - Comprehensive AWS CLI surface
-   - All AWS services (EC2, S3, ECS, RDS, etc.)
-   - Direct AWS API access
+1. **AWS API MCP Server** (awslabs)
+   - ECS-focused tools filtered from comprehensive AWS API
+   - Direct AWS API access for ECS operations
+   - CloudWatch logs integration
 
 ### Key Features
 
@@ -269,14 +218,13 @@ docker run -e OPENAI_API_KEY=$OPENAI_API_KEY graph-fleet
 ### Configuration
 
 Configuration in `langgraph.json`:
-- AWS Agent: `src.agents.aws_agent.graph:graph`
 - ECS Deep Agent: `src.agents.ecs_deep_agent.graph:graph`
 - Python 3.11 runtime
 - Buf.build integration for protobuf
 
-**Note:** The agent has two entry points:
+**Note:** The ECS Deep Agent has two entry points:
 - `graph()` - For LangGraph Studio (async, accepts dict config)
-- `create_aws_agent()` - For examples and CLI demos (wrapper for standalone use)
+- `create_ecs_deep_agent()` - For programmatic use (wrapper for standalone use)
 
 #### Configuration in LangGraph Studio
 
@@ -284,18 +232,19 @@ You can configure the agent through LangGraph Studio's UI:
 
 ```json
 {
-  "model_name": "gpt-4o",           // or "claude-3-5-sonnet-20241022"
-  "temperature": 0.7,               // 0.0 (deterministic) to 1.0 (creative)
-  "instructions": "Custom prompt",  // Override default AWS agent behavior
-  "max_retries": 3,                // Retry failed operations
-  "max_steps": 20,                 // Maximum agent steps
-  "timeout_seconds": 600           // Operation timeout
+  "model_name": "claude-3-5-sonnet-20241022",  // LLM model to use
+  "allow_write": false,                        // Enable write operations  
+  "allow_sensitive_data": false,               // Handle sensitive data
+  "max_retries": 3,                           // Retry failed operations
+  "max_steps": 20,                            // Maximum agent steps
+  "timeout_seconds": 600,                     // Operation timeout
+  "aws_region": "us-east-1"                   // AWS region override
 }
 ```
 
-The agent includes full MCP tool support in LangGraph Studio:
-- Planton Cloud MCP tools for credentials and platform operations
-- AWS API MCP tools for comprehensive AWS CLI access
+The ECS Deep Agent includes MCP tool support in LangGraph Studio:
+- AWS API MCP tools filtered for ECS operations
+- CloudWatch logs integration for diagnostics
 - Same tools in dev (LangGraph Studio) and production
 
 ## Examples
@@ -306,70 +255,55 @@ The agent includes full MCP tool support in LangGraph Studio:
 # Core commands
 make help          # Show all available commands
 make venvs         # Create virtual environment and install dependencies
-make run           # Start LangGraph Studio for interactive development
+make run           # Start LangGraph Studio for ECS Deep Agent
 make build         # Run lints and type checks
 make clean         # Clean up cache files
-
-# AWS Agent Examples
-make aws-examples     # Interactive menu to choose examples
-make aws-example-1    # Generic AWS assistant
-make aws-example-2    # Complex ECS debugging (planning + sub-agents)
-make aws-example-3    # AWS solutions architect
-make aws-example-4    # Agent with specific region
-make aws-example-5    # Custom instructions agent
-make aws-example-6    # AWS operations with MCP
-make aws-example-all  # Run all examples sequentially
-
-# ECS Deep Agent Commands
-make ecs-triage CLUSTER=x SERVICE=y    # Run ECS service triage
-make ecs-loop CLUSTER=x SERVICE=y      # Run full ECS diagnostic loop
-make ecs-loop-write CLUSTER=x SERVICE=y # Run loop with write permissions
 ```
 
 ### Example Scenarios
 
-See [examples/](examples/) for detailed usage:
+The ECS Deep Agent supports natural language interactions for ECS troubleshooting:
 
-- `aws_agent_example.py`: Various AWS agent scenarios
-  - Generic AWS assistant
-  - Troubleshooting specialist
-  - Solutions architect
-  - Cost optimizer
-- `aws_agent_credential_switching_example.py`: Credential switching demos
-  - No-credential first turn handling
-  - Mid-conversation account switching
-  - Credential clearing and re-selection
+#### Conversational Diagnostics
+- "My API service is responding slowly and users are complaining"
+- "Tasks keep failing after our deployment yesterday"
+- "Service auto-scaling isn't working as expected"
 
-Run examples manually:
+#### Interactive Problem Solving
+- Real-time feedback during diagnosis
+- Collaborative repair planning
+- User preference incorporation
+- Multi-turn conversation support
 
+#### Usage
 ```bash
-# Using make commands (recommended)
-make aws-examples
+# Start LangGraph Studio
+make run
 
-# Or run directly
-python examples/aws_agent_example.py
-python examples/aws_agent_credential_switching_example.py
+# Open http://localhost:8123 and interact conversationally with the ECS Deep Agent
 ```
 
 ## Development
 
 ### Project Structure
 
-- **agents/**: Agent implementations (state, config, graph)
+- **agents/ecs_deep_agent/**: ECS Deep Agent implementation
 - **mcp/**: MCP server and tools
 - **examples/**: Usage examples and demos
 - **tests/**: Unit and integration tests
 
-### Adding New Agents
+### ECS Deep Agent Structure
 
-1. Create agent directory: `src/agents/new_agent/`
-2. Implement core modules:
-   - `configuration.py`: Agent config
-   - `state.py`: State definition
-   - `graph.py`: LangGraph implementation
-   - `README.md`: Documentation
-3. Register in `langgraph.json`
-4. Add examples and tests
+```
+src/agents/ecs_deep_agent/
+├── configuration.py    # Agent configuration
+├── state.py           # State definition
+├── graph.py           # LangGraph implementation
+├── mcp_tools.py       # MCP integration
+├── prompts.py         # Agent prompts
+├── subagents.py       # Sub-agent definitions
+└── README.md          # Detailed documentation
+```
 
 ### Testing
 
@@ -377,8 +311,8 @@ python examples/aws_agent_credential_switching_example.py
 # Run all tests
 pytest
 
-# Test specific agent
-pytest tests/test_aws_agent.py
+# Test ECS Deep Agent
+pytest tests/test_ecs_deep_agent.py
 
 # Integration tests
 pytest tests/integration/
