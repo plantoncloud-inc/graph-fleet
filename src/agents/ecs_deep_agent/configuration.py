@@ -1,6 +1,5 @@
 """Configuration for ECS Deep Agent."""
 
-from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -27,12 +26,12 @@ class ECSDeepAgentConfig(BaseModel):
     )
 
     # AWS configuration
-    aws_region: Optional[str] = Field(
+    aws_region: str | None = Field(
         default=None,
         description="AWS region to use (uses AWS_REGION env var if not set)",
     )
 
-    aws_profile: Optional[str] = Field(
+    aws_profile: str | None = Field(
         default=None,
         description="AWS profile to use (uses AWS_PROFILE env var if not set)",
     )
@@ -51,10 +50,26 @@ class ECSDeepAgentConfig(BaseModel):
     )
 
     # Context for operations
-    cluster: Optional[str] = Field(
+    cluster: str | None = Field(
         default=None, description="Default ECS cluster for operations"
     )
 
-    service: Optional[str] = Field(
+    service: str | None = Field(
         default=None, description="Default ECS service for operations"
+    )
+
+    # Planton Cloud authentication and context
+    planton_token: str | None = Field(
+        default=None,
+        description="Planton Cloud API token for gRPC authentication (uses PLANTON_TOKEN env var if not set)",
+    )
+
+    org_id: str | None = Field(
+        default=None,
+        description="Planton Cloud organization ID - mandatory context for operations (uses PLANTON_ORG_ID env var if not set)",
+    )
+
+    env_id: str | None = Field(
+        default=None,
+        description="Planton Cloud environment ID - optional context for scoped operations (uses PLANTON_ENV_ID env var if not set)",
     )
