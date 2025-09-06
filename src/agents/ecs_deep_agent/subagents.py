@@ -1,6 +1,7 @@
 """Sub-agent definitions for ECS Deep Agent."""
 
 from .prompts import (
+    CONTEXT_EXTRACTOR_PROMPT,
     TRIAGE_AGENT_PROMPT,
     CHANGE_PLANNER_PROMPT,
     REMEDIATOR_PROMPT,
@@ -35,3 +36,4 @@ SUBAGENTS = [
         "prompt": REPORTER_PROMPT
     }
 ]
+
