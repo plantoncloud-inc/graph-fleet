@@ -1,28 +1,31 @@
 """ECS Deep Agent Graph Implementation for LangGraph Studio
 
-This module creates an ECS DeepAgent with MCP tools for LangGraph Studio deployment.
-Implements a single-node flow with ECS diagnostic and repair capabilities.
+This module creates a multi-agent supervisor system with Context Coordinator and ECS Domain agents.
+Implements a supervisor pattern that coordinates between specialized agents based on conversation state and user intent.
 
 The graph is organized as:
-- Single node: ECS DeepAgent execution with AWS ECS MCP tools
+- Supervisor: Orchestrates between Context Coordinator and ECS Domain agents
+- Context Coordinator Agent: Handles context extraction and conversation coordination
+- ECS Domain Agent: Handles all AWS ECS-specific technical operations
 - Configuration: Handles write permissions and AWS credentials
 - Session management: Handles MCP clients and agent lifecycle
 """
 
 import logging
 import os
+from typing import Literal
 
-from deepagents import async_create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END, StateGraph, START
 from langgraph.graph.state import CompiledStateGraph
 
 from .configuration import ECSDeepAgentConfig
-from .mcp_tools import get_interrupt_config, get_mcp_tools
-from .prompts import ORCHESTRATOR_PROMPT
 from .state import ECSDeepAgentState
-from .subagents import SUBAGENTS
+
+# Import the new specialized agents
+from ..context_coordinator.agent import context_coordinator_node
+from ..ecs_domain.agent import ecs_domain_node
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -423,3 +426,4 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
