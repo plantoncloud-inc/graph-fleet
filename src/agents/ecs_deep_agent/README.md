@@ -283,6 +283,30 @@ This will:
    - Check `allowWrite: true` in agent.yaml
    - Use `--allow-write` flag for CLI commands
 
+4. **PostgreSQL Connection Issues**
+   ```bash
+   # Check if DATABASE_URL is set correctly
+   echo $DATABASE_URL
+   
+   # Test PostgreSQL connection
+   psql $DATABASE_URL -c "SELECT 1;"
+   ```
+   
+   Common solutions:
+   - Verify PostgreSQL server is running
+   - Check connection string format: `postgresql://user:pass@host:port/dbname`
+   - Ensure database and user exist with proper permissions
+   - Check firewall/security group settings for remote connections
+   - Verify SSL settings if using `sslmode=require`
+
+5. **Memory Persistence Not Working**
+   - Agent automatically falls back to in-memory storage if PostgreSQL fails
+   - Check logs for "DATABASE_URL not configured" or "Failed to create PostgreSQL checkpointer" messages
+   - Ensure `psycopg` and `langgraph-checkpoint-postgres` dependencies are installed:
+     ```bash
+     poetry show psycopg langgraph-checkpoint-postgres
+     ```
+
 ### Debug Mode
 
 Enable debug logging:
@@ -291,6 +315,7 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
 
