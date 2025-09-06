@@ -26,7 +26,7 @@ async def get_contextualizer_tools() -> list[BaseTool]:
     """Get tools for Contextualizer Agent.
 
     This includes Planton Cloud context tools for establishing
-    operational context (list_aws_credentials, list_services).
+    operational context (list_aws_credentials, list_aws_ecs_services).
 
     Returns:
         List of LangChain tools for context establishment
