@@ -20,6 +20,9 @@ mcp = "^1.0.0"  # Model Context Protocol library
 click = "^8.0.0"  # CLI interface for ECS agent
 aiofiles = "^24.0.0"  # Async file operations
 pydantic = "^2.0.0"  # Data validation and settings management
+# Postgres checkpointer dependencies
+psycopg = { version = "^3.0.0", extras = ["binary", "pool"] }  # PostgreSQL adapter
+langgraph-checkpoint-postgres = "^2.0.0"  # LangGraph PostgreSQL checkpointer
 # Packages from requirements_buf.txt with custom source
 # https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/python?version=v32.0
 blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
@@ -68,3 +71,4 @@ mypy = ">=1.10.0"
 [tool.ruff]
 lint.select = ["E", "F", "I", "D", "UP"]
 lint.ignore = ["D401", "D417", "E501"]
+
