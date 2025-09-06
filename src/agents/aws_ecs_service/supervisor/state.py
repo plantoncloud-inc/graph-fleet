@@ -2,18 +2,18 @@
 
 from typing import Any
 
-from typing_extensions import TypedDict
+from deepagents import DeepAgentState
 
 
-class ECSDeepAgentState(TypedDict):
+class ECSDeepAgentState(DeepAgentState):
     """State for the ECS Deep Agent multi-agent supervisor system.
 
     This state tracks the conversation messages, execution status,
     conversational context, and any context needed for ECS operations.
     Enhanced to support the new multi-agent supervisor architecture with
-    Context Coordinator and ECS Domain agents, including inter-agent
+    Contextualizer and ECS Domain agents, including inter-agent
     communication, routing decisions, and conversation continuity.
-    
+
     The state supports:
     - Multi-agent coordination and routing
     - Context handoffs between specialized agents
@@ -21,9 +21,6 @@ class ECSDeepAgentState(TypedDict):
     - Agent-specific state tracking
     - Inter-agent communication logging
     """
-
-    # Core conversation state
-    messages: list[dict[str, Any]]
 
     # Execution tracking
     status: str | None  # "running", "completed", "error", "interrupted"
@@ -112,45 +109,35 @@ class ECSDeepAgentState(TypedDict):
     # Multi-agent supervisor coordination
     current_agent: (
         str | None
-    )  # Currently active agent: "context_coordinator" or "ecs_domain"
-    next_agent: (
-        str | None
-    )  # Next agent to route to based on supervisor decision
+    )  # Currently active agent: "contextualizer" or "ecs_domain"
+    next_agent: str | None  # Next agent to route to based on supervisor decision
     routing_decision: (
         str | None
     )  # Reason for routing decision for debugging and transparency
     agent_handoff_context: (
         dict[str, Any] | None
     )  # Context passed between agents during handoffs
-    
-    # Context Coordinator Agent state
-    context_coordinator_phase: (
+
+    # Contextualizer Agent state
+    contextualizer_phase: (
         str | None
     )  # "context_extraction", "conversation_coordination", "user_interaction"
     context_completeness: (
         dict[str, bool] | None
     )  # Tracks which context elements are complete
-    user_intent: (
-        str | None
-    )  # Extracted user intent and problem description
-    
-    # ECS Domain Agent state  
+    user_intent: str | None  # Extracted user intent and problem description
+
+    # ECS Domain Agent state
     operation_phase: (
         str | None
     )  # "triage", "planning", "execution", "verification", "reporting"
-    triage_findings: (
-        dict[str, Any] | None
-    )  # Results from triage-agent subagent
+    triage_findings: dict[str, Any] | None  # Results from triage-agent subagent
     repair_plan: (
         dict[str, Any] | None
     )  # Generated repair plan from change-planner subagent
-    execution_status: (
-        dict[str, Any] | None
-    )  # Status of remediation operations
-    verification_results: (
-        dict[str, Any] | None
-    )  # Results from verifier subagent
-    
+    execution_status: dict[str, Any] | None  # Status of remediation operations
+    verification_results: dict[str, Any] | None  # Results from verifier subagent
+
     # Inter-agent communication
     agent_messages: (
         list[dict[str, Any]] | None
@@ -158,13 +145,9 @@ class ECSDeepAgentState(TypedDict):
     context_transfer_log: (
         list[dict[str, Any]] | None
     )  # Log of context transfers between agents
-    
+
     # Conversation continuity across agents
-    conversation_thread_id: (
-        str | None
-    )  # Unique identifier for conversation thread
+    conversation_thread_id: str | None  # Unique identifier for conversation thread
     agent_transition_history: (
         list[dict[str, Any]] | None
     )  # History of agent transitions and reasons
-
-

@@ -1,4 +1,4 @@
-"""Planton Cloud Package
+"""Planton Cloud Package.
 
 MCP tools organized following Planton Cloud API structure.
 """

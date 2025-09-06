@@ -1,4 +1,4 @@
-"""AWS Credential tools for MCP
+"""AWS Credential tools for MCP.
 
 Tools for fetching and managing AWS credentials from Planton Cloud.
 """
@@ -7,7 +7,7 @@ from typing import Any
 
 
 async def get_aws_credential(credential_id: str) -> dict[str, Any]:
-    """Fetch AWS credential details from Planton Cloud by credential ID
+    """Fetch AWS credential details from Planton Cloud by credential ID.
 
     This follows the structure of:
     cloud.planton.apis.connect.awscredential.v1.AwsCredentialQueryController.get()
@@ -44,7 +44,7 @@ async def get_aws_credential(credential_id: str) -> dict[str, Any]:
 async def list_aws_credentials(
     org_id: str, env_id: str | None = None
 ) -> list[dict[str, Any]]:
-    """List AWS credentials available in Planton Cloud for the given organization and environment
+    """List AWS credentials available in Planton Cloud for the given organization and environment.
 
     This follows the structure of:
     cloud.planton.apis.connect.awscredential.v1.AwsCredentialQueryController.list()

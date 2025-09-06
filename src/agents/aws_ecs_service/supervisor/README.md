@@ -491,7 +491,7 @@ The ECS Deep Agent is designed to work seamlessly with LangGraph Studio for inte
 make run  # From the main graph-fleet directory
 
 # Access the agent at http://localhost:8123
-# Select 'ecs_deep_agent' and start conversational interactions
+# Select 'supervisor' and start conversational interactions
 ```
 
 ## Troubleshooting
