@@ -99,8 +99,7 @@ async def ecs_deep_agent_node(state: ECSDeepAgentState, config: ECSDeepAgentConf
             model=config.model_name
         )
         
-        # Attach in-memory checkpointer for HITL
-        agent.checkpointer = InMemorySaver()
+        # Note: Checkpointer is now set at the graph level during compilation
         
         # Process the user message
         result = await agent.ainvoke(
@@ -223,6 +222,7 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
 
