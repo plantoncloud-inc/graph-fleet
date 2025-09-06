@@ -17,10 +17,8 @@ deepagents = "^0.0.5"  # Core framework for autonomous agents
 langchain-mcp-adapters = "^0.1.9"  # LangChain MCP integration for tools
 mcp = "^1.0.0"  # Model Context Protocol library
 # ECS Deep Agent dependencies
-click = "^8.0.0"  # CLI interface for ECS agent
 aiofiles = "^24.0.0"  # Async file operations
 pydantic = "^2.0.0"  # Data validation and settings management
-# Postgres checkpointer dependencies
 psycopg = { version = "^3.0.0", extras = ["binary", "pool"] }  # PostgreSQL adapter
 langgraph-checkpoint-postgres = "^2.0.0"  # LangGraph PostgreSQL checkpointer
 # Packages from requirements_buf.txt with custom source

@@ -1,3 +1,12 @@
-"""ECS Deep Agent - Minimal agent for ECS service diagnosis and repair."""
+"""ECS Deep Agent for diagnosing and repairing AWS ECS services."""
 
-__version__ = "0.1.0"
+from .configuration import ECSDeepAgentConfig
+from .graph import graph, create_ecs_deep_agent
+from .state import ECSDeepAgentState
+
+__all__ = [
+    "ECSDeepAgentConfig",
+    "ECSDeepAgentState", 
+    "graph",
+    "create_ecs_deep_agent"
+]

@@ -1,4 +1,4 @@
-.PHONY: all build run deps lint clean help venvs aws-examples
+.PHONY: all build run deps lint clean help venvs
 
 SHELL := /bin/bash
 
@@ -56,9 +56,7 @@ clean:
 	find . -type d -name "__pycache__" -delete
 	rm -rf .mypy_cache .ruff_cache dist build *.egg-info
 
-# AWS Agent Examples - delegate to aws_agent Makefile
-aws-examples:
-	@$(MAKE) -C src/agents/aws_agent examples
+# No agent-specific commands - use LangGraph Studio via 'make run'
 
 
 
@@ -70,8 +68,8 @@ help:
 	@echo 'lint   - strict lints/type checks'
 	@echo 'clean  - remove caches and build artifacts'
 	@echo ''
-	@echo 'Agent Examples:'
-	@echo 'aws-examples     - run AWS agent examples (interactive menu)'
+	@echo 'ECS Deep Agent:'
+	@echo 'run              - start LangGraph Studio to interact with ecs_deep_agent'
 
 
 .PHONY: clean-pyc
