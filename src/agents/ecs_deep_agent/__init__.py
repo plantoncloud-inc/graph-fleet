@@ -31,19 +31,16 @@ __all__ = [
     "create_ecs_deep_agent",
     
     # Context Coordinator Agent
-    "ContextCoordinatorAgent",
-    "ContextCoordinatorConfig",
     "ContextCoordinatorState", 
     "create_context_coordinator_agent",
     
     # ECS Domain Agent
-    "ECSDomainAgent",
-    "ECSDomainConfig",
     "ECSDomainState",
     "create_ecs_domain_agent",
     
     # MCP tools
     "get_planton_context_tools",
 ]
+
 
 
