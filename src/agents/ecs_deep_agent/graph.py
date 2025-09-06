@@ -111,25 +111,27 @@ async def ecs_deep_agent_node(
 
     # Extract Planton Cloud configuration for context establishment
     planton_context = {}
-    
+
     # Get Planton Cloud config from configuration or environment variables
     planton_token = config.planton_token or os.environ.get("PLANTON_TOKEN")
     org_id = config.org_id or os.environ.get("PLANTON_ORG_ID")
     env_id = config.env_id or os.environ.get("PLANTON_ENV_ID")
-    
+
     if planton_token and org_id:
         planton_context = {
             "token": planton_token,
             "org_id": org_id,
-            "env_id": env_id  # Optional, can be None
+            "env_id": env_id,  # Optional, can be None
         }
-        logger.info(f"Planton Cloud context established: org_id={org_id}, env_id={env_id}")
+        logger.info(
+            f"Planton Cloud context established: org_id={org_id}, env_id={env_id}"
+        )
     else:
         logger.warning("Planton Cloud context not available - missing token or org_id")
-    
+
     # Update state with Planton Cloud context
     state["planton_context"] = planton_context
-    
+
     # Initialize context establishment tracking
     if not state.get("established_context"):
         state["established_context"] = False
@@ -165,22 +167,28 @@ async def ecs_deep_agent_node(
 
             # Enhance the message with conversation context
             context_info = []
-            
+
             # Add Planton Cloud context information
             if planton_context:
-                planton_info = f"Planton Cloud context: org_id={planton_context.get('org_id')}"
-                if planton_context.get('env_id'):
+                planton_info = (
+                    f"Planton Cloud context: org_id={planton_context.get('org_id')}"
+                )
+                if planton_context.get("env_id"):
                     planton_info += f", env_id={planton_context.get('env_id')}"
                 context_info.append(planton_info)
-            
+
             # Add context establishment status
             if state.get("available_aws_credentials"):
-                context_info.append(f"Available AWS credentials: {len(state['available_aws_credentials'])} found")
+                context_info.append(
+                    f"Available AWS credentials: {len(state['available_aws_credentials'])} found"
+                )
             if state.get("available_services"):
-                context_info.append(f"Available services: {len(state['available_services'])} found")
+                context_info.append(
+                    f"Available services: {len(state['available_services'])} found"
+                )
             if state.get("established_context"):
                 context_info.append("Context establishment: Complete")
-            
+
             if state.get("conversation_history"):
                 context_info.append(
                     f"Previous conversation context available ({len(state['conversation_history'])} interactions)"
@@ -212,9 +220,7 @@ async def ecs_deep_agent_node(
         # Note: Checkpointer is now set at the graph level during compilation
 
         # Process the conversational user message
-        result = await agent.ainvoke(
-            {"messages": enhanced_messages}
-        )
+        result = await agent.ainvoke({"messages": enhanced_messages})
 
         # Extract conversation insights from the response
         response_messages = result.get("messages", [])
@@ -417,6 +423,3 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
-
-
-
