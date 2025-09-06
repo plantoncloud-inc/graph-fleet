@@ -3,7 +3,7 @@
 Tools for fetching and managing AWS credentials from Planton Cloud.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 
 async def get_aws_credential(credential_id: str) -> Dict[str, Any]:
@@ -38,3 +38,4 @@ async def get_aws_credential(credential_id: str) -> Dict[str, Any]:
         "secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",  # Would come from spec.secret_access_key
         "region": "us-west-2",  # Would come from spec.region
     }
+
