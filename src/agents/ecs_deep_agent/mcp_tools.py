@@ -16,7 +16,7 @@ from langchain_core.tools import BaseTool
 logger = logging.getLogger(__name__)
 
 
-def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]:
+async def get_planton_context_tools() -> List[BaseTool]:
     """Get AWS API MCP server configuration
 
     Args:
@@ -191,4 +191,5 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
