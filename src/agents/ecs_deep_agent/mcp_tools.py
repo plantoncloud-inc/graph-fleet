@@ -53,50 +53,22 @@ async def get_planton_context_tools() -> List[BaseTool]:
 
 # Legacy function for backward compatibility
 async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
-    """Get ECS-focused MCP tools from the AWS API MCP server.
-
-    This uses the same AWS API MCP server as the AWS agent, but filters
-    for ECS-specific tools to keep the agent focused.
-
+    """Legacy function for backward compatibility.
+    
+    This function now returns only Planton Cloud context tools.
+    AWS ECS-specific tools have been migrated to the ECS Domain Agent.
+    
     Args:
-        read_only: If True, return only read-only tools. If False, include write tools.
-
+        read_only: Ignored - Planton Cloud tools are read-only by nature
+        
     Returns:
-        List of LangChain tools for use with deepagents.
-
+        List of Planton Cloud context tools
     """
-    # Get AWS credentials if available
-    aws_credentials = get_aws_credentials_from_env()
-
-    # Create AWS MCP configuration using the same approach as AWS agent
-    aws_config = {"aws_api": get_aws_mcp_config(aws_credentials)}
-
-    logger.info("Creating AWS MCP client for ECS operations")
-
-    try:
-        # Create MCP client
-        client = MultiServerMCPClient(aws_config)
-
-        # Get all available tools from AWS API MCP server
-        all_tools = await client.get_tools()
-        logger.info(f"Retrieved {len(all_tools)} total tools from AWS MCP server")
-
-        # Filter tools based on ECS-focused allowlist
-        allowed_tools = []
-        allowed_names = READ_ONLY_TOOLS.copy()
-
-        if not read_only:
-            allowed_names.extend(WRITE_TOOLS)
-
-        for tool in all_tools:
-            tool_name = tool.name if hasattr(tool, "name") else str(tool)
-
-            # Check if tool matches any pattern in our ECS allowlist
-            for allowed in allowed_names:
-                if tool_name == allowed or allowed in tool_name:
-                    allowed_tools.append(tool)
-                    logger.debug(f"Added ECS tool: {tool_name}")
-                    break
+    logger.warning(
+        "get_mcp_tools() is deprecated. AWS ECS tools have been migrated to ECS Domain Agent. "
+        "Use get_planton_context_tools() for Planton Cloud context tools."
+    )
+    return await get_planton_context_tools()
 
         logger.info(f"Filtered to {len(allowed_tools)} ECS-focused tools")
         return allowed_tools
@@ -131,6 +103,7 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
 
