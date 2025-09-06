@@ -163,6 +163,22 @@ async def ecs_deep_agent_node(
 
             # Enhance the message with conversation context
             context_info = []
+            
+            # Add Planton Cloud context information
+            if planton_context:
+                planton_info = f"Planton Cloud context: org_id={planton_context.get('org_id')}"
+                if planton_context.get('env_id'):
+                    planton_info += f", env_id={planton_context.get('env_id')}"
+                context_info.append(planton_info)
+            
+            # Add context establishment status
+            if state.get("available_aws_credentials"):
+                context_info.append(f"Available AWS credentials: {len(state['available_aws_credentials'])} found")
+            if state.get("available_services"):
+                context_info.append(f"Available services: {len(state['available_services'])} found")
+            if state.get("established_context"):
+                context_info.append("Context establishment: Complete")
+            
             if state.get("conversation_history"):
                 context_info.append(
                     f"Previous conversation context available ({len(state['conversation_history'])} interactions)"
@@ -397,5 +413,6 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
