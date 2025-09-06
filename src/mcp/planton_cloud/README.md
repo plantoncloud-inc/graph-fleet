@@ -30,6 +30,37 @@ The server runs on stdio transport and can be used with any MCP-compatible clien
 }
 ```
 
+### Integration with LangGraph Agents
+
+When using Planton Cloud tools in LangGraph agents, the recommended approach is to use the MCP client pattern:
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+# Configure the MCP server
+config = {
+    "planton_cloud": {
+        "command": "planton-cloud-mcp-server",
+        "args": [],
+        "transport": "stdio",
+        "env": {
+            "PLANTON_TOKEN": os.getenv("PLANTON_TOKEN"),
+            "PLANTON_ORG_ID": os.getenv("PLANTON_ORG_ID"),
+            "PLANTON_ENV_NAME": os.getenv("PLANTON_ENV_NAME"),
+        }
+    }
+}
+
+# Create MCP client and get tools
+client = MultiServerMCPClient(config)
+tools = await client.get_tools()
+```
+
+This approach ensures:
+- No blocking imports in async environments
+- Consistent tool management across providers
+- Dynamic tool discovery and filtering
+
 ## Architecture
 
 The MCP server is organized following the Planton Cloud API structure:

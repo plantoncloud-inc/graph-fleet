@@ -79,6 +79,41 @@ export PLANTON_ENV_NAME="your-env-name"
 export DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 ```
 
+## Architecture
+
+### MCP (Model Context Protocol) Integration
+
+The Graph Fleet uses MCP servers to provide tools to agents:
+
+- **AWS Tools**: Uses the `awslabs.aws-api-mcp-server` for AWS ECS operations
+- **Planton Cloud Tools**: Uses the local `planton-cloud-mcp-server` for context establishment
+
+Both follow the same pattern:
+1. MCP server configuration is created with appropriate credentials
+2. `MultiServerMCPClient` connects to the MCP server
+3. Tools are filtered based on agent-specific allowlists
+4. Tools are provided to agents as LangChain-compatible tools
+
+This architecture ensures:
+- No blocking imports in the async environment
+- Consistent tool management across different providers
+- Easy addition of new tool providers
+
+## Troubleshooting
+
+### Blocking Call Errors in LangGraph
+
+If you encounter an error like:
+```
+Error in Contextualizer node: Blocking call to ScandirIterator.__next__
+```
+
+This indicates synchronous blocking operations in the async environment. The codebase uses MCP client connections to avoid this issue. If you still encounter it:
+
+1. **Quick fix**: Run with `langgraph dev --allow-blocking` (development only)
+2. **Production fix**: Set `BG_JOB_ISOLATED_LOOPS=true` environment variable
+3. **Best practice**: Ensure all imports and file operations use async patterns
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.
