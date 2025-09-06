@@ -251,6 +251,101 @@ def determine_operation_phase(result: Dict[str, Any], state: ECSDomainState) -> 
         state: Current ECS Domain state
         
     Returns:
+        Current operation phase string
+    """
+    # Analyze agent response to determine current phase
+    if "messages" in result and result["messages"]:
+        last_message = result["messages"][-1]
+        content = last_message.get("content", "").lower()
+        
+        if "triage" in content or "diagnosing" in content:
+            return "triage"
+        elif "plan" in content or "planning" in content:
+            return "planning"
+        elif "executing" in content or "implementing" in content:
+            return "execution"
+        elif "verifying" in content or "checking" in content:
+            return "verification"
+        elif "report" in content or "summary" in content:
+            return "reporting"
+    
+    # Default based on current state
+    return state.get("operation_phase", "triage")
+
+
+def determine_approval_required(state: ECSDomainState) -> bool:
+    """Determine if user approval is required for current operations.
+    
+    Args:
+        state: Current ECS Domain state
+        
+    Returns:
+        True if approval is required, False otherwise
+    """
+    # Check if write operations are planned
+    if state.get("repair_plan") and not state.get("write_operations_enabled", False):
+        return True
+    
+    # Check if high-risk operations are planned
+    if state.get("risk_assessment", {}).get("risk_level") in ["high", "critical"]:
+        return True
+    
+    return False
+
+
+def determine_next_agent(state: ECSDomainState) -> str:
+    """Determine the next agent to route to based on current state.
+    
+    Args:
+        state: Current ECS Domain state
+        
+    Returns:
+        Next agent name or "__end__" if complete
+    """
+    operation_phase = state.get("operation_phase", "triage")
+    
+    # If approval is required, route back to Context Coordinator for user interaction
+    if determine_approval_required(state):
+        return "context_coordinator"
+    
+    # If operations are complete and verified, end the conversation
+    if operation_phase == "reporting" and state.get("verification_status") == "success":
+        return "__end__"
+    
+    # If there are errors or issues, route to Context Coordinator for user guidance
+    if state.get("verification_status") == "failed":
+        return "context_coordinator"
+    
+    # Continue with ECS domain operations
+    return "ecs_domain"
+
+
+def determine_routing_decision(state: ECSDomainState) -> str:
+    """Determine the reasoning for routing decision.
+    
+    Args:
+        state: Current ECS Domain state
+        
+    Returns:
+        Routing decision reasoning
+    """
+    next_agent = determine_next_agent(state)
+    operation_phase = state.get("operation_phase", "triage")
+    
+    if next_agent == "context_coordinator":
+        if determine_approval_required(state):
+            return f"User approval required for {operation_phase} operations"
+        elif state.get("verification_status") == "failed":
+            return "Operations failed verification, need user guidance"
+        else:
+            return "User interaction required"
+    elif next_agent == "__end__":
+        return "Operations completed successfully"
+    else:
+        return f"Continue {operation_phase} operations"
+        state: Current ECS Domain state
+        
+    Returns:
         Current operation phase
     """
     # Logic to determine phase based on agent response and state
@@ -371,4 +466,5 @@ def get_next_agent_from_ecs_domain(state: ECSDomainState) -> str:
     
     # Stay in ECS Domain by default
     return "ecs_domain"
+
 
