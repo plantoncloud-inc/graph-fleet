@@ -4,7 +4,9 @@ import sys
 import os
 
 # Add the parent directory to the path to support direct execution
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 try:
     from .server import run_server
@@ -20,5 +22,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
