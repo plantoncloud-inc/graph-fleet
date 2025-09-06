@@ -1,14 +1,15 @@
 """MCP tools integration for ECS Deep Agent."""
 
-import os
 import logging
-from typing import List, Any, Optional, Dict
-from langchain_mcp_adapters.client import MultiServerMCPClient
+import os
+from typing import Any
+
 from langchain_core.tools import BaseTool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 # AWS MCP configuration (copied from removed aws_agent)
 
-def get_aws_mcp_config(aws_credentials: Dict[str, str] = None) -> Dict[str, Any]:
+def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]:
     """Get AWS API MCP server configuration
     
     Args:
@@ -17,6 +18,7 @@ def get_aws_mcp_config(aws_credentials: Dict[str, str] = None) -> Dict[str, Any]
     
     Returns:
         Dictionary with AWS API MCP server configuration
+
     """
     env = {
         "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
@@ -82,7 +84,7 @@ READ_ONLY_TOOLS = [
 WRITE_TOOLS = ["ecs.update_service", "ecs.stop_task", "ecs.run_task"]
 
 
-def get_aws_credentials_from_env() -> Optional[dict]:
+def get_aws_credentials_from_env() -> dict | None:
     """Get AWS credentials from environment variables if available."""
     access_key = os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -97,9 +99,8 @@ def get_aws_credentials_from_env() -> Optional[dict]:
     return None
 
 
-async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
-    """
-    Get ECS-focused MCP tools from the AWS API MCP server.
+async def get_mcp_tools(read_only: bool = True) -> list[BaseTool]:
+    """Get ECS-focused MCP tools from the AWS API MCP server.
 
     This uses the same AWS API MCP server as the AWS agent, but filters
     for ECS-specific tools to keep the agent focused.
@@ -109,6 +110,7 @@ async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
 
     Returns:
         List of LangChain tools for use with deepagents.
+
     """
     # Get AWS credentials if available
     aws_credentials = get_aws_credentials_from_env()
@@ -153,15 +155,15 @@ async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
         return []
 
 
-def get_interrupt_config(tools: List[BaseTool]) -> Dict[str, bool]:
-    """
-    Get interrupt configuration for write-capable tools.
+def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
+    """Get interrupt configuration for write-capable tools.
 
     Args:
         tools: List of LangChain tools from MCP
 
     Returns:
         Dictionary mapping tool names to interrupt requirements
+
     """
     interrupt_config = {}
 

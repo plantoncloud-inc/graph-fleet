@@ -3,10 +3,10 @@
 Tools for fetching and managing AWS credentials from Planton Cloud.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 
-async def get_aws_credential(credential_id: str) -> Dict[str, Any]:
+async def get_aws_credential(credential_id: str) -> dict[str, Any]:
     """Fetch AWS credential details from Planton Cloud by credential ID
 
     This follows the structure of:
@@ -21,6 +21,7 @@ async def get_aws_credential(credential_id: str) -> Dict[str, Any]:
         - access_key_id: AWS access key (from spec.access_key_id)
         - secret_access_key: AWS secret key (from spec.secret_access_key)
         - region: Default AWS region (from spec.region)
+
     """
     # TODO: In production, this would call the actual Planton Cloud API
     # using the query.proto RPC: AwsCredentialQueryController.get()
@@ -40,7 +41,7 @@ async def get_aws_credential(credential_id: str) -> Dict[str, Any]:
     }
 
 
-async def list_aws_credentials(org_id: str, env_id: Optional[str] = None) -> List[Dict[str, Any]]:
+async def list_aws_credentials(org_id: str, env_id: str | None = None) -> list[dict[str, Any]]:
     """List AWS credentials available in Planton Cloud for the given organization and environment
     
     This follows the structure of:
@@ -55,6 +56,7 @@ async def list_aws_credentials(org_id: str, env_id: Optional[str] = None) -> Lis
         - id: Credential ID for use with get_aws_credential()
         - name: Human-readable credential name
         - region: Default AWS region for this credential
+
     """
     # TODO: In production, this would call the actual Planton Cloud API
     # using the query.proto RPC: AwsCredentialQueryController.list()
