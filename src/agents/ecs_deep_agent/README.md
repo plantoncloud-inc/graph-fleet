@@ -186,7 +186,8 @@ The agent generates Markdown reports:
 
 1. **AWS Credentials**: Configure via AWS CLI or environment variables
 2. **AWS API MCP Server**: Automatically installed via `awslabs-aws-api-mcp-server` dependency
-3. **Permissions**: ECS read permissions required, write permissions for repairs
+3. **PostgreSQL Dependencies**: Automatically installed via `psycopg` and `langgraph-checkpoint-postgres` dependencies (for persistent memory)
+4. **Permissions**: ECS read permissions required, write permissions for repairs
 
 ## MCP Integration
 
@@ -315,6 +316,7 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
 
