@@ -112,6 +112,7 @@ result = await agent.ainvoke({
 - `ALLOW_WRITE`: Enable write operations globally (default: "false")
 - `AWS_REGION`: AWS region to use
 - `AWS_PROFILE`: AWS profile to use
+- `DATABASE_URL`: PostgreSQL connection string for persistent memory (optional)
 
 ### Configuration File
 
@@ -243,4 +244,5 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
