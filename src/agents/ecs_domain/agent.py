@@ -25,7 +25,7 @@ from .state import ECSDomainState
 logger = logging.getLogger(__name__)
 
 
-async def get_ecs_domain_tools(read_only: bool = True) -> List[BaseTool]:
+async def get_ecs_domain_tools(read_only: bool = True, aws_credentials: dict[str, str] = None) -> List[BaseTool]:
     """Get AWS ECS-specific tools for ECS Domain Agent.
     
     This includes all AWS ECS tools for diagnosis, remediation, and verification.
@@ -33,6 +33,7 @@ async def get_ecs_domain_tools(read_only: bool = True) -> List[BaseTool]:
     
     Args:
         read_only: If True, return only read-only tools. If False, include write tools.
+        aws_credentials: Optional AWS credentials dictionary
         
     Returns:
         List of LangChain tools for ECS operations
@@ -40,12 +41,11 @@ async def get_ecs_domain_tools(read_only: bool = True) -> List[BaseTool]:
     tools = []
     
     try:
-        # Import ECS MCP tools from the existing implementation
-        # This will be migrated from ecs_deep_agent/mcp_tools.py in a later task
-        from agents.ecs_deep_agent.mcp_tools import get_mcp_tools
+        # Import ECS MCP tools from the new ECS Domain implementation
+        from .mcp_tools import get_ecs_mcp_tools
         
         # Get ECS-specific tools with appropriate read/write permissions
-        ecs_tools = await get_mcp_tools(read_only=read_only)
+        ecs_tools = await get_ecs_mcp_tools(read_only=read_only, aws_credentials=aws_credentials)
         tools.extend(ecs_tools)
         
         logger.info(f"Loaded {len(tools)} ECS domain tools (read_only={read_only})")
@@ -371,3 +371,4 @@ def get_next_agent_from_ecs_domain(state: ECSDomainState) -> str:
     
     # Stay in ECS Domain by default
     return "ecs_domain"
+
