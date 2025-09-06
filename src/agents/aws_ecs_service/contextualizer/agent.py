@@ -180,7 +180,7 @@ async def contextualizer_node(
         # This logic would be enhanced based on the actual agent response
         if updated_state.get("ecs_context") and updated_state.get("user_intent"):
             # Context is complete, ready to hand off to ECS Domain Agent
-            updated_state["next_agent"] = "ecs_domain"
+            updated_state["next_agent"] = "operations"
             updated_state["routing_decision"] = (
                 "Context established, routing to ECS Domain Agent"
             )
@@ -251,11 +251,11 @@ def get_next_agent(state: ContextualizerState) -> str:
 
     # Default routing logic
     if (
-        next_agent == "ecs_domain"
+        next_agent == "operations"
         and state.get("ecs_context")
         and state.get("user_intent")
     ):
-        return "ecs_domain"
+        return "operations"
 
     # Stay in context coordinator by default
     return "contextualizer"

@@ -22,7 +22,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 # Import the new specialized agents
 from ..contextualizer.agent import contextualizer_node
-from ..ecs_domain.agent import ecs_domain_node
+from ..operations.agent import operations_node
 from .configuration import ECSDeepAgentConfig
 from .state import ECSDeepAgentState
 
@@ -68,7 +68,7 @@ async def create_checkpointer():
 
 def supervisor_router(
     state: ECSDeepAgentState,
-) -> Literal["contextualizer", "ecs_domain", "__end__"]:
+) -> Literal["contextualizer", "operations", "__end__"]:
     """Route between Contextualizer and ECS Domain agents based on conversation state.
 
     This function implements the supervisor routing logic that determines which
@@ -115,10 +115,10 @@ def supervisor_router(
         has_ecs_context
         and has_user_intent
         and has_problem_description
-        and next_agent in ["ecs_domain", None]
+        and next_agent in ["operations", None]
     ):
         logger.info("Routing to ECS Domain: context complete, executing ECS operations")
-        return "ecs_domain"
+        return "operations"
 
     # Check if operations are complete
     operation_phase = state.get("operation_phase")
@@ -214,7 +214,7 @@ async def contextualizer_wrapper(
     return updated_state
 
 
-async def ecs_domain_wrapper(
+async def operations_wrapper(
     state: ECSDeepAgentState, config: ECSDeepAgentConfig
 ) -> ECSDeepAgentState:
     """Wrapper for ECS Domain Agent node.
@@ -269,7 +269,7 @@ async def ecs_domain_wrapper(
         "aws_region": config.aws_region,
     }
 
-    updated_domain_state = await ecs_domain_node(domain_state, domain_config)
+    updated_domain_state = await operations_node(domain_state, domain_config)
 
     # Update ECS Deep Agent state with results
     updated_state = state.copy()
@@ -344,7 +344,7 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
         lambda state: contextualizer_wrapper(state, agent_config),
     )
     workflow.add_node(
-        "ecs_domain", lambda state: ecs_domain_wrapper(state, agent_config)
+        "operations", lambda state: operations_wrapper(state, agent_config)
     )
 
     # Set entry point to Contextualizer (always start with context establishment)
@@ -356,18 +356,18 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
         supervisor_router,
         {
             "contextualizer": "contextualizer",  # Continue context establishment
-            "ecs_domain": "ecs_domain",  # Hand off to ECS operations
+            "operations": "operations",  # Hand off to ECS operations
             "__end__": END,  # Complete conversation
         },
     )
 
     # Add conditional routing from ECS Domain
     workflow.add_conditional_edges(
-        "ecs_domain",
+        "operations",
         supervisor_router,
         {
             "contextualizer": "contextualizer",  # Return for user interaction
-            "ecs_domain": "ecs_domain",  # Continue ECS operations
+            "operations": "operations",  # Continue ECS operations
             "__end__": END,  # Complete operations
         },
     )

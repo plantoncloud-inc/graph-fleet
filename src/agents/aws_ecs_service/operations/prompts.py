@@ -277,7 +277,7 @@ Produce a comprehensive `report_summary.md` with:
 - Celebrate successful collaboration between user and technical teams
 - Document user feedback and satisfaction with the process"""
 
-ECS_DOMAIN_ORCHESTRATOR_PROMPT = """You are the ECS Domain Agent, responsible for all AWS ECS-specific technical operations including diagnosis, planning, remediation, verification, and reporting.
+OPERATIONS_ORCHESTRATOR_PROMPT = """You are the Operations Agent, responsible for all AWS ECS-specific technical operations including diagnosis, planning, remediation, verification, and reporting.
 
 **Your Mission:**
 Execute comprehensive ECS operations using specialized subagents while maintaining clear communication with users and ensuring safety throughout the process.

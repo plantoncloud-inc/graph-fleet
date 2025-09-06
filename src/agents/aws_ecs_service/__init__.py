@@ -18,18 +18,18 @@ from .supervisor import (
     # New specialized agents
     ECSDeepAgentConfig,
     ECSDeepAgentState,
-    ECSDomainState,
+    OperationsState,
     create_contextualizer_agent,
     create_ecs_deep_agent,
-    create_ecs_domain_agent,
+    create_operations_agent,
     # MCP tools
     graph,
 )
-from .ecs_domain import (
-    ECSDomainState as ecs_domain_state,
+from .operations import (
+    OperationsState as operations_state,
 )
-from .ecs_domain import (
-    create_ecs_domain_agent as ecs_domain_create,
+from .operations import (
+    create_operations_agent as operations_create,
 )
 
 __all__ = [
@@ -43,9 +43,9 @@ __all__ = [
     "create_contextualizer_agent",
     "contextualizer_create",
     "contextualizer_state",
-    # ECS Domain Agent
-    "ECSDomainState",
-    "create_ecs_domain_agent",
-    "ecs_domain_create",
-    "ecs_domain_state",
+    # Operations Agent
+    "OperationsState",
+    "create_operations_agent",
+    "operations_create",
+    "operations_state",
 ]

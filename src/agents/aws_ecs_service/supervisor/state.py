@@ -109,7 +109,7 @@ class ECSDeepAgentState(DeepAgentState):
     # Multi-agent supervisor coordination
     current_agent: (
         str | None
-    )  # Currently active agent: "contextualizer" or "ecs_domain"
+    )  # Currently active agent: "contextualizer" or "operations"
     next_agent: str | None  # Next agent to route to based on supervisor decision
     routing_decision: (
         str | None

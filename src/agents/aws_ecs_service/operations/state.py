@@ -1,12 +1,12 @@
-"""State management for ECS Domain Agent."""
+"""State management for Operations Agent."""
 
 from typing import Any
 
 from deepagents import DeepAgentState
 
 
-class ECSDomainState(DeepAgentState):
-    """State for the ECS Domain Agent.
+class OperationsState(DeepAgentState):
+    """State for the Operations Agent.
 
     This state manages AWS ECS-specific operations including triage,
     change planning, remediation, verification, and reporting.
