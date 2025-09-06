@@ -480,8 +480,8 @@ async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfi
 async def graph(config: dict | None = None) -> CompiledStateGraph:
     """Main graph function for LangGraph Studio
 
-    This is the entry point that LangGraph Studio calls. It creates a single-node
-    graph that handles ECS service diagnosis and repair.
+    This is the entry point that LangGraph Studio calls. It creates a multi-agent
+    supervisor system that coordinates between Context Coordinator and ECS Domain agents.
 
     Configuration can be passed through LangGraph Studio UI:
     - model_name: LLM model to use (e.g., 'claude-3-5-sonnet-20241022')
@@ -494,25 +494,51 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
         config: Optional configuration dictionary from LangGraph Studio
 
     Returns:
-        Configured StateGraph for ECS operations
+        Configured StateGraph for ECS operations with supervisor pattern
 
     """
-    logger.info("Creating ECS Deep Agent graph")
+    logger.info("Creating ECS Deep Agent supervisor graph")
 
     # Create configuration
     agent_config = ECSDeepAgentConfig(**(config or {}))
 
-    # Create the state graph
+    # Create the state graph with supervisor pattern
     workflow = StateGraph(ECSDeepAgentState)
 
-    # Add the main ECS agent node
+    # Add specialized agent nodes
     workflow.add_node(
-        "ecs_agent", lambda state: ecs_deep_agent_node(state, agent_config)
+        "context_coordinator", 
+        lambda state: context_coordinator_wrapper(state, agent_config)
+    )
+    workflow.add_node(
+        "ecs_domain", 
+        lambda state: ecs_domain_wrapper(state, agent_config)
     )
 
-    # Set entry point and exit
-    workflow.set_entry_point("ecs_agent")
-    workflow.add_edge("ecs_agent", END)
+    # Set entry point to Context Coordinator (always start with context establishment)
+    workflow.add_edge(START, "context_coordinator")
+
+    # Add conditional routing from Context Coordinator
+    workflow.add_conditional_edges(
+        "context_coordinator",
+        supervisor_router,
+        {
+            "context_coordinator": "context_coordinator",  # Continue context establishment
+            "ecs_domain": "ecs_domain",                    # Hand off to ECS operations
+            "__end__": END,                                # Complete conversation
+        }
+    )
+
+    # Add conditional routing from ECS Domain
+    workflow.add_conditional_edges(
+        "ecs_domain",
+        supervisor_router,
+        {
+            "context_coordinator": "context_coordinator",  # Return for user interaction
+            "ecs_domain": "ecs_domain",                    # Continue ECS operations
+            "__end__": END,                                # Complete operations
+        }
+    )
 
     # Create checkpointer for persistent memory
     checkpointer = await create_checkpointer()
@@ -520,7 +546,7 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
     # Compile the graph with checkpointer
     compiled_graph = workflow.compile(checkpointer=checkpointer)
 
-    logger.info("ECS Deep Agent graph created successfully")
+    logger.info("ECS Deep Agent supervisor graph created successfully")
     return compiled_graph
 
 
@@ -577,5 +603,6 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
