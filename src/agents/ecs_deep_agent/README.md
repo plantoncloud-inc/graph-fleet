@@ -25,6 +25,40 @@ The ECS Deep Agent leverages deepagents' built-in capabilities with advanced con
 - **Verifier**: Post-change verification and health checks with conversational validation and user-centric reporting
 - **Reporter**: Generates comprehensive audit reports with conversational context and user collaboration history
 
+### Conversational Features
+
+The ECS Deep Agent has been enhanced with advanced conversational capabilities that transform how users interact with ECS troubleshooting:
+
+#### Natural Language Input Processing
+- **Problem Description**: Accept plain English descriptions like "My API service is slow and users are complaining"
+- **Context Extraction**: Automatically extract ECS identifiers (cluster, service, region) from conversational messages
+- **Intent Recognition**: Understand user goals (diagnose, fix, monitor, report) from natural language
+- **Symptom Mapping**: Map user-described symptoms to technical ECS issues and diagnostic approaches
+
+#### User Preference Incorporation
+- **Risk Tolerance**: Adapt repair approaches based on user's expressed risk comfort level
+- **Timing Constraints**: Consider user's maintenance windows and urgency requirements
+- **Communication Style**: Adjust technical depth based on user preference (technical, business, mixed)
+- **Approval Workflows**: Customize approval processes based on user's operational preferences
+
+#### Real-Time Feedback During Execution
+- **Progress Updates**: Provide ongoing status updates during diagnostic and repair phases
+- **Action Explanations**: Explain what each subagent is doing and why it matters to the user
+- **User Interaction**: Handle questions, concerns, and modification requests during execution
+- **Transparent Operations**: Keep users informed of all actions with business-friendly explanations
+
+#### Iterative Conversation Support
+- **Multi-Turn Conversations**: Support follow-up questions and iterative problem refinement
+- **Context Preservation**: Maintain conversation history and context across multiple interactions
+- **Plan Modifications**: Allow users to modify approaches based on changing requirements
+- **Session Continuity**: Enable users to return and continue previous troubleshooting sessions
+
+#### Collaborative Troubleshooting
+- **Interactive Diagnosis**: Work with users to refine understanding of problems and symptoms
+- **Collaborative Planning**: Generate repair plans through dialogue that incorporates user constraints
+- **Dynamic Adaptation**: Modify approaches based on user feedback and changing circumstances
+- **Knowledge Sharing**: Explain technical findings in user-friendly terms for learning and transparency
+
 ### Safety Features
 - Write operations disabled by default
 - Human approval required for all write operations
@@ -242,5 +276,6 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
