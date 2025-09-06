@@ -1,16 +1,18 @@
 # ECS Deep Agent
 
-A specialized agent for diagnosing and repairing AWS ECS services using LangGraph Deep Agents framework.
+A specialized conversational agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
 
 ## Overview
 
-The ECS Deep Agent leverages deepagents' built-in capabilities to provide:
+The ECS Deep Agent leverages deepagents' built-in capabilities with advanced conversational AI to provide:
 
-- **Automated Diagnosis**: Read-only triage of ECS service issues
-- **Repair Planning**: Generate minimal, targeted repair plans
-- **Safe Execution**: Human-in-the-loop approval for write operations
-- **Comprehensive Reporting**: Markdown reports with audit trails
-- **MCP Integration**: AWS ECS tools via langchain-mcp-adapters
+- **Conversational Diagnosis**: Accept natural language problem descriptions and collaborate with users to understand ECS issues
+- **Context-Aware Operations**: Extract ECS context, user intent, and preferences from conversational interactions
+- **Interactive Repair Planning**: Generate minimal, targeted repair plans through collaborative dialogue
+- **Automated Diagnosis**: Read-only triage of ECS service issues with user-friendly explanations
+- **Safe Execution**: Human-in-the-loop approval for write operations with conversational feedback
+- **Comprehensive Reporting**: Markdown reports with audit trails and conversational context
+- **MCP Integration**: AWS ECS tools via langchain-mcp-adapters with conversational orchestration
 
 ## Features
 
@@ -238,3 +240,4 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
