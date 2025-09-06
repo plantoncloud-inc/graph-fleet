@@ -274,50 +274,7 @@ async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfi
     return updated_state
 
 
-                # Try to extract service name from response
-                service_match = re.search(
-                    r"service[:\s]+([a-zA-Z0-9\-_]+)", response_content, re.IGNORECASE
-                )
-                if service_match:
-                    state["service"] = service_match.group(1)
 
-        # Update conversation history
-        conversation_entry = {
-            "timestamp": logger.info.__globals__.get("time", __import__("time")).time(),
-            "user_message": state["messages"][-1] if state["messages"] else None,
-            "agent_response": response_messages[-1] if response_messages else None,
-            "flow_state": state.get("conversation_flow_state"),
-            "extracted_context": {
-                "cluster": state.get("cluster"),
-                "service": state.get("service"),
-                "region": state.get("region"),
-            },
-        }
-
-        conversation_history = state.get("conversation_history", [])
-        conversation_history.append(conversation_entry)
-        state["conversation_history"] = conversation_history
-
-        # Update conversation flow state based on response content
-        if response_messages:
-            response_content = response_messages[-1].get("content", "").lower()
-            if "triage" in response_content or "diagnosing" in response_content:
-                state["conversation_flow_state"] = "triage"
-            elif "plan" in response_content or "planning" in response_content:
-                state["conversation_flow_state"] = "planning"
-            elif "executing" in response_content or "implementing" in response_content:
-                state["conversation_flow_state"] = "execution"
-            elif "verifying" in response_content or "checking" in response_content:
-                state["conversation_flow_state"] = "verification"
-            elif "report" in response_content or "summary" in response_content:
-                state["conversation_flow_state"] = "reporting"
-
-        # Update state with enhanced conversational response
-        updated_state = {
-            **state,
-            "messages": result["messages"],
-            "status": "completed",
-            "last_user_interaction": {
                 "timestamp": conversation_entry["timestamp"],
                 "content": state["messages"][-1] if state["messages"] else None,
             },
@@ -483,6 +440,7 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
 
