@@ -139,48 +139,85 @@ async def list_aws_credentials(
     """List AWS credentials available in Planton Cloud for the given organization and environment.
 
     This follows the structure of:
-    cloud.planton.apis.connect.awscredential.v1.AwsCredentialQueryController.list()
+    ConnectSearchQueryController.searchCredentialApiResourcesByContext
+    
+    The RPC call will be made with api_resource_kind set to "AwsCredential" since this tool
+    is specifically for listing AWS credentials only.
 
     Args:
         org_id: The organization ID in Planton Cloud (mandatory)
         env_name: The environment name in Planton Cloud (optional for scoped listing)
 
     Returns:
-        List of dictionaries containing AWS credential summaries:
+        List of ApiResourceSearchRecord dictionaries containing AWS credential summaries:
         - id: Credential ID for use with get_aws_credential()
-        - name: Human-readable credential name
-        - region: Default AWS region for this credential
+        - name: Human-readable credential name  
+        - kind: Resource kind ("AwsCredential")
+        - org_id: Organization ID
+        - env_name: Environment name (if applicable)
+        - tags: List of tags for searchability
+        - created_by: User who created the credential
+        - created_at: Creation timestamp
+        - is_active: Whether the credential is active
 
     """
     # TODO: In production, this would call the actual Planton Cloud API
-    # using the query.proto RPC: AwsCredentialQueryController.list()
+    # using ConnectSearchQueryController.searchCredentialApiResourcesByContext
+    # with api_resource_kind="AwsCredential"
 
-    # For now, return a mock response showing the expected structure
+    # For now, return a mock response showing the expected ApiResourceSearchRecord structure
     # In production, this would:
-    # 1. Authenticate with Planton Cloud API using token
-    # 2. Call the list RPC with org_id and optional env_name
-    # 3. Extract credential summaries from the response
+    # 1. Authenticate with Planton Cloud API using gRPC
+    # 2. Call searchCredentialApiResourcesByContext with:
+    #    - org_id: provided org_id
+    #    - env_name: optional env_name for scoping
+    #    - api_resource_kind: "AwsCredential" (hardcoded for this tool)
+    # 3. Return list of ApiResourceSearchRecord from the response
 
-    # Mock data structure showing expected RPC response format
+    # Mock data structure matching ApiResourceSearchRecord format
     mock_credentials = [
         {
             "id": "aws-cred-prod-001",
             "name": "Production AWS Account",
-            "region": "us-west-2",
+            "kind": "AwsCredential",
+            "org_id": org_id,
+            "env_name": "production",
+            "tags": ["aws", "production", "primary"],
+            "created_by": "admin@acme-corp.com",
+            "created_at": "2024-01-01T00:00:00Z",
+            "is_active": True
         },
         {
-            "id": "aws-cred-staging-001",
+            "id": "aws-cred-staging-001", 
             "name": "Staging AWS Account",
-            "region": "us-east-1",
+            "kind": "AwsCredential",
+            "org_id": org_id,
+            "env_name": "staging",
+            "tags": ["aws", "staging", "development"],
+            "created_by": "dev@acme-corp.com",
+            "created_at": "2024-01-15T10:30:00Z",
+            "is_active": True
         },
+        {
+            "id": "aws-cred-dev-001",
+            "name": "Development AWS Account", 
+            "kind": "AwsCredential",
+            "org_id": org_id,
+            "env_name": "development",
+            "tags": ["aws", "dev", "testing"],
+            "created_by": "dev@acme-corp.com",
+            "created_at": "2024-02-01T14:15:00Z",
+            "is_active": False  # Inactive credential example
+        }
     ]
 
     # If env_name is provided, filter credentials for that environment
+    # In production, this filtering would happen server-side in the RPC call
     if env_name:
-        # In production, this filtering would happen server-side
-        if env_name == "prod":
-            return [cred for cred in mock_credentials if "prod" in cred["id"]]
-        elif env_name == "staging":
-            return [cred for cred in mock_credentials if "staging" in cred["id"]]
+        filtered_credentials = [
+            cred for cred in mock_credentials 
+            if cred["env_name"] == env_name
+        ]
+        return filtered_credentials
 
     return mock_credentials

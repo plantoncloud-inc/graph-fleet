@@ -40,7 +40,7 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 
 #### New MCP Tools
 - **`list_aws_credentials`**: Retrieve available AWS credentials from Planton Cloud
-- **`list_services`**: Identify and enumerate ECS services within specified organization/environment scope
+- **`list_aws_ecs_services`**: Identify and enumerate AWS ECS Service cloud resources within specified organization/environment scope
 - **Enhanced Context Extraction**: Improved natural language processing with Planton Cloud context
 
 #### Configuration
@@ -282,7 +282,7 @@ The ECS Deep Agent uses enhanced MCP integration with both AWS and Planton Cloud
 ### Implementation Status
 The current implementation includes:
 - ✅ Configuration enhancement with Planton Cloud authentication
-- ✅ New MCP tool interfaces (`list_aws_credentials`, `list_services`)
+- ✅ New MCP tool interfaces (`list_aws_credentials`, `list_aws_ecs_services`)
 - ✅ Enhanced context extractor prompt with Planton Cloud integration
 - ✅ Updated state management for context tracking
 - 🔄 Placeholder implementations with mock data structures
