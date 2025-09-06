@@ -16,6 +16,11 @@ The ECS Deep Agent leverages deepagents' built-in capabilities with advanced con
 
 ## Features
 
+### Memory Persistence
+- **PostgreSQL Checkpointer**: Persistent conversation memory across sessions
+- **Automatic Fallback**: Falls back to in-memory storage if PostgreSQL not configured
+- **Thread-level Persistence**: Maintains conversation context and state
+
 ### Sub-agents
 - **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent from conversational input
 - **Conversation Coordinator**: Manages flow between subagents based on conversational context, handles follow-up questions, and maintains conversation state across multiple interactions
@@ -138,6 +143,53 @@ result = await agent.ainvoke({
 })
 ```
 
+## Memory Configuration
+
+### PostgreSQL Checkpointer (Optional)
+
+The ECS Deep Agent supports persistent memory across sessions using PostgreSQL. This allows the agent to maintain conversation context and state between runs.
+
+#### Setup
+
+1. **Install PostgreSQL** (if not already available):
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install postgresql postgresql-contrib
+   
+   # macOS
+   brew install postgresql
+   
+   # Or use a managed service like AWS RDS, Google Cloud SQL, etc.
+   ```
+
+2. **Create a database** for the agent:
+   ```sql
+   CREATE DATABASE ecs_agent_memory;
+   CREATE USER ecs_agent WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE ecs_agent_memory TO ecs_agent;
+   ```
+
+3. **Set the DATABASE_URL environment variable**:
+   ```bash
+   export DATABASE_URL="postgresql://ecs_agent:your_password@localhost:5432/ecs_agent_memory"
+   ```
+
+#### Connection String Format
+
+The `DATABASE_URL` should follow the PostgreSQL connection string format:
+```
+postgresql://[user[:password]@][host][:port][/database][?param1=value1&...]
+```
+
+Examples:
+- Local: `postgresql://user:pass@localhost:5432/dbname`
+- AWS RDS: `postgresql://user:pass@mydb.123456789012.us-east-1.rds.amazonaws.com:5432/dbname`
+- With SSL: `postgresql://user:pass@host:5432/dbname?sslmode=require`
+
+#### Automatic Fallback
+
+If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agent automatically falls back to in-memory storage. This ensures the agent continues to work without requiring PostgreSQL setup for basic usage.
+
 ## Configuration
 
 ### Environment Variables
@@ -145,6 +197,7 @@ result = await agent.ainvoke({
 - `ALLOW_WRITE`: Enable write operations globally (default: "false")
 - `AWS_REGION`: AWS region to use
 - `AWS_PROFILE`: AWS profile to use
+- `DATABASE_URL`: PostgreSQL connection string for persistent memory (optional)
 
 ### Configuration File
 
@@ -171,7 +224,8 @@ The agent generates Markdown reports:
 
 1. **AWS Credentials**: Configure via AWS CLI or environment variables
 2. **AWS API MCP Server**: Automatically installed via `awslabs-aws-api-mcp-server` dependency
-3. **Permissions**: ECS read permissions required, write permissions for repairs
+3. **PostgreSQL Dependencies**: Automatically installed via `psycopg` and `langgraph-checkpoint-postgres` dependencies (for persistent memory)
+4. **Permissions**: ECS read permissions required, write permissions for repairs
 
 ## MCP Integration
 
@@ -424,6 +478,30 @@ However, even with CLI usage, the agent now provides conversational feedback and
    - Ensure `ALLOW_WRITE=true` environment variable
    - Check `allowWrite: true` in agent.yaml
    - Use `--allow-write` flag for CLI commands
+
+4. **PostgreSQL Connection Issues**
+   ```bash
+   # Check if DATABASE_URL is set correctly
+   echo $DATABASE_URL
+   
+   # Test PostgreSQL connection
+   psql $DATABASE_URL -c "SELECT 1;"
+   ```
+   
+   Common solutions:
+   - Verify PostgreSQL server is running
+   - Check connection string format: `postgresql://user:pass@host:port/dbname`
+   - Ensure database and user exist with proper permissions
+   - Check firewall/security group settings for remote connections
+   - Verify SSL settings if using `sslmode=require`
+
+5. **Memory Persistence Not Working**
+   - Agent automatically falls back to in-memory storage if PostgreSQL fails
+   - Check logs for "DATABASE_URL not configured" or "Failed to create PostgreSQL checkpointer" messages
+   - Ensure `psycopg` and `langgraph-checkpoint-postgres` dependencies are installed:
+     ```bash
+     poetry show psycopg langgraph-checkpoint-postgres
+     ```
 
 ### Debug Mode
 
