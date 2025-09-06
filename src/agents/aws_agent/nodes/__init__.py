@@ -8,7 +8,4 @@ This package contains the nodes for the AWS agent graph:
 from .credential_selector import credential_selector_node
 from .aws_deepagent import aws_deepagent_node
 
-__all__ = [
-    "credential_selector_node",
-    "aws_deepagent_node"
-]
+__all__ = ["credential_selector_node", "aws_deepagent_node"]

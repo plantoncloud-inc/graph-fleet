@@ -10,48 +10,43 @@ from pydantic import BaseModel, Field
 
 class AWSAgentConfig(BaseModel):
     """Configuration for AWS Agent powered by DeepAgents
-    
+
     This configuration contains only essential settings.
     Planning, sub-agents, and virtual file system are enabled by default.
     """
-    
+
     # Model configuration
     model_name: str = Field(
         default="gpt-4o-mini",
-        description="LLM model name to use (e.g., 'gpt-4o', 'gpt-4o-mini', 'claude-3-5-sonnet-20241022')"
+        description="LLM model name to use (e.g., 'gpt-4o', 'gpt-4o-mini', 'claude-3-5-sonnet-20241022')",
     )
-    
+
     temperature: float = Field(
         default=0.7,
-        description="Temperature for LLM responses (0.0 = deterministic, 1.0 = creative)"
+        description="Temperature for LLM responses (0.0 = deterministic, 1.0 = creative)",
     )
-    
+
     # Agent behavior
     instructions: Optional[str] = Field(
         default=None,
-        description="Custom instructions for the agent. If not provided, uses default AWS agent behavior."
+        description="Custom instructions for the agent. If not provided, uses default AWS agent behavior.",
     )
-    
+
     # Execution configuration
     max_retries: int = Field(
-        default=3,
-        description="Maximum number of retries for failed operations"
+        default=3, description="Maximum number of retries for failed operations"
     )
-    
-    max_steps: int = Field(
-        default=20,
-        description="Maximum steps the agent can take"
-    )
-    
+
+    max_steps: int = Field(default=20, description="Maximum steps the agent can take")
+
     recursion_limit: int = Field(
         default=50,
-        description="Maximum number of graph cycles (super-steps) allowed. For DeepAgents that plan, use tools, and spawn sub-agents, this should be higher than the default LangGraph value of 25."
+        description="Maximum number of graph cycles (super-steps) allowed. For DeepAgents that plan, use tools, and spawn sub-agents, this should be higher than the default LangGraph value of 25.",
     )
-    
+
     # Timeout configuration
     timeout_seconds: int = Field(
-        default=600,
-        description="Timeout in seconds for agent operations"
+        default=600, description="Timeout in seconds for agent operations"
     )
 
 
@@ -135,10 +130,10 @@ capabilities, sub-agents, and file system to tackle complex AWS challenges syste
 
 def get_effective_instructions(config: AWSAgentConfig) -> str:
     """Get the effective instructions for the agent
-    
+
     Args:
         config: Agent configuration
-        
+
     Returns:
         The instructions to use (custom if provided, otherwise default)
     """

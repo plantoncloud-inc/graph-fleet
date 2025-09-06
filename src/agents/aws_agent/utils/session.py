@@ -13,36 +13,36 @@ logger = logging.getLogger(__name__)
 
 class SessionManager:
     """Manages session-scoped data for the AWS agent
-    
+
     This class holds:
     - MCP client manager
     - Agent instances
     - Configuration
     - Default values (org_id, env_id, etc.)
     """
-    
+
     def __init__(self):
         self.data: Dict[str, Any] = {}
-        
+
     def get_mcp_manager(self) -> MCPClientManager:
         """Get or create MCP client manager"""
         if "mcp_manager" not in self.data:
             self.data["mcp_manager"] = MCPClientManager()
         return self.data["mcp_manager"]
-    
+
     def set_config(self, config: Any):
         """Set agent configuration"""
         self.data["config"] = config
-        
+
     def get_config(self) -> Any:
         """Get agent configuration"""
         return self.data.get("config")
-    
+
     def set_defaults(
         self,
         org_id: Optional[str] = None,
         env_id: Optional[str] = None,
-        actor_token: Optional[str] = None
+        actor_token: Optional[str] = None,
     ):
         """Set default values for the session"""
         if org_id:
@@ -51,26 +51,26 @@ class SessionManager:
             self.data["default_env_id"] = env_id
         if actor_token:
             self.data["actor_token"] = actor_token
-    
+
     def get_agent(self, agent_key: str) -> Optional[Any]:
         """Get a cached agent instance"""
         return self.data.get(agent_key)
-    
+
     def set_agent(self, agent_key: str, agent: Any):
         """Cache an agent instance"""
         self.data[agent_key] = agent
-        
+
         # Clean up old agents
         for key in list(self.data.keys()):
             if key.startswith("agent_") and key != agent_key:
                 del self.data[key]
-    
+
     async def cleanup(self):
         """Clean up session resources"""
         if "mcp_manager" in self.data:
             mcp_manager = self.data["mcp_manager"]
             await mcp_manager.close_all()
-        
+
         # Clear all data
         self.data.clear()
         logger.info("Session cleaned up")
