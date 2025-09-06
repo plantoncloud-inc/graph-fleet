@@ -105,6 +105,53 @@ result = await agent.ainvoke({
 })
 ```
 
+## Memory Configuration
+
+### PostgreSQL Checkpointer (Optional)
+
+The ECS Deep Agent supports persistent memory across sessions using PostgreSQL. This allows the agent to maintain conversation context and state between runs.
+
+#### Setup
+
+1. **Install PostgreSQL** (if not already available):
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install postgresql postgresql-contrib
+   
+   # macOS
+   brew install postgresql
+   
+   # Or use a managed service like AWS RDS, Google Cloud SQL, etc.
+   ```
+
+2. **Create a database** for the agent:
+   ```sql
+   CREATE DATABASE ecs_agent_memory;
+   CREATE USER ecs_agent WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE ecs_agent_memory TO ecs_agent;
+   ```
+
+3. **Set the DATABASE_URL environment variable**:
+   ```bash
+   export DATABASE_URL="postgresql://ecs_agent:your_password@localhost:5432/ecs_agent_memory"
+   ```
+
+#### Connection String Format
+
+The `DATABASE_URL` should follow the PostgreSQL connection string format:
+```
+postgresql://[user[:password]@][host][:port][/database][?param1=value1&...]
+```
+
+Examples:
+- Local: `postgresql://user:pass@localhost:5432/dbname`
+- AWS RDS: `postgresql://user:pass@mydb.123456789012.us-east-1.rds.amazonaws.com:5432/dbname`
+- With SSL: `postgresql://user:pass@host:5432/dbname?sslmode=require`
+
+#### Automatic Fallback
+
+If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agent automatically falls back to in-memory storage. This ensures the agent continues to work without requiring PostgreSQL setup for basic usage.
+
 ## Configuration
 
 ### Environment Variables
@@ -244,5 +291,6 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
