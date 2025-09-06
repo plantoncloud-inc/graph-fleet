@@ -17,6 +17,11 @@ SUBAGENTS = [
         "prompt": CONTEXT_EXTRACTOR_PROMPT
     },
     {
+        "name": "conversation-coordinator",
+        "description": "Manages flow between subagents based on conversational context, handles follow-up questions, and maintains conversation state across multiple interactions",
+        "prompt": CONVERSATION_COORDINATOR_PROMPT
+    },
+    {
         "name": "triage-agent",
         "description": "Diagnoses ECS service issues using read-only tools",
         "prompt": TRIAGE_AGENT_PROMPT
@@ -42,6 +47,7 @@ SUBAGENTS = [
         "prompt": REPORTER_PROMPT
     }
 ]
+
 
 
 
