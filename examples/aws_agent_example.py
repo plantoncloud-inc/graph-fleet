@@ -10,14 +10,15 @@ and quick CLI demonstrations.
 
 import asyncio
 import os
-from langchain_core.messages import HumanMessage
 
 # Import our AWS agent
 import sys
 
+from langchain_core.messages import HumanMessage
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.agents.aws_agent import create_aws_agent, AWSAgentConfig
+from src.agents import AWSAgentConfig, create_aws_agent
 
 
 async def example_generic_aws_assistant():

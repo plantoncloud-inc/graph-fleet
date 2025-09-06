@@ -1,4 +1,4 @@
-"""Planton Cloud MCP Server
+"""Planton Cloud MCP Server.
 
 Central server that registers all Planton Cloud MCP tools.
 """
@@ -32,6 +32,6 @@ mcp.tool()(list_services)
 # mcp.tool()(trigger_pipeline)
 
 
-def run_server():
-    """Run the Planton Cloud MCP server"""
+def run_server() -> None:
+    """Run the Planton Cloud MCP server."""
     mcp.run(transport="stdio")

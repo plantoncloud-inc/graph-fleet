@@ -15,7 +15,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 logger = logging.getLogger(__name__)
 
 
-def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]:
+def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[str, Any]:
     """Get AWS API MCP server configuration
 
     Args:
@@ -28,7 +28,6 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]
     """
     env = {
         "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
-        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
     }
 
     # Add AWS credentials if provided
@@ -38,6 +37,7 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] = None) -> dict[str, Any]
                 "AWS_ACCESS_KEY_ID": aws_credentials["access_key_id"],
                 "AWS_SECRET_ACCESS_KEY": aws_credentials["secret_access_key"],
                 "AWS_SESSION_TOKEN": aws_credentials["session_token"],
+                "AWS_REGION": aws_credentials.get("region", "us-east-1"),
             }
         )
 
@@ -109,7 +109,7 @@ def get_aws_credentials_from_env() -> dict | None:
 
 
 async def get_ecs_mcp_tools(
-    read_only: bool = True, aws_credentials: dict[str, str] = None
+    read_only: bool = True, aws_credentials: dict[str, str] | None = None
 ) -> list[BaseTool]:
     """Get ECS-focused MCP tools from the AWS API MCP server.
 

@@ -1,4 +1,4 @@
-"""AWS Credential MCP tools"""
+"""AWS Credential MCP tools."""
 
 from .tools import get_aws_credential
 

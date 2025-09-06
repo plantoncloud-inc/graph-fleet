@@ -1,4 +1,4 @@
-"""Service tools for MCP
+"""Service tools for MCP.
 
 Tools for querying and managing services from Planton Cloud.
 """
@@ -9,7 +9,7 @@ from typing import Any
 async def list_services(
     org_id: str, env_id: str | None = None, aws_credential_id: str | None = None
 ) -> list[dict[str, Any]]:
-    """List ECS services available in Planton Cloud for the given organization and context
+    """List ECS services available in Planton Cloud for the given organization and context.
 
     This follows the structure of:
     cloud.planton.apis.service.v1.ServiceQueryController.list()

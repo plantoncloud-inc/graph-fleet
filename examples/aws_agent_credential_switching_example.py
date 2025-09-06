@@ -8,13 +8,14 @@ This example shows how the AWS agent handles:
 
 import asyncio
 import os
+
 from langchain_core.messages import HumanMessage
-from src.agents.aws_agent import create_aws_agent, cleanup_session, AWSAgentState
+
+from src.agents import AWSAgentState, cleanup_session, create_aws_agent
 
 
 async def main():
     """Run example demonstrating credential switching"""
-
     # Create the AWS agent
     # In real usage, you'd provide org_id and optionally env_id
     agent = await create_aws_agent(
@@ -50,7 +51,7 @@ async def main():
 
         result["messages"].append(HumanMessage(content="Use the production account"))
         result = await agent.ainvoke(result)
-        print(f"   Agent: Selected credential and listing EC2 instances...")
+        print("   Agent: Selected credential and listing EC2 instances...")
 
     # Example 3: Mid-conversation credential switch
     print("\n3. Switching credentials mid-conversation:")
@@ -61,7 +62,7 @@ async def main():
     )
 
     result = await agent.ainvoke(result)
-    print(f"   Agent: Switched to staging account and listing S3 buckets...")
+    print("   Agent: Switched to staging account and listing S3 buckets...")
 
     # Example 4: Clear selection
     print("\n4. Clearing credential selection:")

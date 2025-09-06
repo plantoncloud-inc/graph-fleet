@@ -29,7 +29,7 @@ make run
 # Example: "My API service is slow and users are complaining about timeouts"
 ```
 
-📚 **[Complete Documentation →](src/agents/ecs_deep_agent/README.md)**
+📚 **[Complete Documentation →](src/agents/aws_ecs_service/supervisor/README.md)**
 
 ## Development
 

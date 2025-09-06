@@ -15,8 +15,8 @@ except ImportError:
     from server import run_server
 
 
-def main():
-    """Main entry point for the command line script"""
+def main() -> None:
+    """Main entry point for the command line script."""
     run_server()
 
 
