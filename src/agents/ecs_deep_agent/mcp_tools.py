@@ -70,39 +70,21 @@ async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
     )
     return await get_planton_context_tools()
 
-        logger.info(f"Filtered to {len(allowed_tools)} ECS-focused tools")
-        return allowed_tools
-
-    except Exception as e:
-        logger.error(f"Failed to get AWS MCP tools: {e}")
-        # Fall back to empty list - agent will still work with sub-agents
-        logger.warning("Continuing without MCP tools - using sub-agents only")
-        return []
-
 
 def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
-    """Get interrupt configuration for write-capable tools.
-
+    """Get interrupt configuration for tools.
+    
+    Since Planton Cloud context tools are read-only, no interrupts are needed.
+    
     Args:
         tools: List of LangChain tools from MCP
-
+        
     Returns:
-        Dictionary mapping tool names to interrupt requirements
-
+        Empty dictionary - no interrupts needed for context tools
     """
-    interrupt_config = {}
+    # Planton Cloud context tools are read-only, no interrupts needed
+    return {}
 
-    for tool in tools:
-        tool_name = tool.name if hasattr(tool, "name") else str(tool)
-
-        # Check if this is a write tool that needs gating
-        for write_tool in WRITE_TOOLS:
-            if tool_name == write_tool or write_tool in tool_name:
-                interrupt_config[tool_name] = True
-                logger.info(f"Configured interrupt for write tool: {tool_name}")
-                break
-
-    return interrupt_config
 
 
 
