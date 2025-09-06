@@ -29,6 +29,38 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def create_checkpointer():
+    """Create a checkpointer based on environment configuration.
+    
+    Checks for DATABASE_URL environment variable and creates an AsyncPostgresSaver
+    if available. Falls back to InMemorySaver if DATABASE_URL is not configured
+    or if there's an error connecting to PostgreSQL.
+    
+    Returns:
+        Checkpointer instance (AsyncPostgresSaver or InMemorySaver)
+    """
+    database_url = os.environ.get("DATABASE_URL")
+    
+    if not database_url:
+        logger.info("DATABASE_URL not configured, using InMemorySaver for checkpointing")
+        return InMemorySaver()
+    
+    try:
+        logger.info("DATABASE_URL found, attempting to create PostgreSQL checkpointer")
+        checkpointer = AsyncPostgresSaver.from_conn_string(database_url)
+        
+        # Setup the checkpointer (creates tables if they don't exist)
+        await checkpointer.setup()
+        
+        logger.info("PostgreSQL checkpointer created successfully")
+        return checkpointer
+        
+    except Exception as e:
+        logger.warning(f"Failed to create PostgreSQL checkpointer: {e}")
+        logger.info("Falling back to InMemorySaver for checkpointing")
+        return InMemorySaver()
+
+
 async def ecs_deep_agent_node(state: ECSDeepAgentState, config: ECSDeepAgentConfig) -> ECSDeepAgentState:
     """Main ECS Deep Agent node that processes user requests.
     
@@ -188,4 +220,5 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
