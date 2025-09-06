@@ -11,17 +11,17 @@ The graph is organized as:
 
 import logging
 import os
-from typing import Optional, Dict, Any
-from langgraph.graph import StateGraph, END
-from langgraph.graph.state import CompiledStateGraph
+
 from deepagents import async_create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from .configuration import ECSDeepAgentConfig
-from .state import ECSDeepAgentState
-from .mcp_tools import get_mcp_tools, get_interrupt_config
+from .mcp_tools import get_interrupt_config, get_mcp_tools
 from .prompts import ORCHESTRATOR_PROMPT
+from .state import ECSDeepAgentState
 from .subagents import SUBAGENTS
 
 # Set up logging
@@ -38,6 +38,7 @@ async def create_checkpointer():
 
     Returns:
         Checkpointer instance (AsyncPostgresSaver or InMemorySaver)
+
     """
     database_url = os.environ.get("DATABASE_URL")
 
@@ -78,6 +79,7 @@ async def ecs_deep_agent_node(
 
     Returns:
         Updated state with agent response and enhanced conversation context
+
     """
     logger.info("Starting conversational ECS Deep Agent node")
 
@@ -107,6 +109,37 @@ async def ecs_deep_agent_node(
     # Update state with user preferences
     state["user_preferences"] = user_preferences
 
+    # Extract Planton Cloud configuration for context establishment
+    planton_context = {}
+
+    # Get Planton Cloud config from configuration or environment variables
+    planton_token = config.planton_token or os.environ.get("PLANTON_TOKEN")
+    org_id = config.org_id or os.environ.get("PLANTON_ORG_ID")
+    env_id = config.env_id or os.environ.get("PLANTON_ENV_ID")
+
+    if planton_token and org_id:
+        planton_context = {
+            "token": planton_token,
+            "org_id": org_id,
+            "env_id": env_id,  # Optional, can be None
+        }
+        logger.info(
+            f"Planton Cloud context established: org_id={org_id}, env_id={env_id}"
+        )
+    else:
+        logger.warning("Planton Cloud context not available - missing token or org_id")
+
+    # Update state with Planton Cloud context
+    state["planton_context"] = planton_context
+
+    # Initialize context establishment tracking
+    if not state.get("established_context"):
+        state["established_context"] = False
+    if not state.get("available_aws_credentials"):
+        state["available_aws_credentials"] = []
+    if not state.get("available_services"):
+        state["available_services"] = []
+
     # Determine write permissions
     env_allow_write = os.environ.get("ALLOW_WRITE", "false").lower() == "true"
     config_allow_write = config.allow_write
@@ -134,6 +167,28 @@ async def ecs_deep_agent_node(
 
             # Enhance the message with conversation context
             context_info = []
+
+            # Add Planton Cloud context information
+            if planton_context:
+                planton_info = (
+                    f"Planton Cloud context: org_id={planton_context.get('org_id')}"
+                )
+                if planton_context.get("env_id"):
+                    planton_info += f", env_id={planton_context.get('env_id')}"
+                context_info.append(planton_info)
+
+            # Add context establishment status
+            if state.get("available_aws_credentials"):
+                context_info.append(
+                    f"Available AWS credentials: {len(state['available_aws_credentials'])} found"
+                )
+            if state.get("available_services"):
+                context_info.append(
+                    f"Available services: {len(state['available_services'])} found"
+                )
+            if state.get("established_context"):
+                context_info.append("Context establishment: Complete")
+
             if state.get("conversation_history"):
                 context_info.append(
                     f"Previous conversation context available ({len(state['conversation_history'])} interactions)"
@@ -165,9 +220,7 @@ async def ecs_deep_agent_node(
         # Note: Checkpointer is now set at the graph level during compilation
 
         # Process the conversational user message
-        result = await agent.ainvoke(
-            {"messages": enhanced_messages}
-        )
+        result = await agent.ainvoke({"messages": enhanced_messages})
 
         # Extract conversation insights from the response
         response_messages = result.get("messages", [])
@@ -270,7 +323,7 @@ async def ecs_deep_agent_node(
         }
 
 
-async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
+async def graph(config: dict | None = None) -> CompiledStateGraph:
     """Main graph function for LangGraph Studio
 
     This is the entry point that LangGraph Studio calls. It creates a single-node
@@ -288,6 +341,7 @@ async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
 
     Returns:
         Configured StateGraph for ECS operations
+
     """
     logger.info("Creating ECS Deep Agent graph")
 
@@ -317,9 +371,9 @@ async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
 
 
 async def create_ecs_deep_agent(
-    config: Optional[ECSDeepAgentConfig] = None,
-    cluster: Optional[str] = None,
-    service: Optional[str] = None,
+    config: ECSDeepAgentConfig | None = None,
+    cluster: str | None = None,
+    service: str | None = None,
     allow_write: bool = False,
 ) -> CompiledStateGraph:
     """Create an ECS Deep Agent for examples and CLI demos
@@ -345,6 +399,7 @@ async def create_ecs_deep_agent(
         >>> result = await agent.ainvoke({
         ...     "messages": [{"role": "user", "content": "Diagnose this ECS service"}]
         ... })
+
     """
     # Create config if not provided
     if config is None:
@@ -368,4 +423,3 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
-

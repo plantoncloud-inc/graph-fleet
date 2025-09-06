@@ -1,7 +1,7 @@
 """Planton Cloud MCP Server entrypoint."""
 
-import sys
 import os
+import sys
 
 # Add the parent directory to the path to support direct execution
 sys.path.insert(

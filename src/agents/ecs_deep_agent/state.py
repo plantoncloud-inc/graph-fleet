@@ -1,6 +1,7 @@
 """State management for ECS Deep Agent."""
 
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from typing_extensions import TypedDict
 
 
@@ -14,78 +15,88 @@ class ECSDeepAgentState(TypedDict):
     """
 
     # Core conversation state
-    messages: List[Dict[str, Any]]
+    messages: list[dict[str, Any]]
 
     # Execution tracking
-    status: Optional[str]  # "running", "completed", "error", "interrupted"
+    status: str | None  # "running", "completed", "error", "interrupted"
 
     # ECS operation context (can be extracted from conversation)
-    cluster: Optional[str]
-    service: Optional[str]
-    region: Optional[str]  # AWS region for operations
+    cluster: str | None
+    service: str | None
+    region: str | None  # AWS region for operations
 
     # Conversational context extracted from natural language
-    conversation_context: Optional[
-        Dict[str, Any]
-    ]  # Extracted context from context-extractor subagent
-    extracted_parameters: Optional[
-        Dict[str, Any]
-    ]  # ECS identifiers, problem descriptions, user intent
+    conversation_context: (
+        dict[str, Any] | None
+    )  # Extracted context from context-extractor subagent
+    extracted_parameters: (
+        dict[str, Any] | None
+    )  # ECS identifiers, problem descriptions, user intent
 
     # User preferences and constraints
-    user_preferences: Optional[
-        Dict[str, Any]
-    ]  # Risk tolerance, timing constraints, communication style
+    user_preferences: (
+        dict[str, Any] | None
+    )  # Risk tolerance, timing constraints, communication style
 
     # Conversation history tracking
-    conversation_history: Optional[
-        List[Dict[str, Any]]
-    ]  # Historical context across multiple interactions
-    conversation_session_id: Optional[
-        str
-    ]  # Session identifier for conversation continuity
+    conversation_history: (
+        list[dict[str, Any]] | None
+    )  # Historical context across multiple interactions
+    conversation_session_id: (
+        str | None
+    )  # Session identifier for conversation continuity
 
     # Subagent coordination state
-    active_subagent: Optional[str]  # Currently active subagent
-    subagent_handoff_context: Optional[
-        Dict[str, Any]
-    ]  # Context passed between subagents
-    conversation_flow_state: Optional[
-        str
-    ]  # Current phase: "context_extraction", "triage", "planning", "execution", "verification", "reporting"
+    active_subagent: str | None  # Currently active subagent
+    subagent_handoff_context: dict[str, Any] | None  # Context passed between subagents
+    conversation_flow_state: (
+        str | None
+    )  # Current phase: "context_extraction", "triage", "planning", "execution", "verification", "reporting"
 
     # Problem and solution tracking
-    problem_description: Optional[str]  # User-described problem in natural language
-    problem_symptoms: Optional[List[str]]  # Extracted symptoms and issues
-    urgency_level: Optional[str]  # "critical", "high", "medium", "low"
-    solution_confidence: Optional[
-        float
-    ]  # Confidence level in proposed solutions (0.0-1.0)
+    problem_description: str | None  # User-described problem in natural language
+    problem_symptoms: list[str] | None  # Extracted symptoms and issues
+    urgency_level: str | None  # "critical", "high", "medium", "low"
+    solution_confidence: (
+        float | None
+    )  # Confidence level in proposed solutions (0.0-1.0)
 
     # Operation results and artifacts
-    artifacts: Optional[Dict[str, Any]]  # Generated files, reports, etc.
+    artifacts: dict[str, Any] | None  # Generated files, reports, etc.
 
     # Error tracking
-    error_message: Optional[str]
+    error_message: str | None
 
     # Human-in-the-loop state
-    pending_approval: Optional[Dict[str, Any]]  # Write operations awaiting approval
-    approval_history: Optional[
-        List[Dict[str, Any]]
-    ]  # History of user approvals and decisions
+    pending_approval: dict[str, Any] | None  # Write operations awaiting approval
+    approval_history: (
+        list[dict[str, Any]] | None
+    )  # History of user approvals and decisions
 
     # Follow-up and iterative conversation support
-    follow_up_questions: Optional[List[str]]  # Questions that need user clarification
-    pending_clarifications: Optional[
-        Dict[str, Any]
-    ]  # Information waiting for user input
-    conversation_branch_point: Optional[
-        Dict[str, Any]
-    ]  # State for handling conversation branches
+    follow_up_questions: list[str] | None  # Questions that need user clarification
+    pending_clarifications: dict[str, Any] | None  # Information waiting for user input
+    conversation_branch_point: (
+        dict[str, Any] | None
+    )  # State for handling conversation branches
 
     # User interaction tracking
-    user_communication_style: Optional[str]  # "technical", "business", "mixed"
-    user_engagement_level: Optional[str]  # "high", "medium", "low" - affects verbosity
-    last_user_interaction: Optional[
-        Dict[str, Any]
-    ]  # Timestamp and context of last user input
+    user_communication_style: str | None  # "technical", "business", "mixed"
+    user_engagement_level: str | None  # "high", "medium", "low" - affects verbosity
+    last_user_interaction: (
+        dict[str, Any] | None
+    )  # Timestamp and context of last user input
+
+    # Planton Cloud context establishment
+    planton_context: (
+        dict[str, Any] | None
+    )  # Planton Cloud context with org_id, env_id, token
+    available_aws_credentials: (
+        list[dict[str, Any]] | None
+    )  # List of AWS credential summaries from list_aws_credentials
+    available_services: (
+        list[dict[str, Any]] | None
+    )  # List of ECS service summaries from list_services
+    established_context: (
+        bool | None
+    )  # Boolean flag indicating if context establishment is complete
