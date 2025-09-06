@@ -1,6 +1,5 @@
 """Configuration for ECS Deep Agent."""
 
-
 from pydantic import BaseModel, Field
 
 
@@ -74,4 +73,3 @@ class ECSDeepAgentConfig(BaseModel):
         default=None,
         description="Planton Cloud environment ID - optional context for scoped operations (uses PLANTON_ENV_ID env var if not set)",
     )
-

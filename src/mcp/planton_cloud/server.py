@@ -35,6 +35,3 @@ mcp.tool()(list_services)
 def run_server():
     """Run the Planton Cloud MCP server"""
     mcp.run(transport="stdio")
-
-
-

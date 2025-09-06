@@ -409,4 +409,3 @@ CONVERSATION_COORDINATOR_PROMPT = """You are a conversation coordinator for ECS 
 
 REPORTER_PROMPT = """Summarize timeline, hypotheses, actions, approvals, and results in report_summary.md.
 Optionally append a single line to audit_log.jsonl per action."""
-
