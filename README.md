@@ -114,6 +114,19 @@ This indicates synchronous blocking operations in the async environment. The cod
 2. **Production fix**: Set `BG_JOB_ISOLATED_LOOPS=true` environment variable
 3. **Best practice**: Ensure all imports and file operations use async patterns
 
+**Solution Applied**: We've moved all MCP tool imports inside async functions to prevent blocking operations during module load. This prevents the `ScandirIterator.__next__` error by ensuring imports happen in the async context.
+
+### async_create_deep_agent Await Error
+
+If you see an error like:
+```
+Failed to create Contextualizer Agent: object CompiledStateGraph can't be used in 'await' expression
+```
+
+This indicates incorrect usage of the `async_create_deep_agent` function from the deepagents library.
+
+**Solution Applied**: The `async_create_deep_agent` function is not actually async despite its name - it returns a `CompiledStateGraph` directly, not a coroutine. We've removed the `await` keyword from all calls to this function in both the Contextualizer and Operations agents.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.

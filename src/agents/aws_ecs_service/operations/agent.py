@@ -119,7 +119,8 @@ async def create_operations_agent(
 
     try:
         # Create the Operations agent using deepagents
-        agent = await async_create_deep_agent(
+        # Note: async_create_deep_agent returns a CompiledStateGraph, not an awaitable
+        agent = async_create_deep_agent(
             tools=ecs_tools,
             instructions=OPERATIONS_ORCHESTRATOR_PROMPT,
             subagents=OPERATIONS_SUBAGENTS,

@@ -2,16 +2,32 @@
 
 A Model Context Protocol (MCP) server that provides tools for interacting with Planton Cloud APIs. This server exposes cloud provider credentials, service management, and infrastructure operations as MCP tools.
 
+## Important Notes
+
+### Async Environment Compatibility
+
+This MCP server is designed to work in async environments like LangGraph. To avoid blocking call errors:
+
+1. **Import Pattern**: When using these tools in async contexts (like LangGraph agents), import the tools inside async functions rather than at module level to prevent "Blocking call to ScandirIterator.__next__" errors.
+
+2. **Example Usage**:
+   ```python
+   async def get_tools():
+       # Import inside async function to avoid blocking
+       from mcp_tools import get_planton_cloud_mcp_tools
+       return await get_planton_cloud_mcp_tools()
+   ```
+
 ## Quick Start
 
 ### Running the MCP Server
 
 ```bash
 # Direct execution
-python src/mcp/planton_cloud/entry_point.py
+python src/planton_cloud_mcp/entry_point.py
 
 # Or using the module
-python -m mcp.planton_cloud.entry_point
+python -m planton_cloud_mcp.entry_point
 ```
 
 ### Using with MCP Clients
@@ -40,7 +56,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 # Configure the MCP server
 config = {
     "planton_cloud": {
-        "command": "planton-cloud-mcp-server",
+        "command": "planton_cloud_mcp",
         "args": [],
         "transport": "stdio",
         "env": {
@@ -143,10 +159,10 @@ The MCP server requires a Planton Cloud authentication token to access APIs. Set
 
 ```bash
 # Test tool imports
-python -c "from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials; print('✅ Import successful')"
+python -c "from planton_cloud_mcp.connect.awscredential.tools import list_aws_credentials; print('✅ Import successful')"
 
 # Test server startup
-python src/mcp/planton_cloud/entry_point.py --help
+python src/planton_cloud_mcp/entry_point.py --help
 ```
 
 

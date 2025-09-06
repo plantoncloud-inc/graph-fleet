@@ -34,7 +34,7 @@ def get_planton_cloud_mcp_config() -> dict[str, Any]:
         env["PLANTON_ENV_NAME"] = os.getenv("PLANTON_ENV_NAME")
 
     return {
-        "command": "planton-cloud-mcp-server",
+        "command": "planton_cloud_mcp",
         "args": [],
         "transport": "stdio",
         "env": env,
