@@ -3,14 +3,14 @@
 Tools for querying and managing services from Planton Cloud.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 
 async def list_services(
     org_id: str, 
-    env_id: Optional[str] = None, 
-    aws_credential_id: Optional[str] = None
-) -> List[Dict[str, Any]]:
+    env_id: str | None = None, 
+    aws_credential_id: str | None = None
+) -> list[dict[str, Any]]:
     """List ECS services available in Planton Cloud for the given organization and context
     
     This follows the structure of:
@@ -27,6 +27,7 @@ async def list_services(
         - cluster: ECS cluster name where service is running
         - status: Current service status (ACTIVE, INACTIVE, etc.)
         - region: AWS region where service is deployed
+
     """
     # TODO: In production, this would call the actual Planton Cloud API
     # using the query.proto RPC: ServiceQueryController.list()

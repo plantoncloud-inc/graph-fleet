@@ -11,17 +11,17 @@ The graph is organized as:
 
 import logging
 import os
-from typing import Optional, Dict, Any
-from langgraph.graph import StateGraph, END
-from langgraph.graph.state import CompiledStateGraph
+
 from deepagents import async_create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from .configuration import ECSDeepAgentConfig
-from .state import ECSDeepAgentState
-from .mcp_tools import get_mcp_tools, get_interrupt_config
+from .mcp_tools import get_interrupt_config, get_mcp_tools
 from .prompts import ORCHESTRATOR_PROMPT
+from .state import ECSDeepAgentState
 from .subagents import SUBAGENTS
 
 # Set up logging
@@ -38,6 +38,7 @@ async def create_checkpointer():
 
     Returns:
         Checkpointer instance (AsyncPostgresSaver or InMemorySaver)
+
     """
     database_url = os.environ.get("DATABASE_URL")
 
@@ -78,6 +79,7 @@ async def ecs_deep_agent_node(
 
     Returns:
         Updated state with agent response and enhanced conversation context
+
     """
     logger.info("Starting conversational ECS Deep Agent node")
 
@@ -315,7 +317,7 @@ async def ecs_deep_agent_node(
         }
 
 
-async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
+async def graph(config: dict | None = None) -> CompiledStateGraph:
     """Main graph function for LangGraph Studio
 
     This is the entry point that LangGraph Studio calls. It creates a single-node
@@ -333,6 +335,7 @@ async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
 
     Returns:
         Configured StateGraph for ECS operations
+
     """
     logger.info("Creating ECS Deep Agent graph")
 
@@ -362,9 +365,9 @@ async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
 
 
 async def create_ecs_deep_agent(
-    config: Optional[ECSDeepAgentConfig] = None,
-    cluster: Optional[str] = None,
-    service: Optional[str] = None,
+    config: ECSDeepAgentConfig | None = None,
+    cluster: str | None = None,
+    service: str | None = None,
     allow_write: bool = False,
 ) -> CompiledStateGraph:
     """Create an ECS Deep Agent for examples and CLI demos
@@ -390,6 +393,7 @@ async def create_ecs_deep_agent(
         >>> result = await agent.ainvoke({
         ...     "messages": [{"role": "user", "content": "Diagnose this ECS service"}]
         ... })
+
     """
     # Create config if not provided
     if config is None:
