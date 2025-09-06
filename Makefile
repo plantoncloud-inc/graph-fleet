@@ -1,4 +1,4 @@
-.PHONY: all build run deps lint clean help venvs aws-examples ecs-triage ecs-loop ecs-loop-write
+.PHONY: all build run deps lint clean help venvs aws-examples
 
 SHELL := /bin/bash
 
@@ -108,5 +108,6 @@ help:
 clean-pyc:
 	find . -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -exec rm -rf {} +
+
 
 
