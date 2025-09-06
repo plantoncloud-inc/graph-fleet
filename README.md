@@ -11,11 +11,12 @@ Graph Fleet provides a set of intelligent agents for cloud operations, starting 
 ```
 graph-fleet/
 ├── src/
-│   ├── agents/           # Agent implementations
-│   │   └── aws_agent/    # AWS specialist agent
-│   └── mcp/              # MCP integrations
-│       └── planton_cloud/ # Planton Cloud MCP server
-└── examples/             # Usage examples
+│   ├── agents/              # Agent implementations
+│   │   ├── aws_agent/       # AWS specialist agent
+│   │   └── ecs_deep_agent/  # ECS service diagnostics agent
+│   └── mcp/                 # MCP integrations
+│       └── planton_cloud/   # Planton Cloud MCP server
+└── examples/                # Usage examples
 ```
 
 ## Agents
@@ -49,6 +50,32 @@ The AWS Agent is built using LangChain's [DeepAgents](https://github.com/langcha
 - **♻️ STS Refresh**: Automatic credential refresh before expiration
 
 See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
+
+### ECS Deep Agent (DeepAgent)
+
+The ECS Deep Agent specializes in diagnosing and repairing AWS ECS services using the DeepAgents framework:
+
+#### Core Capabilities
+- **🔍 Automated Diagnosis**: Read-only triage of ECS service issues
+- **📋 Repair Planning**: Generate minimal, targeted repair plans
+- **🔒 Safe Execution**: Human-in-the-loop approval for write operations
+- **📊 Comprehensive Reporting**: Markdown reports with audit trails
+- **🔧 MCP Integration**: AWS ECS tools via langchain-mcp-adapters
+
+#### Sub-agents
+- **Triage Agent**: Read-only diagnosis and evidence gathering
+- **Change Planner**: Creates minimal repair plans with success criteria
+- **Remediator**: Executes approved changes safely
+- **Verifier**: Post-change verification and health checks
+- **Reporter**: Generates comprehensive audit reports
+
+#### Safety Features
+- Write operations disabled by default
+- Human approval required for all write operations
+- Limited blast radius (only specific ECS operations allowed)
+- Comprehensive audit logging
+
+See [ECS Deep Agent Documentation](src/agents/ecs_deep_agent/README.md) for details.
 
 ## Quick Start
 
@@ -229,6 +256,7 @@ docker run -e OPENAI_API_KEY=$OPENAI_API_KEY graph-fleet
 
 Configuration in `langgraph.json`:
 - AWS Agent: `src.agents.aws_agent.graph:graph`
+- ECS Deep Agent: `src.agents.ecs_deep_agent.graph:graph`
 - Python 3.11 runtime
 - Buf.build integration for protobuf
 
@@ -277,6 +305,11 @@ make aws-example-4    # Agent with specific region
 make aws-example-5    # Custom instructions agent
 make aws-example-6    # AWS operations with MCP
 make aws-example-all  # Run all examples sequentially
+
+# ECS Deep Agent Commands
+make ecs-triage CLUSTER=x SERVICE=y    # Run ECS service triage
+make ecs-loop CLUSTER=x SERVICE=y      # Run full ECS diagnostic loop
+make ecs-loop-write CLUSTER=x SERVICE=y # Run loop with write permissions
 ```
 
 ### Example Scenarios
