@@ -67,60 +67,211 @@ async def create_checkpointer():
         return InMemorySaver()
 
 
-async def ecs_deep_agent_node(
-    state: ECSDeepAgentState, config: ECSDeepAgentConfig
-) -> ECSDeepAgentState:
-    """Main ECS Deep Agent node that processes conversational user requests.
-
-    This node creates a conversational deep agent with ECS MCP tools and processes
-    natural language requests for ECS service diagnosis and repair. It initializes
-    conversation context and coordinates between specialized subagents.
-
+def supervisor_router(state: ECSDeepAgentState) -> Literal["context_coordinator", "ecs_domain", "__end__"]:
+    """Route between Context Coordinator and ECS Domain agents based on conversation state.
+    
+    This function implements the supervisor routing logic that determines which
+    specialized agent should handle the current request based on conversation
+    state and user intent.
+    
     Args:
-        state: Current state with messages, conversation context, and configuration
-        config: Agent configuration including write permissions
-
+        state: Current ECS Deep Agent state
+        
     Returns:
-        Updated state with agent response and enhanced conversation context
-
+        Name of the next agent to route to
     """
-    logger.info("Starting conversational ECS Deep Agent node")
+    logger.info("Supervisor routing decision")
+    
+    # Check if we have complete context for ECS operations
+    has_ecs_context = bool(state.get("ecs_context"))
+    has_user_intent = bool(state.get("user_intent"))
+    has_problem_description = bool(state.get("problem_description"))
+    
+    # Check current conversation phase
+    conversation_phase = state.get("conversation_phase", "initial")
+    
+    # Check if Context Coordinator has determined next agent
+    next_agent = state.get("next_agent")
+    
+    # Route to Context Coordinator if:
+    # 1. Initial conversation or context extraction phase
+    # 2. Missing essential context for ECS operations
+    # 3. Explicitly routed back to context coordinator
+    if (conversation_phase in ["initial", "context_extraction", "coordination"] or
+        not (has_ecs_context and has_user_intent) or
+        next_agent == "context_coordinator"):
+        logger.info("Routing to Context Coordinator: context establishment needed")
+        return "context_coordinator"
+    
+    # Route to ECS Domain if:
+    # 1. Context is complete and ready for technical operations
+    # 2. User intent requires ECS-specific operations
+    # 3. Explicitly routed to ECS domain
+    if (has_ecs_context and has_user_intent and has_problem_description and
+        next_agent in ["ecs_domain", None]):
+        logger.info("Routing to ECS Domain: context complete, executing ECS operations")
+        return "ecs_domain"
+    
+    # Check if operations are complete
+    operation_phase = state.get("operation_phase")
+    verification_status = state.get("verification_status")
+    
+    if (operation_phase == "reporting" and 
+        verification_status in ["passed", "completed"]):
+        logger.info("Operations complete, ending conversation")
+        return "__end__"
+    
+    # Default to Context Coordinator for safety
+    logger.info("Default routing to Context Coordinator")
+    return "context_coordinator"
 
-    # Initialize conversation context if not present
-    if not state.get("conversation_context"):
-        state["conversation_context"] = {}
-    if not state.get("conversation_history"):
-        state["conversation_history"] = []
-    if not state.get("conversation_session_id"):
-        import uuid
 
-        state["conversation_session_id"] = str(uuid.uuid4())
+async def context_coordinator_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfig) -> ECSDeepAgentState:
+    """Wrapper for Context Coordinator Agent node.
+    
+    This wrapper adapts the Context Coordinator Agent to work with the
+    ECS Deep Agent state and configuration.
+    
+    Args:
+        state: Current ECS Deep Agent state
+        config: ECS Deep Agent configuration
+        
+    Returns:
+        Updated ECS Deep Agent state
+    """
+    logger.info("Executing Context Coordinator Agent")
+    
+    # Convert ECS Deep Agent state to Context Coordinator state
+    context_state = {
+        "messages": state["messages"],
+        "orgId": state.get("orgId") or config.org_id,
+        "envId": state.get("envId") or config.env_id,
+        "session_id": state.get("conversation_session_id"),
+        "thread_id": state.get("thread_id"),
+        # Preserve existing context if available
+        "planton_context": state.get("planton_context"),
+        "aws_credentials": state.get("aws_credentials"),
+        "identified_services": state.get("identified_services"),
+        "ecs_context": state.get("ecs_context"),
+        "user_intent": state.get("user_intent"),
+        "problem_description": state.get("problem_description"),
+        "urgency_level": state.get("urgency_level"),
+        "scope": state.get("scope"),
+        "conversation_phase": state.get("conversation_phase"),
+        "next_agent": state.get("next_agent"),
+        "routing_decision": state.get("routing_decision"),
+    }
+    
+    # Execute Context Coordinator node
+    context_config = {
+        "model_name": config.model_name,
+        "orgId": config.org_id,
+        "envId": config.env_id,
+    }
+    
+    updated_context_state = await context_coordinator_node(context_state, context_config)
+    
+    # Update ECS Deep Agent state with results
+    updated_state = state.copy()
+    updated_state["messages"] = updated_context_state["messages"]
+    updated_state["planton_context"] = updated_context_state.get("planton_context")
+    updated_state["aws_credentials"] = updated_context_state.get("aws_credentials")
+    updated_state["identified_services"] = updated_context_state.get("identified_services")
+    updated_state["ecs_context"] = updated_context_state.get("ecs_context")
+    updated_state["user_intent"] = updated_context_state.get("user_intent")
+    updated_state["problem_description"] = updated_context_state.get("problem_description")
+    updated_state["urgency_level"] = updated_context_state.get("urgency_level")
+    updated_state["scope"] = updated_context_state.get("scope")
+    updated_state["conversation_phase"] = updated_context_state.get("conversation_phase")
+    updated_state["next_agent"] = updated_context_state.get("next_agent")
+    updated_state["routing_decision"] = updated_context_state.get("routing_decision")
+    updated_state["handoff_context"] = updated_context_state.get("handoff_context")
+    
+    logger.info(f"Context Coordinator completed. Next agent: {updated_state.get('next_agent')}")
+    return updated_state
 
-    # Initialize conversation flow state
-    if not state.get("conversation_flow_state"):
-        state["conversation_flow_state"] = "context_extraction"
 
-    # Extract user preferences from config and state
-    user_preferences = state.get("user_preferences", {})
-    if config.cluster:
-        user_preferences["default_cluster"] = config.cluster
-    if config.service:
-        user_preferences["default_service"] = config.service
-    if config.aws_region:
-        user_preferences["default_region"] = config.aws_region
-
-    # Update state with user preferences
-    state["user_preferences"] = user_preferences
-
-    # Extract Planton Cloud configuration for context establishment
-    planton_context = {}
-
-    # Get Planton Cloud config from configuration or environment variables
-    planton_token = config.planton_token or os.environ.get("PLANTON_TOKEN")
-    org_id = config.org_id or os.environ.get("PLANTON_ORG_ID")
-    env_id = config.env_id or os.environ.get("PLANTON_ENV_ID")
-
-    if planton_token and org_id:
+async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfig) -> ECSDeepAgentState:
+    """Wrapper for ECS Domain Agent node.
+    
+    This wrapper adapts the ECS Domain Agent to work with the
+    ECS Deep Agent state and configuration.
+    
+    Args:
+        state: Current ECS Deep Agent state
+        config: ECS Deep Agent configuration
+        
+    Returns:
+        Updated ECS Deep Agent state
+    """
+    logger.info("Executing ECS Domain Agent")
+    
+    # Convert ECS Deep Agent state to ECS Domain state
+    domain_state = {
+        "messages": state["messages"],
+        "orgId": state.get("orgId") or config.org_id,
+        "envId": state.get("envId") or config.env_id,
+        "session_id": state.get("conversation_session_id"),
+        "thread_id": state.get("thread_id"),
+        # Context from Context Coordinator
+        "planton_context": state.get("planton_context"),
+        "aws_credentials": state.get("aws_credentials"),
+        "identified_services": state.get("identified_services"),
+        "ecs_context": state.get("ecs_context"),
+        "user_intent": state.get("user_intent"),
+        "problem_description": state.get("problem_description"),
+        "urgency_level": state.get("urgency_level"),
+        "scope": state.get("scope"),
+        # ECS Domain operation state
+        "operation_phase": state.get("operation_phase"),
+        "triage_findings": state.get("triage_findings"),
+        "repair_plan": state.get("repair_plan"),
+        "execution_status": state.get("execution_status"),
+        "verification_status": state.get("verification_status"),
+        "operation_summary": state.get("operation_summary"),
+        "write_operations_enabled": config.allow_write,
+        "aws_region": config.aws_region,
+        "handoff_from": "context_coordinator",
+        "handoff_context": state.get("handoff_context"),
+    }
+    
+    # Execute ECS Domain node
+    domain_config = {
+        "model_name": config.model_name,
+        "read_only": not config.allow_write,
+        "write_operations_enabled": config.allow_write,
+        "aws_region": config.aws_region,
+    }
+    
+    updated_domain_state = await ecs_domain_node(domain_state, domain_config)
+    
+    # Update ECS Deep Agent state with results
+    updated_state = state.copy()
+    updated_state["messages"] = updated_domain_state["messages"]
+    updated_state["operation_phase"] = updated_domain_state.get("operation_phase")
+    updated_state["triage_findings"] = updated_domain_state.get("triage_findings")
+    updated_state["evidence_collected"] = updated_domain_state.get("evidence_collected")
+    updated_state["root_cause_analysis"] = updated_domain_state.get("root_cause_analysis")
+    updated_state["repair_plan"] = updated_domain_state.get("repair_plan")
+    updated_state["plan_options"] = updated_domain_state.get("plan_options")
+    updated_state["risk_assessment"] = updated_domain_state.get("risk_assessment")
+    updated_state["user_approvals"] = updated_domain_state.get("user_approvals")
+    updated_state["execution_status"] = updated_domain_state.get("execution_status")
+    updated_state["executed_steps"] = updated_domain_state.get("executed_steps")
+    updated_state["execution_results"] = updated_domain_state.get("execution_results")
+    updated_state["rollback_plan"] = updated_domain_state.get("rollback_plan")
+    updated_state["verification_status"] = updated_domain_state.get("verification_status")
+    updated_state["health_checks"] = updated_domain_state.get("health_checks")
+    updated_state["success_criteria"] = updated_domain_state.get("success_criteria")
+    updated_state["verification_findings"] = updated_domain_state.get("verification_findings")
+    updated_state["operation_summary"] = updated_domain_state.get("operation_summary")
+    updated_state["audit_trail"] = updated_domain_state.get("audit_trail")
+    updated_state["documentation_files"] = updated_domain_state.get("documentation_files")
+    updated_state["next_agent"] = updated_domain_state.get("next_agent")
+    updated_state["routing_decision"] = updated_domain_state.get("routing_decision")
+    
+    logger.info(f"ECS Domain completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}")
+    return updated_state
         planton_context = {
             "token": planton_token,
             "org_id": org_id,
@@ -426,4 +577,5 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
