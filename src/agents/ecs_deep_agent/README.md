@@ -13,6 +13,7 @@ The ECS Deep Agent leverages deepagents' built-in capabilities with advanced con
 - **Safe Execution**: Human-in-the-loop approval for write operations with conversational feedback
 - **Comprehensive Reporting**: Markdown reports with audit trails and conversational context
 - **MCP Integration**: AWS ECS tools via langchain-mcp-adapters with conversational orchestration
+- **Planton Cloud Integration**: Seamless context establishment and credential management through Planton Cloud MCP tools
 
 ## Features
 
@@ -21,8 +22,29 @@ The ECS Deep Agent leverages deepagents' built-in capabilities with advanced con
 - **Automatic Fallback**: Falls back to in-memory storage if PostgreSQL not configured
 - **Thread-level Persistence**: Maintains conversation context and state
 
+### Planton Cloud Integration
+
+The ECS Deep Agent now includes comprehensive Planton Cloud integration for enhanced context establishment and credential management:
+
+#### Context Establishment
+- **Automatic Service Discovery**: Leverages Planton Cloud MCP tools to identify ECS services within your organization and environment
+- **Credential Management**: Seamlessly retrieves and manages AWS credentials through Planton Cloud
+- **Organization Context**: Automatically establishes operational context using organization and environment identifiers
+- **Service Identification**: Enhanced service discovery and validation through Planton Cloud service registry
+
+#### New MCP Tools
+- **`list_aws_credentials`**: Retrieve available AWS credentials from Planton Cloud
+- **`list_services`**: Identify and enumerate ECS services within specified organization/environment scope
+- **Enhanced Context Extraction**: Improved natural language processing with Planton Cloud context
+
+#### Configuration
+- **`planton_token`**: Authentication token for Planton Cloud API access
+- **`org_id`**: Organization identifier for scoped operations
+- **`env_id`**: Environment identifier for targeted service discovery
+- **Environment Variable Fallback**: Supports configuration via environment variables for flexible deployment
+
 ### Sub-agents
-- **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent from conversational input
+- **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent from conversational input. Enhanced with Planton Cloud integration for automatic service discovery and credential management
 - **Conversation Coordinator**: Manages flow between subagents based on conversational context, handles follow-up questions, and maintains conversation state across multiple interactions
 - **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations and symptom interpretation
 - **Change Planner**: Creates minimal repair plans incorporating user preferences and constraints through interactive dialogue
@@ -97,23 +119,38 @@ Configuration options:
 - `aws_region`: AWS region override
 - `aws_profile`: AWS profile override
 
+#### Planton Cloud Configuration
+- `planton_token`: Authentication token for Planton Cloud API access
+- `org_id`: Organization identifier for scoped operations
+- `env_id`: Environment identifier for targeted service discovery
+
 The agent configuration automatically ignores extra fields passed by LangGraph Studio for compatibility.
 
 ### Via Programmatic API
 
 ```python
-from agents.ecs_deep_agent import create_ecs_deep_agent
+from agents.ecs_deep_agent import create_ecs_deep_agent, ECSDeepAgentConfig
 
-# Create agent with configuration
-agent = await create_ecs_deep_agent(
-    allow_write=False  # Safe read-only mode
+# Create agent with Planton Cloud integration
+config = ECSDeepAgentConfig(
+    allow_write=False,  # Safe read-only mode
+    planton_token="your-planton-token",
+    org_id="your-org-id",
+    env_id="your-env-id"
 )
 
-# Interact conversationally
+agent = await create_ecs_deep_agent(config=config)
+
+# Interact conversationally - agent will automatically establish context
 state = {
-    "messages": [{"role": "user", "content": "My service is having issues"}]
+    "messages": [{"role": "user", "content": "My API service is having issues"}]
 }
 result = await agent.ainvoke(state)
+
+# The agent will now automatically:
+# 1. Use Planton Cloud to discover available AWS credentials
+# 2. Identify ECS services in your organization/environment
+# 3. Extract context more accurately with enhanced service discovery
 ```
 
 
@@ -173,6 +210,11 @@ If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agen
 - `AWS_PROFILE`: AWS profile to use  
 - `DATABASE_URL`: PostgreSQL connection string for persistent memory (optional)
 
+#### Planton Cloud Configuration
+- `PLANTON_TOKEN`: Authentication token for Planton Cloud API access (optional)
+- `PLANTON_ORG_ID`: Organization identifier for scoped operations (optional)
+- `PLANTON_ENV_ID`: Environment identifier for targeted service discovery (optional)
+
 ### Configuration File
 
 The agent uses `agent.yaml` for configuration:
@@ -203,12 +245,32 @@ The agent generates Markdown reports:
 
 ## MCP Integration
 
-The ECS Deep Agent uses the same MCP integration as the AWS Agent:
+The ECS Deep Agent uses enhanced MCP integration with both AWS and Planton Cloud:
 
+### AWS API MCP Server
 - **AWS API MCP Server**: Uses `awslabs-aws-api-mcp-server` from dependencies
 - **ECS-Focused Tools**: Filters AWS API tools to ECS-specific operations  
 - **Credential Management**: Supports AWS credentials via environment variables
 - **Fallback Support**: Graceful fallback to sub-agents if MCP tools fail
+
+### Planton Cloud MCP Tools
+- **Context Establishment**: Automatic service discovery and credential management
+- **Organization Scoping**: Operations scoped to specific organization and environment
+- **Enhanced Service Discovery**: Improved identification of ECS services and resources
+- **Credential Retrieval**: Seamless AWS credential management through Planton Cloud
+
+### Implementation Status
+The current implementation includes:
+- ✅ Configuration enhancement with Planton Cloud authentication
+- ✅ New MCP tool interfaces (`list_aws_credentials`, `list_services`)
+- ✅ Enhanced context extractor prompt with Planton Cloud integration
+- ✅ Updated state management for context tracking
+- 🔄 Placeholder implementations with mock data structures
+
+### Next Steps
+- Replace placeholder implementations with actual Planton Cloud RPC calls
+- Expand context establishment logic for complex scenarios
+- Add comprehensive error handling and user guidance for Planton Cloud integration
 
 ### Required AWS Permissions
 
@@ -303,13 +365,19 @@ I'll help you diagnose the slow response issues with your API service. Let me ex
 - Symptoms: Slow responses, user timeouts
 - Urgency: High (user impact)
 
+🔗 Planton Cloud Context Established:
+- Organization: acme-corp
+- Environment: production
+- Available Services: api-service, worker-service, cache-service
+- AWS Credentials: production-account (us-east-1)
+
 I'll now run a comprehensive triage to identify the root cause. This will include:
-1. Checking service health and task status
-2. Analyzing resource utilization
+1. Checking service health and task status for api-service
+2. Analyzing resource utilization across production environment
 3. Reviewing recent deployment events
 4. Examining CloudWatch logs for errors
 
-Starting diagnosis...
+Starting diagnosis with enhanced context...
 ```
 
 #### Follow-up Questions and Clarifications
