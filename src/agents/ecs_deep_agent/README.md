@@ -197,23 +197,59 @@ The ECS Deep Agent uses the same MCP integration as the AWS Agent:
 ## Architecture
 
 ```
-ECS Deep Agent
+ECS Deep Agent (Conversational Architecture)
 ├── Graph (LangGraph)
-│   └── ECS Agent Node
+│   └── ECS Agent Node (Conversational Input Processing)
 ├── Configuration
 │   ├── Permissions
-│   └── AWS Settings
-├── Sub-agents
-│   ├── Triage
-│   ├── Planner
-│   ├── Remediator
-│   ├── Verifier
-│   └── Reporter
+│   ├── AWS Settings
+│   └── Conversation Preferences
+├── Conversational Sub-agents
+│   ├── Context Extractor (Natural Language → ECS Context)
+│   ├── Conversation Coordinator (Flow Management & State)
+│   ├── Triage Agent (Conversational Diagnosis)
+│   ├── Change Planner (Interactive Planning)
+│   ├── Remediator (Real-time Feedback)
+│   ├── Verifier (Conversational Validation)
+│   └── Reporter (Context-aware Reporting)
+├── Conversation State Management
+│   ├── Context Tracking
+│   ├── User Preferences
+│   ├── Session Continuity
+│   └── Multi-turn History
 ├── MCP Tools
-│   └── AWS ECS Operations
-└── Safety Features
-    ├── Human-in-the-loop
-    └── Audit Logging
+│   └── AWS ECS Operations (Conversational Orchestration)
+└── Enhanced Safety Features
+    ├── Conversational Human-in-the-loop
+    ├── User-friendly Approvals
+    └── Context-aware Audit Logging
+```
+
+### Conversational Flow
+
+```
+User Natural Language Input
+    ↓
+Context Extractor (Parse Intent & ECS Context)
+    ↓
+Conversation Coordinator (Route & Manage Flow)
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    Specialized Sub-agents                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │   Triage    │→ │   Change    │→ │ Remediator  │        │
+│  │   Agent     │  │   Planner   │  │             │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│         ↓                ↓                ↓                │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  Verifier   │  │  Reporter   │  │ User Input  │        │
+│  │             │  │             │  │ Handling    │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+Conversation Coordinator (Maintain Context & Handle Follow-ups)
+    ↓
+User-friendly Response with Context Preservation
 ```
 
 ## Examples
@@ -276,6 +312,7 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
 
