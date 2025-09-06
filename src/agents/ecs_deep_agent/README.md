@@ -17,11 +17,13 @@ The ECS Deep Agent leverages deepagents' built-in capabilities with advanced con
 ## Features
 
 ### Sub-agents
-- **Triage Agent**: Read-only diagnosis and evidence gathering
-- **Change Planner**: Creates minimal repair plans with success criteria
-- **Remediator**: Executes approved changes safely
-- **Verifier**: Post-change verification and health checks
-- **Reporter**: Generates comprehensive audit reports
+- **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent from conversational input
+- **Conversation Coordinator**: Manages flow between subagents based on conversational context, handles follow-up questions, and maintains conversation state across multiple interactions
+- **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations and symptom interpretation
+- **Change Planner**: Creates minimal repair plans incorporating user preferences and constraints through interactive dialogue
+- **Remediator**: Executes approved changes safely with real-time conversational feedback and user interaction support
+- **Verifier**: Post-change verification and health checks with conversational validation and user-centric reporting
+- **Reporter**: Generates comprehensive audit reports with conversational context and user collaboration history
 
 ### Safety Features
 - Write operations disabled by default
@@ -240,4 +242,5 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
