@@ -254,30 +254,151 @@ User-friendly Response with Context Preservation
 
 ## Examples
 
-### Basic Triage
+### Conversational Usage Patterns
 
-```bash
-make ecs-triage CLUSTER=production SERVICE=api-service
+The ECS Deep Agent now supports natural language interactions instead of requiring technical parameters. Here are examples of conversational usage:
+
+#### Initial Problem Report
+
+**User Input:**
+```
+"My API service in production is responding slowly and users are complaining about timeouts. Can you help me figure out what's wrong?"
 ```
 
-This will:
-1. Gather service information
-2. Check task health and events
-3. Analyze CloudWatch logs
-4. Generate `triage_report.md`
+**Agent Response:**
+```
+I'll help you diagnose the slow response issues with your API service. Let me extract the context and start investigating.
 
-### Full Repair Loop
+🔍 Context Extracted:
+- Environment: Production
+- Service Type: API service
+- Symptoms: Slow responses, user timeouts
+- Urgency: High (user impact)
+
+I'll now run a comprehensive triage to identify the root cause. This will include:
+1. Checking service health and task status
+2. Analyzing resource utilization
+3. Reviewing recent deployment events
+4. Examining CloudWatch logs for errors
+
+Starting diagnosis...
+```
+
+#### Follow-up Questions and Clarifications
+
+**User Input:**
+```
+"Actually, the issues started after our deployment yesterday around 3 PM. Could that be related?"
+```
+
+**Agent Response:**
+```
+That's very helpful context! A deployment timing correlation is a strong indicator. Let me focus my analysis on:
+
+🎯 Updated Investigation Plan:
+- Comparing pre/post deployment metrics (around 3 PM yesterday)
+- Checking if the new task definition has resource constraint issues
+- Analyzing deployment events and task replacement patterns
+- Looking for configuration changes that might affect performance
+
+This deployment timing makes the investigation much more targeted. Continuing with enhanced focus...
+```
+
+#### Interactive Planning and User Preferences
+
+**User Input:**
+```
+"I found the issue - it's a memory leak in the new code. Can you help me roll back, but I need to be careful because we have a big customer demo at 2 PM today."
+```
+
+**Agent Response:**
+```
+I understand the urgency with your customer demo at 2 PM. Let me create a careful rollback plan that minimizes risk:
+
+📋 Rollback Plan Options:
+
+**Option 1: Conservative Rollback (Recommended)**
+- Gradual rollback with 25% traffic shifts
+- Monitor between each step
+- Total time: ~20 minutes
+- Risk: Low, allows quick halt if issues
+
+**Option 2: Quick Rollback**
+- Immediate rollback to previous task definition
+- Total time: ~5 minutes  
+- Risk: Medium, faster but less controlled
+
+Given your demo timing, I recommend Option 1 starting now (11:30 AM) to have everything stable well before 2 PM.
+
+Would you like me to proceed with the conservative approach, or do you prefer the quicker option?
+```
+
+#### Real-time Execution Feedback
+
+**User Input:**
+```
+"Go with the conservative approach, but keep me updated on each step."
+```
+
+**Agent Response:**
+```
+Perfect! Starting conservative rollback with real-time updates:
+
+🔄 **Step 1/4: Preparing Rollback** ✅
+- Retrieved previous stable task definition (revision 47)
+- Verified task definition is healthy
+- Ready to begin traffic shift
+
+🔄 **Step 2/4: First Traffic Shift (25%)** ⏳
+- Updating service to 25% new tasks with previous revision
+- Current: 75% problematic tasks, 25% stable tasks
+- Monitoring response times and error rates...
+
+**Update**: Response times improving! 25% of traffic now on stable revision.
+Error rate dropped from 15% to 11%. Continuing to next step...
+
+Would you like me to continue, or do you want to pause and check anything?
+```
+
+#### Multi-turn Problem Solving
+
+**User Input:**
+```
+"Great progress! Continue with the next step, but also can you help me set up monitoring alerts so this doesn't happen again?"
+```
+
+**Agent Response:**
+```
+Absolutely! I'll continue the rollback AND help you set up preventive monitoring.
+
+🔄 **Step 3/4: Second Traffic Shift (50%)** ⏳
+- Updating to 50% stable tasks
+- Current metrics looking good, proceeding...
+
+📊 **Monitoring Setup Plan** (I'll handle this in parallel):
+1. Memory utilization alerts (>80% threshold)
+2. Response time degradation alerts (>2x baseline)
+3. Error rate spike alerts (>5% increase)
+4. Post-deployment health checks automation
+
+The rollback is progressing smoothly. Once complete, I'll implement the monitoring alerts. This way you'll catch similar issues before they impact users.
+
+Current status: 50% traffic now on stable revision, error rate down to 7%!
+```
+
+### Traditional CLI Usage (Still Supported)
+
+For users who prefer traditional parameter-based usage, the agent still supports direct CLI commands:
 
 ```bash
+# Basic triage with parameters
+make ecs-triage CLUSTER=production SERVICE=api-service
+
+# Full repair loop with parameters  
 make ecs-loop-write CLUSTER=staging SERVICE=worker-service
 ```
 
-This will:
-1. Run triage analysis
-2. Generate repair plan
-3. Request approval for changes
-4. Execute approved repairs
-5. Verify changes
+However, even with CLI usage, the agent now provides conversational feedback and can handle follow-up questions during execution.
 6. Generate complete audit report
 
 ## Troubleshooting
@@ -312,6 +433,7 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
 
 
 
