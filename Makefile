@@ -60,33 +60,7 @@ clean:
 aws-examples:
 	@$(MAKE) -C src/agents/aws_agent examples
 
-# ECS Deep Agent Commands
-ecs-triage:
-	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
-		echo "❌ Error: CLUSTER and SERVICE are required"; \
-		echo "Usage: make ecs-triage CLUSTER=my-cluster SERVICE=my-service"; \
-		exit 1; \
-	fi
-	@echo "Running ECS triage for cluster: $(CLUSTER), service: $(SERVICE)"
-	poetry run ecs-agent triage --cluster $(CLUSTER) --service $(SERVICE)
 
-ecs-loop:
-	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
-		echo "❌ Error: CLUSTER and SERVICE are required"; \
-		echo "Usage: make ecs-loop CLUSTER=my-cluster SERVICE=my-service"; \
-		exit 1; \
-	fi
-	@echo "Running ECS diagnostic loop for cluster: $(CLUSTER), service: $(SERVICE)"
-	poetry run ecs-agent loop --cluster $(CLUSTER) --service $(SERVICE)
-
-ecs-loop-write:
-	@if [ -z "$(CLUSTER)" ] || [ -z "$(SERVICE)" ]; then \
-		echo "❌ Error: CLUSTER and SERVICE are required"; \
-		echo "Usage: make ecs-loop-write CLUSTER=my-cluster SERVICE=my-service"; \
-		exit 1; \
-	fi
-	@echo "Running ECS diagnostic loop with write permissions for cluster: $(CLUSTER), service: $(SERVICE)"
-	poetry run ecs-agent loop --cluster $(CLUSTER) --service $(SERVICE) --allow-write
 
 help:
 	@echo 'build  - run lints/type checks (non-fatal)'
@@ -108,6 +82,7 @@ help:
 clean-pyc:
 	find . -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -exec rm -rf {} +
+
 
 
 
