@@ -272,52 +272,6 @@ async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfi
     
     logger.info(f"ECS Domain completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}")
     return updated_state
-        planton_context = {
-            "token": planton_token,
-            "org_id": org_id,
-            "env_id": env_id,  # Optional, can be None
-        }
-        logger.info(
-            f"Planton Cloud context established: org_id={org_id}, env_id={env_id}"
-        )
-    else:
-        logger.warning("Planton Cloud context not available - missing token or org_id")
-
-    # Update state with Planton Cloud context
-    state["planton_context"] = planton_context
-
-    # Initialize context establishment tracking
-    if not state.get("established_context"):
-        state["established_context"] = False
-    if not state.get("available_aws_credentials"):
-        state["available_aws_credentials"] = []
-    if not state.get("available_services"):
-        state["available_services"] = []
-
-    # Determine write permissions
-    env_allow_write = os.environ.get("ALLOW_WRITE", "false").lower() == "true"
-    config_allow_write = config.allow_write
-    read_only = not (env_allow_write and config_allow_write)
-
-    logger.info(
-        f"Write permissions: env={env_allow_write}, config={config_allow_write}, read_only={read_only}"
-    )
-    logger.info(f"Conversation session: {state.get('conversation_session_id')}")
-    logger.info(f"Flow state: {state.get('conversation_flow_state')}")
-
-    try:
-        # Get MCP tools with appropriate permissions
-        mcp_tools = await get_mcp_tools(read_only=read_only)
-
-        # Get interrupt configuration for write tools
-        interrupt_config = get_interrupt_config(mcp_tools) if not read_only else {}
-
-        # Prepare enhanced context for the deep agent
-        enhanced_messages = state["messages"].copy()
-
-        # Add conversation context to the latest message if it's from the user
-        if enhanced_messages and enhanced_messages[-1].get("role") == "user":
-            latest_message = enhanced_messages[-1]
 
             # Enhance the message with conversation context
             context_info = []
@@ -603,6 +557,7 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
 
