@@ -273,81 +273,7 @@ async def ecs_domain_wrapper(state: ECSDeepAgentState, config: ECSDeepAgentConfi
     logger.info(f"ECS Domain completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}")
     return updated_state
 
-            # Enhance the message with conversation context
-            context_info = []
 
-            # Add Planton Cloud context information
-            if planton_context:
-                planton_info = (
-                    f"Planton Cloud context: org_id={planton_context.get('org_id')}"
-                )
-                if planton_context.get("env_id"):
-                    planton_info += f", env_id={planton_context.get('env_id')}"
-                context_info.append(planton_info)
-
-            # Add context establishment status
-            if state.get("available_aws_credentials"):
-                context_info.append(
-                    f"Available AWS credentials: {len(state['available_aws_credentials'])} found"
-                )
-            if state.get("available_services"):
-                context_info.append(
-                    f"Available services: {len(state['available_services'])} found"
-                )
-            if state.get("established_context"):
-                context_info.append("Context establishment: Complete")
-
-            if state.get("conversation_history"):
-                context_info.append(
-                    f"Previous conversation context available ({len(state['conversation_history'])} interactions)"
-                )
-            if state.get("cluster") or state.get("service"):
-                context_info.append(
-                    f"Known ECS context: cluster={state.get('cluster', 'unknown')}, service={state.get('service', 'unknown')}"
-                )
-            if state.get("problem_description"):
-                context_info.append(f"Previous problem: {state['problem_description']}")
-            if state.get("conversation_flow_state"):
-                context_info.append(
-                    f"Current phase: {state['conversation_flow_state']}"
-                )
-
-            if context_info:
-                enhanced_content = f"{latest_message['content']}\n\n[Conversation Context: {'; '.join(context_info)}]"
-                enhanced_messages[-1] = {**latest_message, "content": enhanced_content}
-
-        # Create the conversational deep agent with updated subagents
-        agent = await async_create_deep_agent(
-            tools=mcp_tools,
-            instructions=ORCHESTRATOR_PROMPT,
-            subagents=SUBAGENTS,  # Now includes context-extractor, conversation-coordinator, and enhanced subagents
-            interrupt_config=interrupt_config,
-            model=config.model_name,
-        )
-
-        # Note: Checkpointer is now set at the graph level during compilation
-
-        # Process the conversational user message
-        result = await agent.ainvoke({"messages": enhanced_messages})
-
-        # Extract conversation insights from the response
-        response_messages = result.get("messages", [])
-        if response_messages:
-            latest_response = response_messages[-1]
-            response_content = latest_response.get("content", "")
-
-            # Update conversation context based on response patterns
-            if "cluster" in response_content.lower() and not state.get("cluster"):
-                # Try to extract cluster name from response
-                import re
-
-                cluster_match = re.search(
-                    r"cluster[:\s]+([a-zA-Z0-9\-_]+)", response_content, re.IGNORECASE
-                )
-                if cluster_match:
-                    state["cluster"] = cluster_match.group(1)
-
-            if "service" in response_content.lower() and not state.get("service"):
                 # Try to extract service name from response
                 service_match = re.search(
                     r"service[:\s]+([a-zA-Z0-9\-_]+)", response_content, re.IGNORECASE
@@ -557,6 +483,7 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
 
