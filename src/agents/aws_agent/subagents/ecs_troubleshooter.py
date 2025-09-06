@@ -3,6 +3,7 @@
 This module defines a specialized sub-agent for debugging ECS services,
 tasks, and container issues.
 """
+
 from deepagents import SubAgent
 
 ECS_TROUBLESHOOTER_INSTRUCTIONS = """
@@ -82,7 +83,7 @@ Always provide actionable solutions with specific AWS CLI commands or console st
 
 def create_ecs_troubleshooter_subagent() -> SubAgent:
     """Create a sub-agent specialized in ECS troubleshooting
-    
+
     Returns:
         Dictionary containing sub-agent configuration with:
         - name: Identifier for the sub-agent
@@ -92,5 +93,5 @@ def create_ecs_troubleshooter_subagent() -> SubAgent:
     return SubAgent(
         name="ecs_troubleshooter",
         description="Specialist for debugging ECS services, tasks, and container issues",
-        prompt=ECS_TROUBLESHOOTER_INSTRUCTIONS
+        prompt=ECS_TROUBLESHOOTER_INSTRUCTIONS,
     )

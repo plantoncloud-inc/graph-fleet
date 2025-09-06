@@ -37,7 +37,6 @@ mcp = ["langchain-mcp-adapters"]
 
 [tool.poetry.scripts]
 planton-cloud-mcp-server = "mcp.planton_cloud.entry_point:main"
-ecs-agent = "agents.ecs_deep_agent.main:cli"
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
@@ -71,4 +70,5 @@ mypy = ">=1.10.0"
 [tool.ruff]
 lint.select = ["E", "F", "I", "D", "UP"]
 lint.ignore = ["D401", "D417", "E501"]
+
 

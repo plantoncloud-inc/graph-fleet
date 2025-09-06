@@ -4,12 +4,6 @@ Packages under this namespace provide concrete agents such as
 ``agents.aws_agent`` and others.
 """
 
-from .aws_agent import (
-    AWSAgentConfig
-)
+from .aws_agent import AWSAgentConfig
 
-__all__ = [
-    "AWSAgentConfig"
-]
-
-
+__all__ = ["AWSAgentConfig"]
