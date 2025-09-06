@@ -50,51 +50,9 @@ async def get_planton_context_tools() -> List[BaseTool]:
     return tools
 
 
-logger = logging.getLogger(__name__)
 
-
-# ECS-focused tools allowlist (from AWS API MCP server)
-READ_ONLY_TOOLS = [
-    # ECS cluster operations
-    "ecs.describe_clusters",
-    "ecs.list_clusters",
-    # ECS service operations
-    "ecs.describe_services",
-    "ecs.list_services",
-    # ECS task operations
-    "ecs.describe_tasks",
-    "ecs.list_tasks",
-    "ecs.describe_task_definition",
-    "ecs.list_task_definitions",
-    # CloudWatch logs for ECS
-    "logs.describe_log_groups",
-    "logs.describe_log_streams",
-    "logs.get_log_events",
-    # ECS events and troubleshooting
-    "ecs.describe_container_instances",
-    "ecs.list_container_instances",
-]
-
-# Write tools allowlist (gated)
-WRITE_TOOLS = ["ecs.update_service", "ecs.stop_task", "ecs.run_task"]
-
-
-def get_aws_credentials_from_env() -> dict | None:
-    """Get AWS credentials from environment variables if available."""
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    session_token = os.getenv("AWS_SESSION_TOKEN")
-
-    if access_key and secret_key:
-        credentials = {"access_key_id": access_key, "secret_access_key": secret_key}
-        if session_token:
-            credentials["session_token"] = session_token
-        return credentials
-
-    return None
-
-
-async def get_mcp_tools(read_only: bool = True) -> list[BaseTool]:
+# Legacy function for backward compatibility
+async def get_mcp_tools(read_only: bool = True) -> List[BaseTool]:
     """Get ECS-focused MCP tools from the AWS API MCP server.
 
     This uses the same AWS API MCP server as the AWS agent, but filters
@@ -173,6 +131,7 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
 
