@@ -7,10 +7,12 @@ from mcp.server.fastmcp import FastMCP
 
 # Import tools from their respective modules
 try:
-    from .connect.awscredential import get_aws_credential
+    from .connect.awscredential import get_aws_credential, list_aws_credentials
+    from .service import list_services
 except ImportError:
     # Handle direct execution
-    from connect.awscredential import get_aws_credential
+    from connect.awscredential import get_aws_credential, list_aws_credentials
+    from service import list_services
 
 # Initialize the MCP server
 mcp = FastMCP("PlantonCloud")
@@ -29,3 +31,4 @@ mcp.tool()(get_aws_credential)
 def run_server():
     """Run the Planton Cloud MCP server"""
     mcp.run(transport="stdio")
+
