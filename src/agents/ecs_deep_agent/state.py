@@ -6,12 +6,20 @@ from typing_extensions import TypedDict
 
 
 class ECSDeepAgentState(TypedDict):
-    """State for the ECS Deep Agent graph.
+    """State for the ECS Deep Agent multi-agent supervisor system.
 
     This state tracks the conversation messages, execution status,
     conversational context, and any context needed for ECS operations.
-    Enhanced to support the new conversational architecture with context
-    extraction, user preferences, and conversation history tracking.
+    Enhanced to support the new multi-agent supervisor architecture with
+    Context Coordinator and ECS Domain agents, including inter-agent
+    communication, routing decisions, and conversation continuity.
+    
+    The state supports:
+    - Multi-agent coordination and routing
+    - Context handoffs between specialized agents
+    - Conversation continuity across agent transitions
+    - Agent-specific state tracking
+    - Inter-agent communication logging
     """
 
     # Core conversation state
@@ -158,4 +166,5 @@ class ECSDeepAgentState(TypedDict):
     agent_transition_history: (
         list[dict[str, Any]] | None
     )  # History of agent transitions and reasons
+
 
