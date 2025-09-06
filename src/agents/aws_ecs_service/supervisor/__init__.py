@@ -11,9 +11,9 @@ from ..contextualizer import (
     ContextualizerState,
     create_contextualizer_agent,
 )
-from ..ecs_domain import (
-    ECSDomainState,
-    create_ecs_domain_agent,
+from ..operations import (
+    OperationsState,
+    create_operations_agent,
 )
 from .configuration import ECSDeepAgentConfig
 from .graph import create_ecs_deep_agent, graph
@@ -31,6 +31,6 @@ __all__ = [
     "ContextualizerState",
     "create_contextualizer_agent",
     # ECS Domain Agent
-    "ECSDomainState",
-    "create_ecs_domain_agent",
+    "OperationsState",
+    "create_operations_agent",
 ]

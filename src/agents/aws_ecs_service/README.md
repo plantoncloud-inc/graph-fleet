@@ -1,10 +1,16 @@
-# ECS Deep Agent
+# AWS ECS Service Agent
 
-A specialized conversational agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
+A sophisticated multi-agent system for diagnosing and managing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
 
 ## Overview
 
-The ECS Deep Agent leverages deepagents' built-in capabilities with advanced conversational AI to provide:
+The AWS ECS Service Agent is built on a multi-agent architecture with three specialized components:
+
+- **Contextualizer Agent**: Extracts context from user messages, manages Planton Cloud integration, and handles user interactions
+- **Operations Agent**: Executes all AWS ECS-specific operations including triage, planning, remediation, verification, and reporting
+- **Supervisor**: Orchestrates the flow between agents and manages the overall conversation state
+
+This system leverages deepagents' built-in capabilities with advanced conversational AI to provide:
 
 - **Conversational Diagnosis**: Accept natural language problem descriptions and collaborate with users to understand ECS issues
 - **Context-Aware Operations**: Extract ECS context, user intent, and preferences from conversational interactions
@@ -43,14 +49,26 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 - **`env_id`**: Environment identifier for targeted service discovery
 - **Environment Variable Fallback**: Supports configuration via environment variables for flexible deployment
 
-### Sub-agents
-- **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent from conversational input. Enhanced with Planton Cloud integration for automatic service discovery and credential management
-- **Conversation Coordinator**: Manages flow between subagents based on conversational context, handles follow-up questions, and maintains conversation state across multiple interactions
-- **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations and symptom interpretation
-- **Change Planner**: Creates minimal repair plans incorporating user preferences and constraints through interactive dialogue
-- **Remediator**: Executes approved changes safely with real-time conversational feedback and user interaction support
-- **Verifier**: Post-change verification and health checks with conversational validation and user-centric reporting
-- **Reporter**: Generates comprehensive audit reports with conversational context and user collaboration history
+### Agent Architecture
+
+#### Contextualizer Agent
+- **Context Extraction**: Parses natural language messages to extract ECS context, problem descriptions, and user intent
+- **Planton Cloud Integration**: Automatic service discovery and credential management through Planton Cloud APIs
+- **User Interaction Management**: Handles follow-up questions, approvals, and maintains conversation state
+- **Flow Orchestration**: Determines when to route conversations to the Operations Agent
+
+#### Operations Agent
+The Operations Agent contains specialized sub-agents for comprehensive ECS management:
+- **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations
+- **Change Planner**: Creates minimal repair plans incorporating user preferences through interactive dialogue
+- **Remediator**: Executes approved changes safely with real-time feedback and user interaction support
+- **Verifier**: Post-change verification and health checks with conversational validation
+- **Reporter**: Generates comprehensive audit reports with conversational context and collaboration history
+
+#### Supervisor
+- **Agent Coordination**: Routes conversations between Contextualizer and Operations agents
+- **State Management**: Maintains overall conversation state and context across agent handoffs
+- **Safety Orchestration**: Ensures proper approval workflows and safety measures are followed
 
 ### Conversational Features
 
@@ -129,7 +147,7 @@ The agent configuration automatically ignores extra fields passed by LangGraph S
 ### Via Programmatic API
 
 ```python
-from agents.ecs_deep_agent import create_ecs_deep_agent, ECSDeepAgentConfig
+from agents.aws_ecs_service import create_ecs_deep_agent, ECSDeepAgentConfig
 
 # Create agent with Planton Cloud integration
 config = ECSDeepAgentConfig(
@@ -147,10 +165,12 @@ state = {
 }
 result = await agent.ainvoke(state)
 
-# The agent will now automatically:
-# 1. Use Planton Cloud to discover available AWS credentials
-# 2. Identify ECS services in your organization/environment
-# 3. Extract context more accurately with enhanced service discovery
+# The multi-agent system will automatically:
+# 1. Contextualizer extracts ECS context and user intent
+# 2. Uses Planton Cloud to discover available AWS credentials
+# 3. Identifies ECS services in your organization/environment
+# 4. Routes to Operations Agent for technical diagnosis and remediation
+# 5. Supervisor orchestrates the entire conversation flow
 ```
 
 
@@ -287,59 +307,66 @@ The current implementation includes:
 ## Architecture
 
 ```
-ECS Deep Agent (Conversational Architecture)
-├── Graph (LangGraph)
-│   └── ECS Agent Node (Conversational Input Processing)
-├── Configuration
-│   ├── Permissions
-│   ├── AWS Settings
-│   └── Conversation Preferences
-├── Conversational Sub-agents
-│   ├── Context Extractor (Natural Language → ECS Context)
-│   ├── Conversation Coordinator (Flow Management & State)
-│   ├── Triage Agent (Conversational Diagnosis)
-│   ├── Change Planner (Interactive Planning)
-│   ├── Remediator (Real-time Feedback)
-│   ├── Verifier (Conversational Validation)
-│   └── Reporter (Context-aware Reporting)
-├── Conversation State Management
-│   ├── Context Tracking
-│   ├── User Preferences
-│   ├── Session Continuity
-│   └── Multi-turn History
-├── MCP Tools
-│   └── AWS ECS Operations (Conversational Orchestration)
-└── Enhanced Safety Features
-    ├── Conversational Human-in-the-loop
-    ├── User-friendly Approvals
-    └── Context-aware Audit Logging
+AWS ECS Service Agent (Multi-Agent Architecture)
+├── Supervisor (LangGraph)
+│   ├── Agent Coordination & Routing
+│   ├── State Management
+│   └── Safety Orchestration
+├── Contextualizer Agent
+│   ├── Natural Language Processing
+│   ├── Context Extraction (ECS Details, User Intent)
+│   ├── Planton Cloud Integration
+│   │   ├── Service Discovery
+│   │   └── Credential Management
+│   └── User Interaction Management
+├── Operations Agent
+│   ├── Specialized Sub-agents
+│   │   ├── Triage Agent (Diagnosis)
+│   │   ├── Change Planner (Repair Planning)
+│   │   ├── Remediator (Execution)
+│   │   ├── Verifier (Validation)
+│   │   └── Reporter (Documentation)
+│   └── AWS ECS MCP Tools
+│       ├── Read Operations (Always Available)
+│       └── Write Operations (Gated)
+├── Shared Components
+│   ├── Conversation State Management
+│   ├── Multi-turn History
+│   ├── PostgreSQL Persistence (Optional)
+│   └── Enhanced Safety Features
+└── Integration Points
+    ├── LangGraph Studio
+    ├── Planton Cloud APIs
+    └── AWS ECS APIs
 ```
 
-### Conversational Flow
+### Multi-Agent Flow
 
 ```
 User Natural Language Input
     ↓
-Context Extractor (Parse Intent & ECS Context)
+Supervisor (Route to Contextualizer)
     ↓
-Conversation Coordinator (Route & Manage Flow)
+Contextualizer Agent
+├── Parse Intent & Extract ECS Context
+├── Planton Cloud Integration (Credentials & Services)
+├── User Interaction Management
+└── Determine Next Agent (Operations or End)
     ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    Specialized Sub-agents                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │   Triage    │→ │   Change    │→ │ Remediator  │        │
-│  │   Agent     │  │   Planner   │  │             │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘        │
-│         ↓                ↓                ↓                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │  Verifier   │  │  Reporter   │  │ User Input  │        │
-│  │             │  │             │  │ Handling    │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘        │
-└─────────────────────────────────────────────────────────────┘
+Supervisor (Route to Operations if needed)
     ↓
-Conversation Coordinator (Maintain Context & Handle Follow-ups)
+Operations Agent
+┌───────────────────────────────────────────────────────────┐
+│                 Operations Sub-agents                     │
+│  Triage → Change Planner → Remediator → Verifier → Reporter  │
+│  │           │              │           │           │      │
+│  └───────────┘──────────────┘───────────┘───────────┘──────┘      │
+│     AWS ECS MCP Tools (Read/Write Operations)              │
+└───────────────────────────────────────────────────────────┘
     ↓
-User-friendly Response with Context Preservation
+Supervisor (Coordinate Response & Maintain State)
+    ↓
+User-friendly Response with Full Context
 ```
 
 ## Examples

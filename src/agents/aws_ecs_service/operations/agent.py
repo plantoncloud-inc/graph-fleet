@@ -1,8 +1,8 @@
-"""ECS Domain Agent implementation.
+"""Operations Agent implementation.
 
 This agent handles all AWS ECS-specific operations including triage,
 change planning, remediation, verification, and reporting using
-specialized domain subagents.
+specialized operational subagents.
 """
 
 import logging
@@ -13,22 +13,22 @@ from langchain_core.tools import BaseTool
 
 from .prompts import (
     CHANGE_PLANNER_PROMPT,
-    ECS_DOMAIN_ORCHESTRATOR_PROMPT,
+    OPERATIONS_ORCHESTRATOR_PROMPT,
     REMEDIATOR_PROMPT,
     REPORTER_PROMPT,
     TRIAGE_AGENT_PROMPT,
     VERIFIER_PROMPT,
 )
-from .state import ECSDomainState
+from .state import OperationsState
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 
-async def get_ecs_domain_tools(
+async def get_operations_tools(
     read_only: bool = True, aws_credentials: dict[str, str] | None = None
 ) -> list[BaseTool]:
-    """Get AWS ECS-specific tools for ECS Domain Agent.
+    """Get AWS ECS-specific tools for Operations Agent.
 
     This includes all AWS ECS tools for diagnosis, remediation, and verification.
     Tools are filtered based on read_only flag for safety.
@@ -44,7 +44,7 @@ async def get_ecs_domain_tools(
     tools = []
 
     try:
-        # Import ECS MCP tools from the new ECS Domain implementation
+        # Import ECS MCP tools from the Operations implementation
         from .mcp_tools import get_ecs_mcp_tools
 
         # Get ECS-specific tools with appropriate read/write permissions
@@ -53,20 +53,20 @@ async def get_ecs_domain_tools(
         )
         tools.extend(ecs_tools)
 
-        logger.info(f"Loaded {len(tools)} ECS domain tools (read_only={read_only})")
+        logger.info(f"Loaded {len(tools)} ECS operations tools (read_only={read_only})")
 
     except ImportError as e:
         logger.warning(f"Could not import ECS MCP tools: {e}")
         # Continue without tools - agent can still coordinate operations
     except Exception as e:
-        logger.error(f"Error loading ECS domain tools: {e}")
+        logger.error(f"Error loading ECS operations tools: {e}")
         # Continue without tools for graceful degradation
 
     return tools
 
 
-# ECS Domain subagents configuration
-ECS_DOMAIN_SUBAGENTS = [
+# Operations subagents configuration
+OPERATIONS_SUBAGENTS = [
     {
         "name": "triage-agent",
         "description": "Diagnoses ECS service issues using read-only tools with conversation-aware analysis",
@@ -95,13 +95,13 @@ ECS_DOMAIN_SUBAGENTS = [
 ]
 
 
-async def create_ecs_domain_agent(
+async def create_operations_agent(
     model_name: str = "claude-3-5-sonnet-20241022", read_only: bool = True, **kwargs
 ) -> Any:
-    """Create an ECS Domain Agent.
+    """Create an Operations Agent.
 
     This agent handles all AWS ECS-specific operations using specialized
-    domain subagents for triage, planning, remediation, verification, and reporting.
+    operational subagents for triage, planning, remediation, verification, and reporting.
 
     Args:
         model_name: LLM model to use for the agent
@@ -109,49 +109,49 @@ async def create_ecs_domain_agent(
         **kwargs: Additional configuration options
 
     Returns:
-        Configured ECS Domain Agent
+        Configured Operations Agent
 
     """
-    logger.info(f"Creating ECS Domain Agent (read_only={read_only})")
+    logger.info(f"Creating Operations Agent (read_only={read_only})")
 
-    # Get ECS domain tools with appropriate permissions
-    ecs_tools = await get_ecs_domain_tools(read_only=read_only)
+    # Get ECS operations tools with appropriate permissions
+    ecs_tools = await get_operations_tools(read_only=read_only)
 
     try:
-        # Create the ECS Domain agent using deepagents
+        # Create the Operations agent using deepagents
         agent = await async_create_deep_agent(
             tools=ecs_tools,
-            instructions=ECS_DOMAIN_ORCHESTRATOR_PROMPT,
-            subagents=ECS_DOMAIN_SUBAGENTS,
+            instructions=OPERATIONS_ORCHESTRATOR_PROMPT,
+            subagents=OPERATIONS_SUBAGENTS,
             model=model_name,
             **kwargs,
         )
 
-        logger.info("ECS Domain Agent created successfully")
+        logger.info("Operations Agent created successfully")
         return agent
 
     except Exception as e:
-        logger.error(f"Failed to create ECS Domain Agent: {e}")
+        logger.error(f"Failed to create Operations Agent: {e}")
         raise
 
 
-async def ecs_domain_node(
-    state: ECSDomainState, config: dict[str, Any] | None = None
-) -> ECSDomainState:
-    """ECS Domain node function for LangGraph integration.
+async def operations_node(
+    state: OperationsState, config: dict[str, Any] | None = None
+) -> OperationsState:
+    """Operations node function for LangGraph integration.
 
-    This function wraps the ECS Domain Agent for use in
+    This function wraps the Operations Agent for use in
     LangGraph StateGraph architectures.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
         config: Optional configuration
 
     Returns:
-        Updated ECS Domain state
+        Updated Operations state
 
     """
-    logger.info("Processing ECS Domain node")
+    logger.info("Processing Operations node")
 
     try:
         # Extract configuration
@@ -163,7 +163,7 @@ async def ecs_domain_node(
         read_only = config.get("read_only", True) if config else True
 
         # Create agent if not cached
-        agent = await create_ecs_domain_agent(
+        agent = await create_operations_agent(
             model_name=model_name, read_only=read_only
         )
 
@@ -280,25 +280,25 @@ async def ecs_domain_node(
         updated_state["routing_decision"] = determine_routing_decision(updated_state)
 
         logger.info(
-            f"ECS Domain processing complete. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
+            f"Operations processing complete. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
         )
         return updated_state
 
     except Exception as e:
-        logger.error(f"Error in ECS Domain node: {e}")
+        logger.error(f"Error in Operations node: {e}")
         # Return state with error information
         error_state = state.copy()
         error_state["operation_phase"] = "error"
-        error_state["routing_decision"] = f"Error in ECS domain operations: {str(e)}"
+        error_state["routing_decision"] = f"Error in operations: {str(e)}"
         return error_state
 
 
-def determine_operation_phase(result: dict[str, Any], state: ECSDomainState) -> str:
+def determine_operation_phase(result: dict[str, Any], state: OperationsState) -> str:
     """Determine the current operation phase based on agent results.
 
     Args:
         result: Agent execution result
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
         Current operation phase string
@@ -324,11 +324,11 @@ def determine_operation_phase(result: dict[str, Any], state: ECSDomainState) -> 
     return state.get("operation_phase", "triage")
 
 
-def determine_approval_required(state: ECSDomainState) -> bool:
+def determine_approval_required(state: OperationsState) -> bool:
     """Determine if user approval is required for current operations.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
         True if approval is required, False otherwise
@@ -345,11 +345,11 @@ def determine_approval_required(state: ECSDomainState) -> bool:
     return False
 
 
-def determine_next_agent(state: ECSDomainState) -> str:
+def determine_next_agent(state: OperationsState) -> str:
     """Determine the next agent to route to based on current state.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
         Next agent name or "__end__" if complete
@@ -369,15 +369,15 @@ def determine_next_agent(state: ECSDomainState) -> str:
     if state.get("verification_status") == "failed":
         return "contextualizer"
 
-    # Continue with ECS domain operations
-    return "ecs_domain"
+    # Continue with operations
+    return "operations"
 
 
-def determine_routing_decision(state: ECSDomainState) -> str:
+def determine_routing_decision(state: OperationsState) -> str:
     """Determine the reasoning for routing decision.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
         Routing decision reasoning
@@ -399,14 +399,14 @@ def determine_routing_decision(state: ECSDomainState) -> str:
         return f"Continue {operation_phase} operations"
 
 
-def should_continue_ecs_operations(state: ECSDomainState) -> bool:
-    """Determine if ECS Domain should continue processing.
+def should_continue_operations(state: OperationsState) -> bool:
+    """Determine if Operations should continue processing.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
-        True if should continue in ECS Domain, False to hand off
+        True if should continue in Operations, False to hand off
 
     """
     # Continue if operations are ongoing
@@ -426,21 +426,21 @@ def should_continue_ecs_operations(state: ECSDomainState) -> bool:
     return False
 
 
-def get_next_agent_from_ecs_domain(state: ECSDomainState) -> str:
-    """Determine the next agent to route to from ECS Domain.
+def get_next_agent_from_operations(state: OperationsState) -> str:
+    """Determine the next agent to route to from Operations.
 
     Args:
-        state: Current ECS Domain state
+        state: Current Operations state
 
     Returns:
         Name of the next agent to route to
 
     """
-    next_agent = state.get("next_agent", "ecs_domain")
+    next_agent = state.get("next_agent", "operations")
 
     # Route to supervisor for user interaction or completion
     if next_agent == "supervisor":
         return "supervisor"
 
-    # Stay in ECS Domain by default
-    return "ecs_domain"
+    # Stay in Operations by default
+    return "operations"
