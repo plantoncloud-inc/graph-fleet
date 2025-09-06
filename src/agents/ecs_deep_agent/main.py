@@ -16,6 +16,38 @@ from .subagents import SUBAGENTS
 from .mcp_tools import get_mcp_tools, get_interrupt_config
 
 
+async def create_checkpointer():
+    """Create a checkpointer based on environment configuration.
+    
+    Checks for DATABASE_URL environment variable and creates an AsyncPostgresSaver
+    if available. Falls back to InMemorySaver if DATABASE_URL is not configured
+    or if there's an error connecting to PostgreSQL.
+    
+    Returns:
+        Checkpointer instance (AsyncPostgresSaver or InMemorySaver)
+    """
+    database_url = os.environ.get("DATABASE_URL")
+    
+    if not database_url:
+        print("DATABASE_URL not configured, using InMemorySaver for checkpointing")
+        return InMemorySaver()
+    
+    try:
+        print("DATABASE_URL found, attempting to create PostgreSQL checkpointer")
+        checkpointer = AsyncPostgresSaver.from_conn_string(database_url)
+        
+        # Setup the checkpointer (creates tables if they don't exist)
+        await checkpointer.setup()
+        
+        print("PostgreSQL checkpointer created successfully")
+        return checkpointer
+        
+    except Exception as e:
+        print(f"Failed to create PostgreSQL checkpointer: {e}")
+        print("Falling back to InMemorySaver for checkpointing")
+        return InMemorySaver()
+
+
 def load_config() -> Dict[str, Any]:
     """Load agent configuration from agent.yaml."""
     config_path = Path(__file__).parent / "agent.yaml"
@@ -139,4 +171,5 @@ def loop(cluster: str, service: str, allow_write: bool):
 
 if __name__ == "__main__":
     cli()
+
 
