@@ -69,7 +69,7 @@ class ECSDeepAgentConfig(BaseModel):
         description="Planton Cloud organization ID - mandatory context for operations (uses PLANTON_ORG_ID env var if not set)",
     )
 
-    env_id: str | None = Field(
+    env_name: str | None = Field(
         default=None,
-        description="Planton Cloud environment ID - optional context for scoped operations (uses PLANTON_ENV_ID env var if not set)",
+        description="Planton Cloud environment name - optional context for scoped operations (uses PLANTON_ENV_NAME env var if not set)",
     )

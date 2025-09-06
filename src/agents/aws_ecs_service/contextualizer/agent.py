@@ -37,7 +37,7 @@ async def get_contextualizer_tools() -> list[BaseTool]:
     try:
         # Import Planton Cloud context tools
         from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials
-        from mcp.planton_cloud.service.tools import list_services
+        from mcp.planton_cloud.service_hub.tools import list_services
 
         # Convert to LangChain tools if needed
         # Note: These are already async functions, we may need to wrap them
@@ -143,7 +143,7 @@ async def contextualizer_node(
         agent_input = {
             "messages": state["messages"],
             "orgId": state.get("orgId"),
-            "envId": state.get("envId"),
+            "envName": state.get("envName"),
         }
 
         # Invoke the agent

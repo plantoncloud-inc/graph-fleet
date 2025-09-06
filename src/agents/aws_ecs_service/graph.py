@@ -21,8 +21,8 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 # Import the new specialized agents
-from ..contextualizer.agent import contextualizer_node
-from ..operations.agent import operations_node
+from .contextualizer.agent import contextualizer_node
+from .operations.agent import operations_node
 from .configuration import ECSDeepAgentConfig
 from .state import ECSDeepAgentState
 
@@ -158,7 +158,7 @@ async def contextualizer_wrapper(
     context_state = {
         "messages": state["messages"],
         "orgId": state.get("orgId") or config.org_id,
-        "envId": state.get("envId") or config.env_id,
+        "envName": state.get("envName") or config.env_name,
         "session_id": state.get("conversation_session_id"),
         "thread_id": state.get("thread_id"),
         # Preserve existing context if available
@@ -179,7 +179,7 @@ async def contextualizer_wrapper(
     context_config = {
         "model_name": config.model_name,
         "orgId": config.org_id,
-        "envId": config.env_id,
+        "envName": config.env_name,
     }
 
     updated_context_state = await contextualizer_node(
@@ -236,7 +236,7 @@ async def operations_wrapper(
     domain_state = {
         "messages": state["messages"],
         "orgId": state.get("orgId") or config.org_id,
-        "envId": state.get("envId") or config.env_id,
+        "envName": state.get("envName") or config.env_name,
         "session_id": state.get("conversation_session_id"),
         "thread_id": state.get("thread_id"),
         # Context from Contextualizer

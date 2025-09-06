@@ -1,13 +1,14 @@
-"""Service tools for MCP.
+"""Service Hub tools for MCP.
 
 Tools for querying and managing services from Planton Cloud.
+This acts as a central hub for various service-related operations.
 """
 
 from typing import Any
 
 
 async def list_services(
-    org_id: str, env_id: str | None = None, aws_credential_id: str | None = None
+    org_id: str, env_name: str | None = None, aws_credential_id: str | None = None
 ) -> list[dict[str, Any]]:
     """List ECS services available in Planton Cloud for the given organization and context.
 
@@ -16,7 +17,7 @@ async def list_services(
 
     Args:
         org_id: The organization ID in Planton Cloud (mandatory)
-        env_id: The environment ID in Planton Cloud (optional for scoped listing)
+        env_name: The environment name in Planton Cloud (optional for scoped listing)
         aws_credential_id: The AWS credential ID to filter services (optional)
 
     Returns:
@@ -33,7 +34,7 @@ async def list_services(
     # For now, return a mock response showing the expected structure
     # In production, this would:
     # 1. Authenticate with Planton Cloud API using token
-    # 2. Call the list RPC with org_id, optional env_id, and aws_credential_id
+    # 2. Call the list RPC with org_id, optional env_name, and aws_credential_id
     # 3. Extract service summaries from the response
 
     # Mock data structure showing expected RPC response format
@@ -67,14 +68,14 @@ async def list_services(
     # Filter services based on provided parameters
     filtered_services = mock_services.copy()
 
-    # If env_id is provided, filter services for that environment
-    if env_id:
+    # If env_name is provided, filter services for that environment
+    if env_name:
         # In production, this filtering would happen server-side
-        if env_id == "prod":
+        if env_name == "prod":
             filtered_services = [
                 svc for svc in filtered_services if "production" in svc["cluster"]
             ]
-        elif env_id == "staging":
+        elif env_name == "staging":
             filtered_services = [
                 svc for svc in filtered_services if "staging" in svc["cluster"]
             ]

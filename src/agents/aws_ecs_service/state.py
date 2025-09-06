@@ -95,7 +95,7 @@ class ECSDeepAgentState(DeepAgentState):
     # Planton Cloud context establishment
     planton_context: (
         dict[str, Any] | None
-    )  # Planton Cloud context with org_id, env_id, token
+    )  # Planton Cloud context with org_id, env_name, token
     available_aws_credentials: (
         list[dict[str, Any]] | None
     )  # List of AWS credential summaries from list_aws_credentials
