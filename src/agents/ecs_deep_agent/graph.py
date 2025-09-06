@@ -161,8 +161,11 @@ async def graph(config: Optional[dict] = None) -> CompiledStateGraph:
     workflow.set_entry_point("ecs_agent")
     workflow.add_edge("ecs_agent", END)
     
-    # Compile the graph
-    compiled_graph = workflow.compile()
+    # Create checkpointer for persistent memory
+    checkpointer = await create_checkpointer()
+    
+    # Compile the graph with checkpointer
+    compiled_graph = workflow.compile(checkpointer=checkpointer)
     
     logger.info("ECS Deep Agent graph created successfully")
     return compiled_graph
@@ -220,5 +223,6 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
 
 
