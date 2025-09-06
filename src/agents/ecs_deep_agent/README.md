@@ -14,6 +14,11 @@ The ECS Deep Agent leverages deepagents' built-in capabilities to provide:
 
 ## Features
 
+### Memory Persistence
+- **PostgreSQL Checkpointer**: Persistent conversation memory across sessions
+- **Automatic Fallback**: Falls back to in-memory storage if PostgreSQL not configured
+- **Thread-level Persistence**: Maintains conversation context and state
+
 ### Sub-agents
 - **Triage Agent**: Read-only diagnosis and evidence gathering
 - **Change Planner**: Creates minimal repair plans with success criteria
@@ -238,3 +243,4 @@ export PYTHONPATH="."
 export LOG_LEVEL=DEBUG
 poetry run ecs-agent triage --cluster my-cluster --service my-service
 ```
+
