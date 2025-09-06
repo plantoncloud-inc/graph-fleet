@@ -338,14 +338,16 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
     # Create the state graph with supervisor pattern
     workflow = StateGraph(ECSDeepAgentState)
 
+    # Create node functions with proper async handling
+    async def contextualizer_node_func(state):
+        return await contextualizer_wrapper(state, agent_config)
+    
+    async def operations_node_func(state):
+        return await operations_wrapper(state, agent_config)
+
     # Add specialized agent nodes
-    workflow.add_node(
-        "contextualizer",
-        lambda state: contextualizer_wrapper(state, agent_config),
-    )
-    workflow.add_node(
-        "operations", lambda state: operations_wrapper(state, agent_config)
-    )
+    workflow.add_node("contextualizer", contextualizer_node_func)
+    workflow.add_node("operations", operations_node_func)
 
     # Set entry point to Contextualizer (always start with context establishment)
     workflow.add_edge(START, "contextualizer")

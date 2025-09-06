@@ -520,7 +520,12 @@ Current status: 50% traffic now on stable revision, error rate down to 7%!
 
 ### LangGraph Studio Integration
 
-The ECS Deep Agent is designed to work seamlessly with LangGraph Studio for interactive conversational troubleshooting:
+The AWS ECS Service Agent is designed to work seamlessly with LangGraph Studio for interactive conversational troubleshooting.
+
+**Graph Node Architecture:**
+The agent uses properly configured async node functions to avoid coroutine handling issues:
+- Contextualizer and Operations nodes are wrapped with proper async handling
+- Each node function correctly awaits the underlying agent wrapper functions
 
 ```bash
 # Start LangGraph Studio

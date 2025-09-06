@@ -142,8 +142,8 @@ async def contextualizer_node(
         # Prepare input for agent
         agent_input = {
             "messages": state["messages"],
-            "orgId": state.get("orgId"),
-            "envName": state.get("envName"),
+            "orgId": state.get("orgId", os.environ.get("PLANTON_ORG_ID")),
+            "envName": state.get("envName", os.environ.get("PLANTON_ENV_NAME")),
         }
 
         # Invoke the agent
