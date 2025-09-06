@@ -62,19 +62,45 @@ async def create_checkpointer():
 
 
 async def ecs_deep_agent_node(state: ECSDeepAgentState, config: ECSDeepAgentConfig) -> ECSDeepAgentState:
-    """Main ECS Deep Agent node that processes user requests.
+    """Main ECS Deep Agent node that processes conversational user requests.
     
-    This node creates a deep agent with ECS MCP tools and processes the user's
-    request for ECS service diagnosis and repair.
+    This node creates a conversational deep agent with ECS MCP tools and processes
+    natural language requests for ECS service diagnosis and repair. It initializes
+    conversation context and coordinates between specialized subagents.
     
     Args:
-        state: Current state with messages and configuration
+        state: Current state with messages, conversation context, and configuration
         config: Agent configuration including write permissions
         
     Returns:
-        Updated state with agent response
+        Updated state with agent response and enhanced conversation context
     """
-    logger.info("Starting ECS Deep Agent node")
+    logger.info("Starting conversational ECS Deep Agent node")
+    
+    # Initialize conversation context if not present
+    if not state.get("conversation_context"):
+        state["conversation_context"] = {}
+    if not state.get("conversation_history"):
+        state["conversation_history"] = []
+    if not state.get("conversation_session_id"):
+        import uuid
+        state["conversation_session_id"] = str(uuid.uuid4())
+    
+    # Initialize conversation flow state
+    if not state.get("conversation_flow_state"):
+        state["conversation_flow_state"] = "context_extraction"
+    
+    # Extract user preferences from config and state
+    user_preferences = state.get("user_preferences", {})
+    if config.cluster:
+        user_preferences["default_cluster"] = config.cluster
+    if config.service:
+        user_preferences["default_service"] = config.service
+    if config.aws_region:
+        user_preferences["default_region"] = config.aws_region
+    
+    # Update state with user preferences
+    state["user_preferences"] = user_preferences
     
     # Determine write permissions
     env_allow_write = os.environ.get("ALLOW_WRITE", "false").lower() == "true"
@@ -82,6 +108,8 @@ async def ecs_deep_agent_node(state: ECSDeepAgentState, config: ECSDeepAgentConf
     read_only = not (env_allow_write and config_allow_write)
     
     logger.info(f"Write permissions: env={env_allow_write}, config={config_allow_write}, read_only={read_only}")
+    logger.info(f"Conversation session: {state.get('conversation_session_id')}")
+    logger.info(f"Flow state: {state.get('conversation_flow_state')}")
     
     try:
         # Get MCP tools with appropriate permissions
@@ -90,36 +118,130 @@ async def ecs_deep_agent_node(state: ECSDeepAgentState, config: ECSDeepAgentConf
         # Get interrupt configuration for write tools
         interrupt_config = get_interrupt_config(mcp_tools) if not read_only else {}
         
-        # Create the deep agent
+        # Prepare enhanced context for the deep agent
+        enhanced_messages = state["messages"].copy()
+        
+        # Add conversation context to the latest message if it's from the user
+        if enhanced_messages and enhanced_messages[-1].get("role") == "user":
+            latest_message = enhanced_messages[-1]
+            
+            # Enhance the message with conversation context
+            context_info = []
+            if state.get("conversation_history"):
+                context_info.append(f"Previous conversation context available ({len(state['conversation_history'])} interactions)")
+            if state.get("cluster") or state.get("service"):
+                context_info.append(f"Known ECS context: cluster={state.get('cluster', 'unknown')}, service={state.get('service', 'unknown')}")
+            if state.get("problem_description"):
+                context_info.append(f"Previous problem: {state['problem_description']}")
+            if state.get("conversation_flow_state"):
+                context_info.append(f"Current phase: {state['conversation_flow_state']}")
+            
+            if context_info:
+                enhanced_content = f"{latest_message['content']}\n\n[Conversation Context: {'; '.join(context_info)}]"
+                enhanced_messages[-1] = {**latest_message, "content": enhanced_content}
+        
+        # Create the conversational deep agent with updated subagents
         agent = await async_create_deep_agent(
             tools=mcp_tools,
             instructions=ORCHESTRATOR_PROMPT,
-            subagents=SUBAGENTS,
+            subagents=SUBAGENTS,  # Now includes context-extractor, conversation-coordinator, and enhanced subagents
             interrupt_config=interrupt_config,
             model=config.model_name
         )
         
         # Note: Checkpointer is now set at the graph level during compilation
         
-        # Process the user message
+        # Process the conversational user message
         result = await agent.ainvoke(
-            {"messages": state["messages"]},
-            config={"configurable": {"thread_id": state.get("thread_id", "default")}}
+            {"messages": enhanced_messages},
+            config={"configurable": {"thread_id": state.get("conversation_session_id", "default")}}
         )
         
-        # Update state with response
-        return {
-            **state,
-            "messages": result["messages"],
-            "status": "completed"
+        # Extract conversation insights from the response
+        response_messages = result.get("messages", [])
+        if response_messages:
+            latest_response = response_messages[-1]
+            response_content = latest_response.get("content", "")
+            
+            # Update conversation context based on response patterns
+            if "cluster" in response_content.lower() and not state.get("cluster"):
+                # Try to extract cluster name from response
+                import re
+                cluster_match = re.search(r'cluster[:\s]+([a-zA-Z0-9\-_]+)', response_content, re.IGNORECASE)
+                if cluster_match:
+                    state["cluster"] = cluster_match.group(1)
+            
+            if "service" in response_content.lower() and not state.get("service"):
+                # Try to extract service name from response
+                service_match = re.search(r'service[:\s]+([a-zA-Z0-9\-_]+)', response_content, re.IGNORECASE)
+                if service_match:
+                    state["service"] = service_match.group(1)
+        
+        # Update conversation history
+        conversation_entry = {
+            "timestamp": logger.info.__globals__.get("time", __import__("time")).time(),
+            "user_message": state["messages"][-1] if state["messages"] else None,
+            "agent_response": response_messages[-1] if response_messages else None,
+            "flow_state": state.get("conversation_flow_state"),
+            "extracted_context": {
+                "cluster": state.get("cluster"),
+                "service": state.get("service"),
+                "region": state.get("region")
+            }
         }
         
+        conversation_history = state.get("conversation_history", [])
+        conversation_history.append(conversation_entry)
+        state["conversation_history"] = conversation_history
+        
+        # Update conversation flow state based on response content
+        if response_messages:
+            response_content = response_messages[-1].get("content", "").lower()
+            if "triage" in response_content or "diagnosing" in response_content:
+                state["conversation_flow_state"] = "triage"
+            elif "plan" in response_content or "planning" in response_content:
+                state["conversation_flow_state"] = "planning"
+            elif "executing" in response_content or "implementing" in response_content:
+                state["conversation_flow_state"] = "execution"
+            elif "verifying" in response_content or "checking" in response_content:
+                state["conversation_flow_state"] = "verification"
+            elif "report" in response_content or "summary" in response_content:
+                state["conversation_flow_state"] = "reporting"
+        
+        # Update state with enhanced conversational response
+        updated_state = {
+            **state,
+            "messages": result["messages"],
+            "status": "completed",
+            "last_user_interaction": {
+                "timestamp": conversation_entry["timestamp"],
+                "content": state["messages"][-1] if state["messages"] else None
+            }
+        }
+        
+        logger.info(f"Conversational ECS Deep Agent completed. Flow state: {updated_state.get('conversation_flow_state')}")
+        return updated_state
+        
     except Exception as e:
-        logger.error(f"Error in ECS Deep Agent node: {e}")
+        logger.error(f"Error in conversational ECS Deep Agent node: {e}")
+        
+        # Update conversation history with error
+        error_entry = {
+            "timestamp": logger.info.__globals__.get("time", __import__("time")).time(),
+            "user_message": state["messages"][-1] if state["messages"] else None,
+            "error": str(e),
+            "flow_state": state.get("conversation_flow_state")
+        }
+        
+        conversation_history = state.get("conversation_history", [])
+        conversation_history.append(error_entry)
+        
         return {
             **state,
-            "messages": state["messages"] + [{"role": "assistant", "content": f"Error: {str(e)}"}],
-            "status": "error"
+            "messages": state["messages"] + [{"role": "assistant", "content": f"I encountered an error while processing your request: {str(e)}. Please try rephrasing your request or provide more specific details about the ECS service you'd like me to help with."}],
+            "status": "error",
+            "error_message": str(e),
+            "conversation_history": conversation_history
         }
 
 
@@ -222,7 +344,3 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
-
-
-
-
