@@ -72,16 +72,13 @@ help:
 	@echo ''
 	@echo 'Agent Examples:'
 	@echo 'aws-examples     - run AWS agent examples (interactive menu)'
-	@echo ''
-	@echo 'ECS Deep Agent:'
-	@echo 'ecs-triage CLUSTER=x SERVICE=y    - run ECS service triage'
-	@echo 'ecs-loop CLUSTER=x SERVICE=y      - run full ECS diagnostic loop'
-	@echo 'ecs-loop-write CLUSTER=x SERVICE=y - run loop with write permissions'
+
 
 .PHONY: clean-pyc
 clean-pyc:
 	find . -name '*.pyc' -delete
 	find . -type d -name '__pycache__' -exec rm -rf {} +
+
 
 
 
