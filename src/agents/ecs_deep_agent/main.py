@@ -104,8 +104,8 @@ async def create_agent(allow_write_override: Optional[bool] = None):
         model=config.get("model", "claude-3-5-sonnet-20241022")
     )
     
-    # Attach in-memory checkpointer for HITL
-    agent.checkpointer = InMemorySaver()
+    # Attach postgres checkpointer for HITL (falls back to InMemorySaver if not configured)
+    agent.checkpointer = await create_checkpointer()
     
     return agent
 
@@ -171,5 +171,6 @@ def loop(cluster: str, service: str, allow_write: bool):
 
 if __name__ == "__main__":
     cli()
+
 
 
