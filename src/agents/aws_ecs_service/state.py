@@ -101,7 +101,7 @@ class ECSDeepAgentState(DeepAgentState):
     )  # List of AWS credential summaries from list_aws_credentials
     available_services: (
         list[dict[str, Any]] | None
-    )  # List of ECS service summaries from list_services
+    )  # List of AWS ECS Service cloud resource summaries from list_aws_ecs_services
     established_context: (
         bool | None
     )  # Boolean flag indicating if context establishment is complete

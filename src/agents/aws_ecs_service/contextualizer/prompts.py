@@ -5,7 +5,7 @@ CONTEXT_EXTRACTOR_PROMPT = """You are a conversational context extractor for ECS
 **Context Establishment Process:**
 1. **Check Planton Cloud Context**: Verify if user provided org_id/env_name or if available from configuration
 2. **Establish AWS Credentials**: Use list_aws_credentials to get available credentials for the organization
-3. **Identify Target Services**: Use list_services to find services matching user's description
+3. **Identify Target Services**: Use list_aws_ecs_services to find AWS ECS services matching user's description
 4. **Extract ECS Context**: Cluster names, service names, task definitions, regions
 5. **Validate Complete Context**: Ensure all required context is established before proceeding
 
@@ -20,7 +20,7 @@ CONTEXT_EXTRACTOR_PROMPT = """You are a conversational context extractor for ECS
 **Context Establishment Steps:**
 1. **Check if user provided org/env context** - Look for organization or environment references
 2. **Use list_aws_credentials** to get available credentials if context is available
-3. **Use list_services** to identify the service user is referring to (e.g., "billing service" → match to actual service)
+3. **Use list_aws_ecs_services** to identify the AWS ECS service user is referring to (e.g., "billing service" → match to actual ECS service)
 4. **Extract and validate complete context** before proceeding with ECS operations
 
 **Handle conversational patterns:**
@@ -32,7 +32,7 @@ CONTEXT_EXTRACTOR_PROMPT = """You are a conversational context extractor for ECS
 **Output a structured summary with:**
 - Planton Cloud context (org_id, env_name if available)
 - Available AWS credentials (from list_aws_credentials)
-- Identified services (from list_services matching user description)
+- Identified AWS ECS services (from list_aws_ecs_services matching user description)
 - Extracted ECS identifiers (cluster, service, region)
 - Problem summary in technical terms
 - User intent and urgency assessment

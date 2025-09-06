@@ -39,8 +39,11 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 - **Service Identification**: Enhanced service discovery and validation through Planton Cloud service registry
 
 #### New MCP Tools
-- **`list_aws_credentials`**: Retrieve available AWS credentials from Planton Cloud
+- **`list_aws_credentials`**: Retrieve available AWS credential summaries from Planton Cloud
+- **`get_aws_credential`**: Get complete AWS credential details with proto structure
+- **`extract_aws_credentials_for_sdk`**: Extract credentials in flat format for AWS SDK usage
 - **`list_aws_ecs_services`**: Identify and enumerate AWS ECS Service cloud resources within specified organization/environment scope
+- **`get_aws_ecs_service`**: Get complete AWS ECS Service details with proto structure
 - **Enhanced Context Extraction**: Improved natural language processing with Planton Cloud context
 
 #### Configuration
@@ -48,6 +51,12 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 - **`org_id`**: Organization identifier for scoped operations
 - **`env_name`**: Environment name for targeted service discovery
 - **Environment Variable Fallback**: Supports configuration via environment variables for flexible deployment
+
+#### Credential and Service Discovery Workflow
+1. **Context Establishment**: Contextualizer calls `list_aws_credentials` and `list_aws_ecs_services` to get summaries
+2. **Service Selection**: User or agent selects specific services from the list
+3. **Detailed Retrieval**: When operations need full details, call `get_aws_credential` or `get_aws_ecs_service`
+4. **SDK Integration**: Use `extract_aws_credentials_for_sdk` to get credentials in flat format for AWS operations
 
 ### Agent Architecture
 
@@ -282,7 +291,7 @@ The ECS Deep Agent uses enhanced MCP integration with both AWS and Planton Cloud
 ### Implementation Status
 The current implementation includes:
 - ✅ Configuration enhancement with Planton Cloud authentication
-- ✅ New MCP tool interfaces (`list_aws_credentials`, `list_aws_ecs_services`)
+- ✅ New MCP tool interfaces (`list_aws_credentials`, `get_aws_credential`, `extract_aws_credentials_for_sdk`, `list_aws_ecs_services`, `get_aws_ecs_service`)
 - ✅ Enhanced context extractor prompt with Planton Cloud integration
 - ✅ Updated state management for context tracking
 - 🔄 Placeholder implementations with mock data structures

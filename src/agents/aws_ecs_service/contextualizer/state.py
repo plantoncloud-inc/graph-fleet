@@ -15,7 +15,7 @@ class ContextualizerState(DeepAgentState):
     # Context extraction results
     planton_context: dict[str, Any] | None  # org_id, env_name, etc.
     aws_credentials: list[dict[str, Any]] | None  # Available AWS credentials
-    identified_services: list[dict[str, Any]] | None  # Services from list_services
+    identified_services: list[dict[str, Any]] | None  # Services from list_aws_ecs_services
     ecs_context: dict[str, Any] | None  # cluster, service, region, etc.
 
     # User intent and problem analysis
