@@ -36,7 +36,8 @@ async def get_contextualizer_tools() -> list[BaseTool]:
     tools = []
 
     try:
-        # Import Planton Cloud MCP tools using the same pattern as AWS tools
+        # Lazy import to avoid blocking operations during module load
+        # This prevents "Blocking call to ScandirIterator.__next__" errors
         from .mcp_tools import get_planton_cloud_mcp_tools
 
         # Get Planton Cloud context tools
@@ -93,7 +94,8 @@ async def create_contextualizer_agent(
 
     try:
         # Create the Contextualizer agent using deepagents
-        agent = await async_create_deep_agent(
+        # Note: async_create_deep_agent returns a CompiledStateGraph, not an awaitable
+        agent = async_create_deep_agent(
             tools=context_tools,
             instructions=CONTEXT_COORDINATOR_ORCHESTRATOR_PROMPT,
             subagents=CONTEXT_COORDINATOR_SUBAGENTS,

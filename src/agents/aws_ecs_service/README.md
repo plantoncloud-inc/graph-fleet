@@ -583,6 +583,21 @@ make run  # From the main graph-fleet directory
      poetry show psycopg langgraph-checkpoint-postgres
      ```
 
+6. **Blocking Call Errors in LangGraph**
+   If you see: `Error loading Planton Cloud context tools: Blocking call to ScandirIterator.__next__`
+   
+   - This happens when synchronous file operations occur in async context
+   - **Fix applied**: All MCP tool imports are now inside async functions
+   - **Quick workaround**: Run with `langgraph dev --allow-blocking` (development only)
+   - **Production fix**: Set `BG_JOB_ISOLATED_LOOPS=true` environment variable
+
+7. **async_create_deep_agent Await Error**
+   If you see: `Failed to create Contextualizer Agent: object CompiledStateGraph can't be used in 'await' expression`
+   
+   - The `async_create_deep_agent` function from deepagents is not actually async
+   - **Fix applied**: Removed `await` keyword from all `async_create_deep_agent` calls
+   - The function returns a `CompiledStateGraph` directly, not a coroutine
+
 ### Debug Mode
 
 Enable debug logging for troubleshooting:
