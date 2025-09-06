@@ -12,12 +12,8 @@ from .ecs_deep_agent import (
     graph,
     create_ecs_deep_agent,
     # New specialized agents
-    ContextCoordinatorAgent,
-    ContextCoordinatorConfig,
     ContextCoordinatorState,
     create_context_coordinator_agent,
-    ECSDomainAgent,
-    ECSDomainConfig,
     ECSDomainState,
     create_ecs_domain_agent,
     # MCP tools
@@ -26,12 +22,12 @@ from .ecs_deep_agent import (
 
 # Individual specialized agents (direct access)
 from .context_coordinator import (
-    context_coordinator_node,
-    get_context_coordinator_tools,
+    create_context_coordinator_agent as context_coordinator_create,
+    ContextCoordinatorState as context_coordinator_state,
 )
 from .ecs_domain import (
-    ecs_domain_node,
-    get_ecs_domain_tools,
+    create_ecs_domain_agent as ecs_domain_create,
+    ECSDomainState as ecs_domain_state,
 )
 
 __all__ = [
@@ -60,4 +56,5 @@ __all__ = [
     # MCP tools
     "get_planton_context_tools",
 ]
+
 
