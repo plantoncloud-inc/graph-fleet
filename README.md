@@ -53,27 +53,41 @@ See [AWS Agent Documentation](src/agents/aws_agent/README.md) for details.
 
 ### ECS Deep Agent (DeepAgent)
 
-The ECS Deep Agent specializes in diagnosing and repairing AWS ECS services using the DeepAgents framework:
+The ECS Deep Agent specializes in diagnosing and repairing AWS ECS services using natural language conversations and the DeepAgents framework:
 
 #### Core Capabilities
-- **🔍 Automated Diagnosis**: Read-only triage of ECS service issues
-- **📋 Repair Planning**: Generate minimal, targeted repair plans
-- **🔒 Safe Execution**: Human-in-the-loop approval for write operations
-- **📊 Comprehensive Reporting**: Markdown reports with audit trails
+- **💬 Conversational Diagnosis**: Accept natural language problem descriptions instead of technical parameters
+- **🧠 Context-Aware Operations**: Extract ECS context, user intent, and preferences from conversations
+- **🤝 Collaborative Planning**: Generate repair plans through interactive dialogue with user preferences
+- **🔍 Automated Diagnosis**: Read-only triage of ECS service issues with conversational feedback
+- **📋 Interactive Repair Planning**: Generate minimal, targeted repair plans with real-time user collaboration
+- **🔒 Safe Execution**: Human-in-the-loop approval for write operations with conversational explanations
+- **📊 Comprehensive Reporting**: Markdown reports with audit trails and conversational context
 - **🔧 MCP Integration**: AWS ECS tools via langchain-mcp-adapters
 
 #### Sub-agents
-- **Triage Agent**: Read-only diagnosis and evidence gathering
-- **Change Planner**: Creates minimal repair plans with success criteria
-- **Remediator**: Executes approved changes safely
-- **Verifier**: Post-change verification and health checks
-- **Reporter**: Generates comprehensive audit reports
+- **Context Extractor**: Parses natural language messages to extract ECS context, problem descriptions, and user intent
+- **Conversation Coordinator**: Manages flow between subagents based on conversational context and handles follow-up questions
+- **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations
+- **Change Planner**: Creates minimal repair plans incorporating user preferences and constraints through dialogue
+- **Remediator**: Executes approved changes safely with real-time conversational feedback
+- **Verifier**: Post-change verification and health checks with conversational validation
+- **Reporter**: Generates comprehensive audit reports with conversational context
+
+#### Conversational Features
+- **Natural Language Input**: Accept problem descriptions in plain English instead of technical parameters
+- **User Preference Incorporation**: Adapt approach based on user risk tolerance, timing constraints, and communication style
+- **Real-Time Feedback**: Provide ongoing updates and explanations during execution phases
+- **Iterative Multi-Turn Conversations**: Support follow-up questions, plan modifications, and context switching
+- **Context Preservation**: Maintain conversation history and context across multiple interactions
+- **Collaborative Troubleshooting**: Work with users to refine understanding and adapt solutions
 
 #### Safety Features
 - Write operations disabled by default
-- Human approval required for all write operations
+- Human approval required for all write operations with conversational explanations
 - Limited blast radius (only specific ECS operations allowed)
-- Comprehensive audit logging
+- Comprehensive audit logging with conversational context
+- User-friendly safety confirmations and rollback procedures
 
 See [ECS Deep Agent Documentation](src/agents/ecs_deep_agent/README.md) for details.
 
