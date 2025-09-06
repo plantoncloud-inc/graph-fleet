@@ -6,6 +6,7 @@ handing off to specialized domain agents.
 """
 
 import logging
+import os
 from typing import Any
 
 from deepagents import async_create_deep_agent
@@ -35,23 +36,21 @@ async def get_contextualizer_tools() -> list[BaseTool]:
     tools = []
 
     try:
-        # Import Planton Cloud context tools
-        from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials
-        from mcp.planton_cloud.infra_hub.aws.aws_ecs_service.tools import list_aws_ecs_services
+        # Import Planton Cloud MCP tools using the same pattern as AWS tools
+        from .mcp_tools import get_planton_cloud_mcp_tools
 
-        # Convert to LangChain tools if needed
-        # Note: These are already async functions, we may need to wrap them
-        # as LangChain tools depending on the deepagents integration
+        # Get Planton Cloud context tools
+        planton_tools = await get_planton_cloud_mcp_tools()
+        tools.extend(planton_tools)
 
-        # For now, we'll assume they can be used directly
-        # In production, these would be properly wrapped as LangChain tools
-        tools.extend([list_aws_credentials, list_aws_ecs_services])
-
-        logger.info(f"Loaded {len(tools)} Planton Cloud context tools")
+        logger.info(f"Loaded {len(tools)} Planton Cloud context tools via MCP")
 
     except ImportError as e:
-        logger.warning(f"Could not import Planton Cloud tools: {e}")
+        logger.warning(f"Could not import Planton Cloud MCP tools: {e}")
         # Continue without tools - agent can still coordinate conversation
+    except Exception as e:
+        logger.error(f"Error loading Planton Cloud context tools: {e}")
+        # Continue without tools for graceful degradation
 
     return tools
 
