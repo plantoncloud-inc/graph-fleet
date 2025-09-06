@@ -11,6 +11,11 @@ from .prompts import (
 
 SUBAGENTS = [
     {
+        "name": "context-extractor",
+        "description": "Parses natural language messages to extract ECS context, problem descriptions, and user intent",
+        "prompt": CONTEXT_EXTRACTOR_PROMPT
+    },
+    {
         "name": "triage-agent",
         "description": "Diagnoses ECS service issues using read-only tools",
         "prompt": TRIAGE_AGENT_PROMPT
@@ -36,4 +41,5 @@ SUBAGENTS = [
         "prompt": REPORTER_PROMPT
     }
 ]
+
 
