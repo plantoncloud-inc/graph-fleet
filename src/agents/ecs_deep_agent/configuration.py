@@ -58,3 +58,20 @@ class ECSDeepAgentConfig(BaseModel):
     service: Optional[str] = Field(
         default=None, description="Default ECS service for operations"
     )
+
+    # Planton Cloud authentication and context
+    planton_token: Optional[str] = Field(
+        default=None,
+        description="Planton Cloud API token for gRPC authentication (uses PLANTON_TOKEN env var if not set)",
+    )
+
+    org_id: Optional[str] = Field(
+        default=None,
+        description="Planton Cloud organization ID - mandatory context for operations (uses PLANTON_ORG_ID env var if not set)",
+    )
+
+    env_id: Optional[str] = Field(
+        default=None,
+        description="Planton Cloud environment ID - optional context for scoped operations (uses PLANTON_ENV_ID env var if not set)",
+    )
+
