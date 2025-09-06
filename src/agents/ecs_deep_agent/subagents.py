@@ -6,6 +6,7 @@ from .prompts import (
     CHANGE_PLANNER_PROMPT,
     REMEDIATOR_PROMPT,
     VERIFIER_PROMPT,
+    CONVERSATION_COORDINATOR_PROMPT,
     REPORTER_PROMPT
 )
 
@@ -41,5 +42,6 @@ SUBAGENTS = [
         "prompt": REPORTER_PROMPT
     }
 ]
+
 
 
