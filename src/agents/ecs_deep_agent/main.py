@@ -9,10 +9,43 @@ from typing import Dict, Any, Optional
 import click
 from deepagents import async_create_deep_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from .prompts import ORCHESTRATOR_PROMPT
 from .subagents import SUBAGENTS
 from .mcp_tools import get_mcp_tools, get_interrupt_config
+
+
+async def create_checkpointer():
+    """Create a checkpointer based on environment configuration.
+    
+    Checks for DATABASE_URL environment variable and creates an AsyncPostgresSaver
+    if available. Falls back to InMemorySaver if DATABASE_URL is not configured
+    or if there's an error connecting to PostgreSQL.
+    
+    Returns:
+        Checkpointer instance (AsyncPostgresSaver or InMemorySaver)
+    """
+    database_url = os.environ.get("DATABASE_URL")
+    
+    if not database_url:
+        print("DATABASE_URL not configured, using InMemorySaver for checkpointing")
+        return InMemorySaver()
+    
+    try:
+        print("DATABASE_URL found, attempting to create PostgreSQL checkpointer")
+        checkpointer = AsyncPostgresSaver.from_conn_string(database_url)
+        
+        # Setup the checkpointer (creates tables if they don't exist)
+        await checkpointer.setup()
+        
+        print("PostgreSQL checkpointer created successfully")
+        return checkpointer
+        
+    except Exception as e:
+        print(f"Failed to create PostgreSQL checkpointer: {e}")
+        print("Falling back to InMemorySaver for checkpointing")
+        return InMemorySaver()
 
 
 def load_config() -> Dict[str, Any]:
@@ -71,8 +104,8 @@ async def create_agent(allow_write_override: Optional[bool] = None):
         model=config.get("model", "claude-3-5-sonnet-20241022")
     )
     
-    # Attach in-memory checkpointer for HITL
-    agent.checkpointer = InMemorySaver()
+    # Attach postgres checkpointer for HITL (falls back to InMemorySaver if not configured)
+    agent.checkpointer = await create_checkpointer()
     
     return agent
 
@@ -138,3 +171,6 @@ def loop(cluster: str, service: str, allow_write: bool):
 
 if __name__ == "__main__":
     cli()
+
+
+
