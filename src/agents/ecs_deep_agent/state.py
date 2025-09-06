@@ -89,3 +89,18 @@ class ECSDeepAgentState(TypedDict):
     last_user_interaction: Optional[
         Dict[str, Any]
     ]  # Timestamp and context of last user input
+
+    # Planton Cloud context establishment
+    planton_context: Optional[
+        Dict[str, Any]
+    ]  # Planton Cloud context with org_id, env_id, token
+    available_aws_credentials: Optional[
+        List[Dict[str, Any]]
+    ]  # List of AWS credential summaries from list_aws_credentials
+    available_services: Optional[
+        List[Dict[str, Any]]
+    ]  # List of ECS service summaries from list_services
+    established_context: Optional[
+        bool
+    ]  # Boolean flag indicating if context establishment is complete
+
