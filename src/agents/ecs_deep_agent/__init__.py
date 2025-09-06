@@ -12,14 +12,10 @@ from .state import ECSDeepAgentState
 
 # Specialized agents in the multi-agent architecture
 from ..context_coordinator import (
-    ContextCoordinatorAgent,
-    ContextCoordinatorConfig,
     ContextCoordinatorState,
     create_context_coordinator_agent,
 )
 from ..ecs_domain import (
-    ECSDomainAgent,
-    ECSDomainConfig, 
     ECSDomainState,
     create_ecs_domain_agent,
 )
@@ -49,4 +45,5 @@ __all__ = [
     # MCP tools
     "get_planton_context_tools",
 ]
+
 
