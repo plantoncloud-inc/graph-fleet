@@ -37,7 +37,7 @@ async def get_contextualizer_tools() -> list[BaseTool]:
     try:
         # Import Planton Cloud context tools
         from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials
-        from mcp.planton_cloud.service_hub.tools import list_services
+        from mcp.planton_cloud.infra_hub.aws.aws_ecs_service.tools import list_aws_ecs_services
 
         # Convert to LangChain tools if needed
         # Note: These are already async functions, we may need to wrap them
@@ -45,7 +45,7 @@ async def get_contextualizer_tools() -> list[BaseTool]:
 
         # For now, we'll assume they can be used directly
         # In production, these would be properly wrapped as LangChain tools
-        tools.extend([list_aws_credentials, list_services])
+        tools.extend([list_aws_credentials, list_aws_ecs_services])
 
         logger.info(f"Loaded {len(tools)} Planton Cloud context tools")
 

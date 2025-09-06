@@ -1,79 +1,121 @@
-# Planton Cloud MCP Tools
+# Planton Cloud MCP Server
 
-This package contains MCP (Model Context Protocol) tools for Planton Cloud, organized following the same structure as the Planton Cloud APIs.
+A Model Context Protocol (MCP) server that provides tools for interacting with Planton Cloud APIs. This server exposes cloud provider credentials, service management, and infrastructure operations as MCP tools.
 
-## Structure
+## Quick Start
 
-The package mirrors the Planton Cloud API organization:
+### Running the MCP Server
+
+```bash
+# Direct execution
+python src/mcp/planton_cloud/entry_point.py
+
+# Or using the module
+python -m mcp.planton_cloud.entry_point
+```
+
+### Using with MCP Clients
+
+The server runs on stdio transport and can be used with any MCP-compatible client:
+
+```json
+{
+  "mcpServers": {
+    "planton-cloud": {
+      "command": "python",
+      "args": ["/path/to/graph-fleet/src/mcp/planton_cloud/entry_point.py"],
+      "transport": "stdio"
+    }
+  }
+}
+```
+
+## Architecture
+
+The MCP server is organized following the Planton Cloud API structure:
 
 ```
 mcp/planton_cloud/
 ├── connect/                    # Cloud provider connections and credentials
-│   ├── awscredential/         # AWS credential management
-│   ├── gcpcredential/         # (Future) GCP credential management
-│   └── azurecredential/       # (Future) Azure credential management
-├── infra_hub/                 # (Future) Infrastructure resource management
-│   ├── aws/                   # AWS resources
-│   ├── gcp/                   # GCP resources
-│   └── azure/                 # Azure resources
-├── service_hub/               # (Future) Service and pipeline management
+│   └── awscredential/         # AWS credential management tools
+├── infra_hub/                 # Infrastructure resource management
+│   └── aws/                   # AWS cloud resources
+│       └── aws_ecs_service/   # AWS ECS Service cloud resource tools
 ├── iam/                       # (Future) Identity and access management
-├── server.py                  # Central MCP server
-└── entry_point.py             # Entry point for running the MCP server
+├── server.py                  # Central MCP server configuration
+└── entry_point.py             # Server entry point
 ```
 
-## AWS Credential Structure
+## Available Tools
 
-The `get_aws_credential` function returns the complete proto message structure from Planton Cloud:
+### AWS Credential Management (`connect/awscredential/`)
+- `list_aws_credentials` - List available AWS credentials
+- `get_aws_credential` - Get detailed credential information
+- `extract_aws_credentials_for_sdk` - Extract credentials for AWS SDK usage
 
-```python
-# Full proto structure
-credential = await get_aws_credential('cred-id')
-# Returns: {'api_version': '...', 'kind': '...', 'metadata': {...}, 'spec': {...}, 'status': {...}}
+### AWS ECS Service Management (`infra_hub/aws/aws_ecs_service/`)
+- `list_aws_ecs_services` - List AWS ECS Service cloud resources
+- `get_aws_ecs_service` - Get detailed ECS service information
 
-# For AWS SDK usage, extract the credentials:
-from mcp.planton_cloud.connect.awscredential import extract_aws_credentials_for_sdk
-sdk_creds = extract_aws_credentials_for_sdk(credential)
-# Returns: {'access_key_id': '...', 'secret_access_key': '...', 'region': '...'}
+*See individual tool README files for detailed documentation.*
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Planton Cloud Authentication
+export PLANTON_TOKEN="your-planton-cloud-token"
+export PLANTON_ORG_ID="your-organization-id" 
+export PLANTON_ENV_NAME="your-environment-name"  # Optional
+
+# Logging
+export FASTMCP_LOG_LEVEL="INFO"  # DEBUG, INFO, WARNING, ERROR
 ```
 
-## Adding New Tools
+### Authentication
 
-When adding new MCP tools, follow these steps:
+The MCP server requires a Planton Cloud authentication token to access APIs. Set the `PLANTON_TOKEN` environment variable or provide it through your MCP client configuration.
 
-1. **Create the appropriate module structure** matching the API path:
+## Development
+
+### Adding New Tools
+
+1. **Create module structure** matching the Planton Cloud API path:
    ```
-   mcp/planton_cloud/[module]/[resource]/tools.py
+   mcp/planton_cloud/[domain]/[resource]/
+   ├── tools.py          # Tool implementations
+   ├── README.md        # Detailed documentation
+   └── __init__.py      # Module exports
    ```
 
-2. **Implement the tool function** in the tools.py file
+2. **Implement tools** in `tools.py` following async patterns
 
-3. **Register the tool** in `server.py`:
+3. **Register tools** in `server.py`:
    ```python
-   from .module.resource import tool_function
+   from .domain.resource import tool_function
    mcp.tool()(tool_function)
    ```
 
-## Example: AWS Credential Tool
+4. **Document tools** in the module's README.md
 
-The AWS credential tool is located at:
-- `connect/awscredential/tools.py`
+### Project Structure
 
-This mirrors the API location:
-- `cloud.planton.apis.connect.awscredential.v1`
+- **`server.py`** - Central FastMCP server with tool registration
+- **`entry_point.py`** - Server startup and CLI interface  
+- **`connect/`** - Cloud provider credential management
+- **`infra_hub/`** - Infrastructure resource management
+- **`infra_hub/`** - Infrastructure resource management (future)
+- **`iam/`** - Identity and access management (future)
 
-## Usage
-
-The MCP server can be run directly:
+### Testing
 
 ```bash
-python src/mcp/planton_cloud/entry_point.py
-```
+# Test tool imports
+python -c "from mcp.planton_cloud.connect.awscredential.tools import list_aws_credentials; print('✅ Import successful')"
 
-Or imported and used in agents:
-
-```python
-from mcp.planton_cloud import mcp, run_server
+# Test server startup
+python src/mcp/planton_cloud/entry_point.py --help
 ```
 
 
