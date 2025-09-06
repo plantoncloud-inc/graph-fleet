@@ -166,12 +166,7 @@ async def ecs_deep_agent_node(
 
         # Process the conversational user message
         result = await agent.ainvoke(
-            {"messages": enhanced_messages},
-            config={
-                "configurable": {
-                    "thread_id": state.get("conversation_session_id", "default")
-                }
-            },
+            {"messages": enhanced_messages}
         )
 
         # Extract conversation insights from the response
@@ -373,3 +368,4 @@ async def create_ecs_deep_agent(
 
 # Export for LangGraph and examples
 __all__ = ["graph", "create_ecs_deep_agent", "ECSDeepAgentState", "ECSDeepAgentConfig"]
+
