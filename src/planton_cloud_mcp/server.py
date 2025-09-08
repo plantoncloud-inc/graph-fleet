@@ -112,5 +112,6 @@ async def get_mcp_server() -> FastMCP:
 async def run_server() -> None:
     """Run the Planton Cloud MCP server asynchronously."""
     server = await get_mcp_server()
-    server.run(transport="stdio")
+    # Use run_stdio_async instead of run to avoid nested event loop issue
+    await server.run_stdio_async()
 

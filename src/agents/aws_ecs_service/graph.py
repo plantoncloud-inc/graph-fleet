@@ -83,6 +83,26 @@ def supervisor_router(
 
     """
     logger.info("Supervisor routing decision")
+    
+    # Check if we have any messages to process
+    messages = state.get("messages", [])
+    has_user_messages = False
+    for msg in messages:
+        # Handle both dict and LangChain message objects
+        if hasattr(msg, "type"):
+            # LangChain message object
+            if msg.type == "human":
+                has_user_messages = True
+                break
+        elif isinstance(msg, dict) and msg.get("role") == "user":
+            # Dictionary message
+            has_user_messages = True
+            break
+    
+    # If no user messages, wait for input
+    if not has_user_messages:
+        logger.info("No user messages to process, ending to wait for input")
+        return "__end__"
 
     # Check if we have complete context for ECS operations
     has_ecs_context = bool(state.get("ecs_context"))
@@ -94,6 +114,11 @@ def supervisor_router(
 
     # Check if Contextualizer has determined next agent
     next_agent = state.get("next_agent")
+    
+    # Check for explicit end signal
+    if next_agent == "__end__":
+        logger.info("Ending conversation as requested by agent")
+        return "__end__"
 
     # Route to Contextualizer if:
     # 1. Initial conversation or context extraction phase
