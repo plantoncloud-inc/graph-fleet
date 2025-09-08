@@ -178,6 +178,21 @@ async def contextualizer_node(
             updated_state["urgency_level"] = context_data.get("urgency_level")
             updated_state["scope"] = context_data.get("scope")
 
+        # Check if we have any user messages to process
+        messages = state.get("messages", [])
+        has_user_messages = False
+        for msg in messages:
+            # Handle both dict and LangChain message objects
+            if hasattr(msg, "type"):
+                # LangChain message object
+                if msg.type == "human":
+                    has_user_messages = True
+                    break
+            elif isinstance(msg, dict) and msg.get("role") == "user":
+                # Dictionary message
+                has_user_messages = True
+                break
+        
         # Determine next agent based on conversation coordinator decision
         # This logic would be enhanced based on the actual agent response
         if updated_state.get("ecs_context") and updated_state.get("user_intent"):
@@ -196,12 +211,20 @@ async def contextualizer_node(
                 "urgency_level": updated_state.get("urgency_level"),
                 "scope": updated_state.get("scope"),
             }
-        else:
-            # Context incomplete, stay in Contextualizer
-            updated_state["next_agent"] = "contextualizer"
+        elif not has_user_messages:
+            # No user messages to process, end the conversation
+            updated_state["next_agent"] = "__end__"
             updated_state["routing_decision"] = (
-                "Context incomplete, continuing context extraction"
+                "No user messages to process, waiting for user input"
             )
+            updated_state["conversation_phase"] = "waiting_for_input"
+        else:
+            # Context incomplete but we have user messages, need more info
+            updated_state["next_agent"] = "__end__"
+            updated_state["routing_decision"] = (
+                "Context extraction attempted, waiting for more specific information"
+            )
+            updated_state["conversation_phase"] = "needs_clarification"
 
         logger.info(
             f"Contextualizer processing complete. Next agent: {updated_state.get('next_agent')}"
