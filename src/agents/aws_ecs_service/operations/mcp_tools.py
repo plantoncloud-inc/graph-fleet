@@ -5,6 +5,7 @@ including cluster operations, service management, task operations, and
 CloudWatch logs integration.
 """
 
+import asyncio
 import logging
 import os
 from typing import Any
@@ -134,8 +135,9 @@ async def get_ecs_mcp_tools(
     logger.info("Creating AWS MCP client for ECS Domain operations")
 
     try:
-        # Create MCP client
-        client = MultiServerMCPClient(aws_config)
+        # Create MCP client in a separate thread to avoid blocking the event loop
+        # This prevents "Blocking call to ScandirIterator.__next__" errors
+        client = await asyncio.to_thread(MultiServerMCPClient, aws_config)
 
         # Get all available tools from AWS API MCP server
         all_tools = await client.get_tools()

@@ -44,7 +44,7 @@ build:
 run:
 	@echo "Running LangGraph Studio"
 	@poetry run langgraph --version >/dev/null 2>&1 || poetry install
-	poetry run langgraph dev --allow-blocking
+	poetry run langgraph dev
 
 lint:
 	poetry run ruff check .
