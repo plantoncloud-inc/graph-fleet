@@ -131,5 +131,3 @@ async def get_planton_cloud_mcp_tools() -> list[BaseTool]:
         logger.warning("Continuing without Planton Cloud MCP tools")
         return []
 
-
-
