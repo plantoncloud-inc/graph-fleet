@@ -10,7 +10,6 @@ import os
 from typing import Any
 
 from langchain_core.tools import BaseTool
-from langchain_mcp_adapters.client import MultiServerMCPClient
 
 logger = logging.getLogger(__name__)
 
@@ -98,3 +97,4 @@ async def get_planton_cloud_mcp_tools() -> list[BaseTool]:
         # Fall back to empty list - agent will still work without tools
         logger.warning("Continuing without Planton Cloud MCP tools")
         return []
+
