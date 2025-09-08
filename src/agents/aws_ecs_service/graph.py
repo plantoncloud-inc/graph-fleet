@@ -177,7 +177,7 @@ async def contextualizer_wrapper(
 
     # Execute Contextualizer node
     context_config = {
-        "model_name": config.model_name,
+        "model": config.create_language_model(),
         "orgId": config.org_id,
         "envName": config.env_name,
     }
@@ -263,7 +263,7 @@ async def operations_wrapper(
 
     # Execute ECS Domain node
     domain_config = {
-        "model_name": config.model_name,
+        "model": config.create_language_model(),
         "read_only": not config.allow_write,
         "write_operations_enabled": config.allow_write,
         "aws_region": config.aws_region,

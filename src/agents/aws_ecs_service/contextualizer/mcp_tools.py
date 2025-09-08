@@ -4,6 +4,7 @@ This module provides Planton Cloud context tools for the Contextualizer Agent,
 including AWS credential management and AWS ECS service discovery.
 """
 
+import asyncio
 import logging
 import os
 from typing import Any
@@ -68,8 +69,9 @@ async def get_planton_cloud_mcp_tools() -> list[BaseTool]:
     logger.info("Creating Planton Cloud MCP client for Contextualizer operations")
 
     try:
-        # Create MCP client
-        client = MultiServerMCPClient(planton_config)
+        # Create MCP client in a separate thread to avoid blocking the event loop
+        # This prevents "Blocking call to ScandirIterator.__next__" errors
+        client = await asyncio.to_thread(MultiServerMCPClient, planton_config)
 
         # Get all available tools from Planton Cloud MCP server
         all_tools = await client.get_tools()

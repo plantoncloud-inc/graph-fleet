@@ -6,9 +6,10 @@ specialized operational subagents.
 """
 
 import logging
-from typing import Any
+from typing import Any, Union
 
 from deepagents import async_create_deep_agent
+from langchain_core.language_models import LanguageModelLike
 from langchain_core.tools import BaseTool
 
 from .prompts import (
@@ -96,7 +97,7 @@ OPERATIONS_SUBAGENTS = [
 
 
 async def create_operations_agent(
-    model_name: str = "claude-3-5-sonnet-20241022", read_only: bool = True, **kwargs
+    model: Union[str, LanguageModelLike] = "claude-sonnet-4-20250514", read_only: bool = True, **kwargs
 ) -> Any:
     """Create an Operations Agent.
 
@@ -104,7 +105,7 @@ async def create_operations_agent(
     operational subagents for triage, planning, remediation, verification, and reporting.
 
     Args:
-        model_name: LLM model to use for the agent
+        model: LLM model to use for the agent (either string name or LanguageModelLike instance)
         read_only: If True, only allow read-only operations. If False, enable write operations.
         **kwargs: Additional configuration options
 
@@ -124,7 +125,7 @@ async def create_operations_agent(
             tools=ecs_tools,
             instructions=OPERATIONS_ORCHESTRATOR_PROMPT,
             subagents=OPERATIONS_SUBAGENTS,
-            model=model_name,
+            model=model,
             **kwargs,
         )
 
@@ -156,16 +157,16 @@ async def operations_node(
 
     try:
         # Extract configuration
-        model_name = (
-            config.get("model_name", "claude-3-5-sonnet-20241022")
+        model = (
+            config.get("model", "claude-sonnet-4-20250514")
             if config
-            else "claude-3-5-sonnet-20241022"
+            else "claude-sonnet-4-20250514"
         )
         read_only = config.get("read_only", True) if config else True
 
         # Create agent if not cached
         agent = await create_operations_agent(
-            model_name=model_name, read_only=read_only
+            model=model, read_only=read_only
         )
 
         # Prepare input for agent with context from Contextualizer

@@ -7,9 +7,10 @@ handing off to specialized domain agents.
 
 import logging
 import os
-from typing import Any
+from typing import Any, Union
 
 from deepagents import async_create_deep_agent
+from langchain_core.language_models import LanguageModelLike
 from langchain_core.tools import BaseTool
 
 from .prompts import (
@@ -72,7 +73,7 @@ CONTEXT_COORDINATOR_SUBAGENTS = [
 
 
 async def create_contextualizer_agent(
-    model_name: str = "claude-3-5-sonnet-20241022", **kwargs
+    model: Union[str, LanguageModelLike] = "claude-sonnet-4-20250514", **kwargs
 ) -> Any:
     """Create a Contextualizer Agent.
 
@@ -80,7 +81,7 @@ async def create_contextualizer_agent(
     using the existing context-extractor and conversation-coordinator subagents.
 
     Args:
-        model_name: LLM model to use for the agent
+        model: LLM model to use for the agent (either string name or LanguageModelLike instance)
         **kwargs: Additional configuration options
 
     Returns:
@@ -99,7 +100,7 @@ async def create_contextualizer_agent(
             tools=context_tools,
             instructions=CONTEXT_COORDINATOR_ORCHESTRATOR_PROMPT,
             subagents=CONTEXT_COORDINATOR_SUBAGENTS,
-            model=model_name,
+            model=model,
             **kwargs,
         )
 
@@ -131,14 +132,14 @@ async def contextualizer_node(
 
     try:
         # Extract configuration
-        model_name = (
-            config.get("model_name", "claude-3-5-sonnet-20241022")
+        model = (
+            config.get("model", "claude-sonnet-4-20250514")
             if config
-            else "claude-3-5-sonnet-20241022"
+            else "claude-sonnet-4-20250514"
         )
 
         # Create agent if not cached
-        agent = await create_contextualizer_agent(model_name=model_name)
+        agent = await create_contextualizer_agent(model=model)
 
         # Prepare input for agent
         agent_input = {
