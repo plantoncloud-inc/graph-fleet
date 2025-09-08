@@ -125,6 +125,7 @@ def _get_ecs_mcp_tools_sync(
         
     Raises:
         Exception: If MCP client creation or tool retrieval fails
+
     """
     # Import MultiServerMCPClient inside the function to prevent blocking during module load
     from langchain_mcp_adapters.client import MultiServerMCPClient

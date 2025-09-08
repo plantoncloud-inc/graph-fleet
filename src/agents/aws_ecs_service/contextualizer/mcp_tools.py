@@ -66,6 +66,7 @@ def _get_planton_cloud_mcp_tools_sync(planton_config: dict[str, Any]) -> list[Ba
         
     Raises:
         Exception: If MCP client creation or tool retrieval fails
+
     """
     # Import MultiServerMCPClient inside the function to prevent blocking during module load
     from langchain_mcp_adapters.client import MultiServerMCPClient
