@@ -1,5 +1,6 @@
 """Planton Cloud MCP Server entrypoint."""
 
+import asyncio
 import os
 import sys
 
@@ -16,9 +17,24 @@ except ImportError:
 
 
 def main() -> None:
-    """Main entry point for the command line script."""
-    run_server()
+    """Main entry point for the command line script.
+    
+    This function properly handles the async server initialization by using
+    asyncio.run() to ensure the server is fully initialized asynchronously
+    before handling requests.
+    """
+    try:
+        # Run the async server initialization
+        # This ensures the server is fully initialized asynchronously before handling requests
+        asyncio.run(run_server())
+    except KeyboardInterrupt:
+        print("\nServer shutdown requested by user")
+    except Exception as e:
+        print(f"Error starting MCP server: {e}")
+        raise
 
 
 if __name__ == "__main__":
     main()
+
+
