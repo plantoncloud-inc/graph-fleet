@@ -196,10 +196,10 @@ async def contextualizer_node(
         # Determine next agent based on conversation coordinator decision
         # This logic would be enhanced based on the actual agent response
         if updated_state.get("ecs_context") and updated_state.get("user_intent"):
-            # Context is complete, ready to hand off to ECS Domain Agent
+            # Context is complete, ready to hand off to Operations Agent
             updated_state["next_agent"] = "operations"
             updated_state["routing_decision"] = (
-                "Context established, routing to ECS Domain Agent"
+                "Context established, routing to Operations Agent for ECS service investigation"
             )
             updated_state["handoff_context"] = {
                 "planton_context": updated_state.get("planton_context"),
@@ -219,12 +219,33 @@ async def contextualizer_node(
             )
             updated_state["conversation_phase"] = "waiting_for_input"
         else:
-            # Context incomplete but we have user messages, need more info
-            updated_state["next_agent"] = "__end__"
-            updated_state["routing_decision"] = (
-                "Context extraction attempted, waiting for more specific information"
-            )
-            updated_state["conversation_phase"] = "needs_clarification"
+            # Context incomplete but we have user messages
+            # Check if we have partial context that might be enough for operations
+            if updated_state.get("user_intent") or updated_state.get("problem_description"):
+                # We have at least some understanding of what the user wants
+                # Route to operations agent to attempt investigation
+                updated_state["next_agent"] = "operations"
+                updated_state["routing_decision"] = (
+                    "Partial context available, routing to Operations Agent for investigation"
+                )
+                updated_state["conversation_phase"] = "context_coordination"
+                updated_state["handoff_context"] = {
+                    "planton_context": updated_state.get("planton_context"),
+                    "aws_credentials": updated_state.get("aws_credentials"),
+                    "identified_services": updated_state.get("identified_services"),
+                    "ecs_context": updated_state.get("ecs_context"),
+                    "user_intent": updated_state.get("user_intent"),
+                    "problem_description": updated_state.get("problem_description"),
+                    "urgency_level": updated_state.get("urgency_level"),
+                    "scope": updated_state.get("scope"),
+                }
+            else:
+                # No context at all, stay in contextualizer to gather more info
+                updated_state["next_agent"] = "contextualizer"
+                updated_state["routing_decision"] = (
+                    "Insufficient context, continuing context extraction"
+                )
+                updated_state["conversation_phase"] = "context_extraction"
 
         logger.info(
             f"Contextualizer processing complete. Next agent: {updated_state.get('next_agent')}"

@@ -1,12 +1,12 @@
 """ECS Deep Agent Graph Implementation for LangGraph Studio
 
-This module creates a multi-agent supervisor system with Contextualizer and ECS Domain agents.
+This module creates a multi-agent supervisor system with Contextualizer and Operations agents.
 Implements a supervisor pattern that coordinates between specialized agents based on conversation state and user intent.
 
 The graph is organized as:
-- Supervisor: Orchestrates between Contextualizer and ECS Domain agents
+- Supervisor: Orchestrates between Contextualizer and Operations agents
 - Contextualizer Agent: Handles context extraction and conversation coordination
-- ECS Domain Agent: Handles all AWS ECS-specific technical operations
+- Operations Agent: Handles all AWS ECS-specific technical operations
 - Configuration: Handles write permissions and AWS credentials
 - Session management: Handles MCP clients and agent lifecycle
 """
@@ -69,7 +69,7 @@ async def create_checkpointer():
 def supervisor_router(
     state: ECSDeepAgentState,
 ) -> Literal["contextualizer", "operations", "__end__"]:
-    """Route between Contextualizer and ECS Domain agents based on conversation state.
+    """Route between Contextualizer and Operations agents based on conversation state.
 
     This function implements the supervisor routing logic that determines which
     specialized agent should handle the current request based on conversation
@@ -132,17 +132,21 @@ def supervisor_router(
         logger.info("Routing to Contextualizer: context establishment needed")
         return "contextualizer"
 
-    # Route to ECS Domain if:
+    # Route to Operations if:
     # 1. Context is complete and ready for technical operations
     # 2. User intent requires ECS-specific operations
-    # 3. Explicitly routed to ECS domain
+    # 3. Explicitly routed to operations
+    # 4. OR we have partial context that the operations agent can work with
+    if next_agent == "operations":
+        logger.info("Routing to Operations Agent as requested by Contextualizer")
+        return "operations"
+    
     if (
         has_ecs_context
         and has_user_intent
         and has_problem_description
-        and next_agent in ["operations", None]
     ):
-        logger.info("Routing to ECS Domain: context complete, executing ECS operations")
+        logger.info("Routing to Operations: context complete, executing ECS operations")
         return "operations"
 
     # Check if operations are complete
@@ -242,9 +246,9 @@ async def contextualizer_wrapper(
 async def operations_wrapper(
     state: ECSDeepAgentState, config: ECSDeepAgentConfig
 ) -> ECSDeepAgentState:
-    """Wrapper for ECS Domain Agent node.
+    """Wrapper for Operations Agent node.
 
-    This wrapper adapts the ECS Domain Agent to work with the
+    This wrapper adapts the Operations Agent to work with the
     ECS Deep Agent state and configuration.
 
     Args:
@@ -255,9 +259,9 @@ async def operations_wrapper(
         Updated ECS Deep Agent state
 
     """
-    logger.info("Executing ECS Domain Agent")
+    logger.info("Executing Operations Agent")
 
-    # Convert ECS Deep Agent state to ECS Domain state
+    # Convert ECS Deep Agent state to Operations state
     domain_state = {
         "messages": state["messages"],
         "orgId": state.get("orgId") or config.org_id,
@@ -273,7 +277,7 @@ async def operations_wrapper(
         "problem_description": state.get("problem_description"),
         "urgency_level": state.get("urgency_level"),
         "scope": state.get("scope"),
-        # ECS Domain operation state
+        # Operations Agent state
         "operation_phase": state.get("operation_phase"),
         "triage_findings": state.get("triage_findings"),
         "repair_plan": state.get("repair_plan"),
@@ -286,7 +290,7 @@ async def operations_wrapper(
         "handoff_context": state.get("handoff_context"),
     }
 
-    # Execute ECS Domain node
+    # Execute Operations node
     domain_config = {
         "model": config.create_language_model(),
         "read_only": not config.allow_write,
@@ -330,7 +334,7 @@ async def operations_wrapper(
     updated_state["routing_decision"] = updated_domain_state.get("routing_decision")
 
     logger.info(
-        f"ECS Domain completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
+        f"Operations completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
     )
     return updated_state
 
@@ -339,7 +343,7 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
     """Main graph function for LangGraph Studio
 
     This is the entry point that LangGraph Studio calls. It creates a multi-agent
-    supervisor system that coordinates between Contextualizer and ECS Domain agents.
+    supervisor system that coordinates between Contextualizer and Operations agents.
 
     Configuration can be passed through LangGraph Studio UI:
     - model_name: LLM model to use (e.g., 'claude-3-5-sonnet-20241022')
@@ -388,7 +392,7 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
         },
     )
 
-    # Add conditional routing from ECS Domain
+    # Add conditional routing from Operations
     workflow.add_conditional_edges(
         "operations",
         supervisor_router,
