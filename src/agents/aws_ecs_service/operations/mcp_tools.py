@@ -191,32 +191,10 @@ async def get_ecs_mcp_tools(
     logger.info("Creating AWS MCP client for ECS Domain operations")
 
     try:
-        # Create MCP client in a separate thread to avoid blocking the event loop
-        # This prevents "Blocking call to ScandirIterator.__next__" errors
-        client = await asyncio.to_thread(MultiServerMCPClient, aws_config)
-
-        # Get all available tools from AWS API MCP server
-        all_tools = await client.get_tools()
-        logger.info(f"Retrieved {len(all_tools)} total tools from AWS MCP server")
-
-        # Filter tools based on ECS-focused allowlist
-        allowed_tools = []
-        allowed_names = READ_ONLY_TOOLS.copy()
-
-        if not read_only:
-            allowed_names.extend(WRITE_TOOLS)
-
-        for tool in all_tools:
-            tool_name = tool.name if hasattr(tool, "name") else str(tool)
-
-            # Check if tool matches any pattern in our ECS allowlist
-            for allowed in allowed_names:
-                if tool_name == allowed or allowed in tool_name:
-                    allowed_tools.append(tool)
-                    logger.debug(f"Added ECS tool: {tool_name}")
-                    break
-
-        logger.info(f"Filtered to {len(allowed_tools)} ECS-focused tools")
+        # Wrap the entire MCP client interaction in a single thread to avoid blocking the event loop
+        # This prevents "Blocking call to ScandirIterator.__next__" errors by ensuring all
+        # blocking operations (client creation and tool retrieval) happen in a separate thread
+        allowed_tools = await asyncio.to_thread(_get_ecs_mcp_tools_sync, aws_config, read_only)
         return allowed_tools
 
     except Exception as e:
@@ -249,5 +227,6 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
