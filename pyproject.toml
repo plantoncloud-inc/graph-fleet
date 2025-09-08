@@ -34,7 +34,7 @@ awslabs-aws-api-mcp-server = "^0.2.11"
 mcp = ["langchain-mcp-adapters"]
 
 [tool.poetry.scripts]
-planton-cloud-mcp-server = "mcp.planton_cloud.entry_point:main"
+planton_cloud_mcp = "planton_cloud_mcp.entry_point:main"
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
@@ -43,12 +43,12 @@ build-backend = "setuptools.build_meta"
 [tool.poetry]
 packages = [
   { include = "agents", from = "src" },
-  { include = "mcp", from = "src" }
+  { include = "planton_cloud_mcp", from = "src" }
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["agents*", "mcp*"]
+include = ["agents*", "planton_cloud_mcp*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
