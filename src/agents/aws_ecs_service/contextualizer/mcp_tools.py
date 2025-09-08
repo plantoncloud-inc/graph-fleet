@@ -118,28 +118,10 @@ async def get_planton_cloud_mcp_tools() -> list[BaseTool]:
     logger.info("Creating Planton Cloud MCP client for Contextualizer operations")
 
     try:
-        # Create MCP client in a separate thread to avoid blocking the event loop
-        # This prevents "Blocking call to ScandirIterator.__next__" errors
-        client = await asyncio.to_thread(MultiServerMCPClient, planton_config)
-
-        # Get all available tools from Planton Cloud MCP server
-        all_tools = await client.get_tools()
-        logger.info(f"Retrieved {len(all_tools)} total tools from Planton Cloud MCP server")
-
-        # Filter tools based on context-focused allowlist
-        allowed_tools = []
-        
-        for tool in all_tools:
-            tool_name = tool.name if hasattr(tool, "name") else str(tool)
-            
-            # Check if tool matches any pattern in our context allowlist
-            for allowed in PLANTON_CLOUD_CONTEXT_TOOLS:
-                if tool_name == allowed or allowed in tool_name:
-                    allowed_tools.append(tool)
-                    logger.debug(f"Added Planton Cloud context tool: {tool_name}")
-                    break
-
-        logger.info(f"Filtered to {len(allowed_tools)} Planton Cloud context tools")
+        # Wrap the entire MCP client interaction in a single thread to avoid blocking the event loop
+        # This prevents "Blocking call to ScandirIterator.__next__" errors by ensuring all
+        # blocking operations (client creation and tool retrieval) happen in a separate thread
+        allowed_tools = await asyncio.to_thread(_get_planton_cloud_mcp_tools_sync, planton_config)
         return allowed_tools
 
     except Exception as e:
@@ -147,5 +129,6 @@ async def get_planton_cloud_mcp_tools() -> list[BaseTool]:
         # Fall back to empty list - agent will still work without tools
         logger.warning("Continuing without Planton Cloud MCP tools")
         return []
+
 
 
