@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[str, Any]:
-    """Get AWS API MCP server configuration
+    """Get AWS API MCP server configuration.
 
     Args:
         aws_credentials: Optional dictionary with AWS credentials
@@ -228,6 +228,7 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
 
