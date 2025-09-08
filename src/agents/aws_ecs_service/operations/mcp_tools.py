@@ -43,9 +43,9 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
 
     # Try to import awslabs.aws_api_mcp_server to check if it's installed
     try:
-        import awslabs.aws_api_mcp_server
-
-        # AWS API MCP server is installed, use the command directly
+        import importlib.util
+        if importlib.util.find_spec("awslabs.aws_api_mcp_server") is not None:
+            # AWS API MCP server is installed, use the command directly
         return {
             "command": "awslabs.aws-api-mcp-server",
             "args": [],
@@ -228,6 +228,7 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
 
