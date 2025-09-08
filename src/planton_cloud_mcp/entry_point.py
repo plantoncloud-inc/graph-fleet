@@ -1,5 +1,6 @@
 """Planton Cloud MCP Server entrypoint."""
 
+import asyncio
 import os
 import sys
 
@@ -17,8 +18,10 @@ except ImportError:
 
 def main() -> None:
     """Main entry point for the command line script."""
-    run_server()
+    # Run the async server initialization
+    asyncio.run(run_server())
 
 
 if __name__ == "__main__":
     main()
+
