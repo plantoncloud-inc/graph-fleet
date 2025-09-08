@@ -46,12 +46,12 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
         import importlib.util
         if importlib.util.find_spec("awslabs.aws_api_mcp_server") is not None:
             # AWS API MCP server is installed, use the command directly
-        return {
-            "command": "awslabs.aws-api-mcp-server",
-            "args": [],
-            "transport": "stdio",
-            "env": env,
-        }
+            return {
+                "command": "awslabs.aws-api-mcp-server",
+                "args": [],
+                "transport": "stdio",
+                "env": env,
+            }
     except ImportError:
         # AWS API MCP server not installed - fall back to uvx
         # Note: uvx will install on first run and cache in ~/.local/share/uv/tools/
@@ -228,6 +228,7 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
 
 
