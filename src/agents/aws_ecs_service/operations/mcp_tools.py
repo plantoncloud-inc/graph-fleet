@@ -229,9 +229,3 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
 
     return interrupt_config
 
-
-
-
-
-
-
