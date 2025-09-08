@@ -108,6 +108,63 @@ def get_aws_credentials_from_env() -> dict | None:
     return None
 
 
+def _get_ecs_mcp_tools_sync(
+    aws_config: dict[str, Any], read_only: bool = True
+) -> list[BaseTool]:
+    """Synchronous helper function to create MCP client and retrieve ECS tools.
+    
+    This function runs in a separate thread to prevent blocking the event loop.
+    All blocking operations (client creation and tool retrieval) happen here.
+    
+    Args:
+        aws_config: MCP server configuration dictionary
+        read_only: If True, return only read-only tools. If False, include write tools.
+        
+    Returns:
+        List of filtered LangChain tools for ECS operations
+        
+    Raises:
+        Exception: If MCP client creation or tool retrieval fails
+    """
+    # Import MultiServerMCPClient inside the function to prevent blocking during module load
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+    
+    # Create MCP client - this may perform blocking filesystem operations
+    client = MultiServerMCPClient(aws_config)
+    
+    # Get all available tools from AWS API MCP server - this may also block
+    # Note: We need to handle this synchronously since we're in a thread
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        all_tools = loop.run_until_complete(client.get_tools())
+    finally:
+        loop.close()
+    
+    logger.info(f"Retrieved {len(all_tools)} total tools from AWS MCP server")
+    
+    # Filter tools based on ECS-focused allowlist
+    allowed_tools = []
+    allowed_names = READ_ONLY_TOOLS.copy()
+    
+    if not read_only:
+        allowed_names.extend(WRITE_TOOLS)
+    
+    for tool in all_tools:
+        tool_name = tool.name if hasattr(tool, "name") else str(tool)
+        
+        # Check if tool matches any pattern in our ECS allowlist
+        for allowed in allowed_names:
+            if tool_name == allowed or allowed in tool_name:
+                allowed_tools.append(tool)
+                logger.debug(f"Added ECS tool: {tool_name}")
+                break
+    
+    logger.info(f"Filtered to {len(allowed_tools)} ECS-focused tools")
+    return allowed_tools
+
+
 async def get_ecs_mcp_tools(
     read_only: bool = True, aws_credentials: dict[str, str] | None = None
 ) -> list[BaseTool]:
@@ -192,4 +249,5 @@ def get_interrupt_config(tools: list[BaseTool]) -> dict[str, bool]:
                 break
 
     return interrupt_config
+
 
