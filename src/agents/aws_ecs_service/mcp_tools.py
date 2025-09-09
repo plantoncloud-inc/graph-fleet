@@ -62,7 +62,7 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
                 "AWS_ACCESS_KEY_ID": aws_credentials["access_key_id"],
                 "AWS_SECRET_ACCESS_KEY": aws_credentials["secret_access_key"],
                 "AWS_SESSION_TOKEN": aws_credentials.get("session_token", ""),
-                "AWS_REGION": aws_credentials.get("region", "us-east-1"),
+                "AWS_REGION": aws_credentials.get("region", "ap-south-1"),
             }
         )
     else:
@@ -107,8 +107,8 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
 # Planton Cloud context tools allowlist
 PLANTON_CLOUD_CONTEXT_TOOLS = [
     # AWS credential management
-    "list_aws_credentials",
-    "get_aws_credential",
+    # "list_aws_credentials",
+    # "get_aws_credential",
     # AWS ECS service discovery
     "list_aws_ecs_services",
     "get_aws_ecs_service",

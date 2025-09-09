@@ -56,9 +56,30 @@ async def ecs_agent_node(
     model = config.get("model", "claude-3-5-haiku-20241022")
     agent = await create_ecs_deep_agent(model=model)
     
-    # Prepare input
+    # Prepare input - filter out any messages with empty content
+    messages = state.get("messages", [])
+    
+    # Filter out messages with empty content to avoid Anthropic API errors
+    filtered_messages = []
+    for i, msg in enumerate(messages):
+        # Check if message has content
+        has_content = False
+        content = None
+        
+        if hasattr(msg, 'content'):
+            content = msg.content
+            has_content = content is not None and str(content).strip() != ""
+        elif isinstance(msg, dict) and 'content' in msg:
+            content = msg.get('content')
+            has_content = content is not None and str(content).strip() != ""
+        
+        if has_content:
+            filtered_messages.append(msg)
+        else:
+            logger.warning(f"Skipping message {i} with empty/None content. Type: {type(msg)}, Content: {repr(content)}")
+    
     agent_input = {
-        "messages": state.get("messages", []),
+        "messages": filtered_messages,
         "orgId": org_id,
         "envName": env_name,
     }
