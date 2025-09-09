@@ -85,11 +85,11 @@ async def list_aws_ecs_services(
             "is_active": True
         },
         {
-            "id": "ecs-service-legacy-prod-001", 
-            "name": "legacy-service",
+            "id": "ecs-demo-service-prod-001", 
+            "name": "ecs-demo-service",
             "kind": "AwsEcsService",
             "org_id": org_id,
-            "env_name": "production",
+            "env_name": "aws",
             "tags": ["legacy", "production", "deprecated"],
             "created_by": "admin@acme-corp.com", 
             "created_at": "2023-12-01T09:00:00Z",
@@ -145,10 +145,10 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
         # Metadata from ApiResourceMetadata
         "metadata": {
             "id": service_id,
-            "name": "api-service",                # Human-readable name
-            "slug": "api-service-prod",           # URL-friendly identifier
-            "org": "acme-corp",                   # Organization ID
-            "env": "production",                  # Environment name
+            "name": "ecs-demo-service",                # Human-readable name
+            "slug": "ecs-demo-service-prod",           # URL-friendly identifier
+            "org": "project-planton",                   # Organization ID
+            "env": "aws",                  # Environment name
             "labels": {                           # Key-value labels
                 "service-type": "web-api",
                 "team": "backend",
@@ -167,9 +167,9 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
         
         # Spec from AwsEcsServiceSpec
         "spec": {
-            "cluster_arn": "arn:aws:ecs:us-west-2:123456789012:cluster/production-cluster",
+            "cluster_arn": "arn:aws:ecs:ap-south-1:335530171489:cluster/infinite-hippopotamus-igvfjo",
             "container": {
-                "image": "acme-corp/api-service:v2.1.0",
+                "image": "335530171489.dkr.ecr.ap-south-1.amazonaws.com/ecs-demo-service:latest",
                 "cpu": 512,                       # CPU units (0.5 vCPU)
                 "memory": 1024,                   # Memory in MB
                 "port": 8080,                     # Container port
@@ -187,11 +187,6 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
                 "security_group_ids": [
                     "sg-12345678"
                 ]
-            },
-            "load_balancer": {
-                "target_group_arn": "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/api-service-tg/1234567890123456",
-                "health_check_path": "/health",
-                "health_check_interval": 30
             },
             "scaling": {
                 "desired_count": 3,
@@ -212,12 +207,10 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
                 "updated_by": "admin@acme-corp.com"
             },
             "outputs": {
-                "service_arn": "arn:aws:ecs:us-west-2:123456789012:service/production-cluster/api-service",
-                "service_name": "api-service",
-                "cluster_arn": "arn:aws:ecs:us-west-2:123456789012:cluster/production-cluster",
-                "task_definition_arn": "arn:aws:ecs:us-west-2:123456789012:task-definition/api-service:15",
-                "load_balancer_dns": "api-service-alb-123456789.us-west-2.elb.amazonaws.com",
-                "service_url": "https://api.acme-corp.com"
+                "service_arn": "arn:aws:ecs:ap-south-1:335530171489:service/infinite-hippopotamus-igvfjo/ecs-demo-service",
+                "service_name": "ecs-demo-service",
+                "cluster_arn": "arn:aws:ecs:ap-south-1:335530171489:cluster/infinite-hippopotamus-igvfjo",
+                "task_definition_arn": "arn:aws:ecs:ap-south-1:335530171489:task/infinite-hippopotamus-igvfjo/1ab08df67ff543c098e48c8e3b34709e",                                
             }
         }
     }
