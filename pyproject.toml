@@ -29,6 +29,7 @@ blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+6f15602dc75b", s
 # https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:grpc/python?version=v1.74.1
 blintora-apis-grpc-python = { version = "==1.74.1.1.dev+6f15602dc75b", source = "buf-build" }
 awslabs-aws-api-mcp-server = "^0.2.11"
+awslabs-ecs-mcp-server = "^0.1.2"
 
 [tool.poetry.extras]
 mcp = ["langchain-mcp-adapters"]
