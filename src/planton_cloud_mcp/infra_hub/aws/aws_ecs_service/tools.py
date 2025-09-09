@@ -93,7 +93,7 @@ async def list_aws_ecs_services(
             "tags": ["legacy", "production", "deprecated"],
             "created_by": "admin@acme-corp.com", 
             "created_at": "2023-12-01T09:00:00Z",
-            "is_active": False  # Inactive service example
+            "is_active": True  # Inactive service example
         }
     ]
 
