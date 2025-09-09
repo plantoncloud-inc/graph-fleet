@@ -66,103 +66,8 @@ async def create_checkpointer():
         return InMemorySaver()
 
 
-def supervisor_router(
-    state: ECSDeepAgentState,
-) -> Literal["contextualizer", "operations", "__end__"]:
-    """Route between Contextualizer and Operations agents based on conversation state.
-
-    This function implements the supervisor routing logic that determines which
-    specialized agent should handle the current request based on conversation
-    state and user intent.
-
-    Args:
-        state: Current ECS Deep Agent state
-
-    Returns:
-        Name of the next agent to route to
-
-    """
-    logger.info("Supervisor routing decision")
-    
-    # Check if we have any messages to process
-    messages = state.get("messages", [])
-    has_user_messages = False
-    for msg in messages:
-        # Handle both dict and LangChain message objects
-        if hasattr(msg, "type"):
-            # LangChain message object
-            if msg.type == "human":
-                has_user_messages = True
-                break
-        elif isinstance(msg, dict) and msg.get("role") == "user":
-            # Dictionary message
-            has_user_messages = True
-            break
-    
-    # If no user messages, wait for input
-    if not has_user_messages:
-        logger.info("No user messages to process, ending to wait for input")
-        return "__end__"
-
-    # Check if we have complete context for ECS operations
-    has_ecs_context = bool(state.get("ecs_context"))
-    has_user_intent = bool(state.get("user_intent"))
-    has_problem_description = bool(state.get("problem_description"))
-
-    # Check current conversation phase
-    conversation_phase = state.get("conversation_phase", "initial")
-
-    # Check if Contextualizer has determined next agent
-    next_agent = state.get("next_agent")
-    
-    # Check for explicit end signal
-    if next_agent == "__end__":
-        logger.info("Ending conversation as requested by agent")
-        return "__end__"
-
-    # Route to Contextualizer if:
-    # 1. Initial conversation or context extraction phase
-    # 2. Missing essential context for ECS operations
-    # 3. Explicitly routed back to context coordinator
-    if (
-        conversation_phase in ["initial", "context_extraction", "coordination"]
-        or not (has_ecs_context and has_user_intent)
-        or next_agent == "contextualizer"
-    ):
-        logger.info("Routing to Contextualizer: context establishment needed")
-        return "contextualizer"
-
-    # Route to Operations if:
-    # 1. Context is complete and ready for technical operations
-    # 2. User intent requires ECS-specific operations
-    # 3. Explicitly routed to operations
-    # 4. OR we have partial context that the operations agent can work with
-    if next_agent == "operations":
-        logger.info("Routing to Operations Agent as requested by Contextualizer")
-        return "operations"
-    
-    if (
-        has_ecs_context
-        and has_user_intent
-        and has_problem_description
-    ):
-        logger.info("Routing to Operations: context complete, executing ECS operations")
-        return "operations"
-
-    # Check if operations are complete
-    operation_phase = state.get("operation_phase")
-    verification_status = state.get("verification_status")
-
-    if operation_phase == "reporting" and verification_status in [
-        "passed",
-        "completed",
-    ]:
-        logger.info("Operations complete, ending conversation")
-        return "__end__"
-
-    # Default to Contextualizer for safety
-    logger.info("Default routing to Contextualizer")
-    return "contextualizer"
+# Import the production-grade router
+from .routing import supervisor_router
 
 
 async def contextualizer_wrapper(
@@ -188,8 +93,6 @@ async def contextualizer_wrapper(
         "messages": state["messages"],
         "orgId": state.get("orgId") or config.org_id,
         "envName": state.get("envName") or config.env_name,
-        "session_id": state.get("conversation_session_id"),
-        "thread_id": state.get("thread_id"),
         # Preserve existing context if available
         "planton_context": state.get("planton_context"),
         "aws_credentials": state.get("aws_credentials"),
@@ -197,11 +100,13 @@ async def contextualizer_wrapper(
         "ecs_context": state.get("ecs_context"),
         "user_intent": state.get("user_intent"),
         "problem_description": state.get("problem_description"),
-        "urgency_level": state.get("urgency_level"),
-        "scope": state.get("scope"),
         "conversation_phase": state.get("conversation_phase"),
-        "next_agent": state.get("next_agent"),
-        "routing_decision": state.get("routing_decision"),
+        "context_extraction_status": state.get("context_extraction_status"),
+        "error_count": state.get("error_count", 0),
+        "error_source": state.get("error_source"),
+        "last_error": state.get("last_error"),
+        "processed_message_count": state.get("processed_message_count", 0),
+        "awaiting_user_input": state.get("awaiting_user_input", False),
     }
 
     # Execute Contextualizer node
@@ -228,17 +133,19 @@ async def contextualizer_wrapper(
     updated_state["problem_description"] = updated_context_state.get(
         "problem_description"
     )
-    updated_state["urgency_level"] = updated_context_state.get("urgency_level")
-    updated_state["scope"] = updated_context_state.get("scope")
     updated_state["conversation_phase"] = updated_context_state.get(
         "conversation_phase"
     )
-    updated_state["next_agent"] = updated_context_state.get("next_agent")
-    updated_state["routing_decision"] = updated_context_state.get("routing_decision")
-    updated_state["handoff_context"] = updated_context_state.get("handoff_context")
+    updated_state["context_extraction_status"] = updated_context_state.get("context_extraction_status")
+    updated_state["error_count"] = updated_context_state.get("error_count", 0)
+    updated_state["error_source"] = updated_context_state.get("error_source")
+    updated_state["last_error"] = updated_context_state.get("last_error")
+    updated_state["processed_message_count"] = updated_context_state.get("processed_message_count", 0)
+    updated_state["awaiting_user_input"] = updated_context_state.get("awaiting_user_input", False)
+    updated_state["current_agent"] = updated_context_state.get("current_agent")
 
     logger.info(
-        f"Contextualizer completed. Next agent: {updated_state.get('next_agent')}"
+        f"Contextualizer completed. Status: {updated_state.get('context_extraction_status')}"
     )
     return updated_state
 
@@ -266,8 +173,6 @@ async def operations_wrapper(
         "messages": state["messages"],
         "orgId": state.get("orgId") or config.org_id,
         "envName": state.get("envName") or config.env_name,
-        "session_id": state.get("conversation_session_id"),
-        "thread_id": state.get("thread_id"),
         # Context from Contextualizer
         "planton_context": state.get("planton_context"),
         "aws_credentials": state.get("aws_credentials"),
@@ -275,19 +180,19 @@ async def operations_wrapper(
         "ecs_context": state.get("ecs_context"),
         "user_intent": state.get("user_intent"),
         "problem_description": state.get("problem_description"),
-        "urgency_level": state.get("urgency_level"),
-        "scope": state.get("scope"),
         # Operations Agent state
         "operation_phase": state.get("operation_phase"),
         "triage_findings": state.get("triage_findings"),
         "repair_plan": state.get("repair_plan"),
-        "execution_status": state.get("execution_status"),
-        "verification_status": state.get("verification_status"),
+        "execution_results": state.get("execution_results"),
         "operation_summary": state.get("operation_summary"),
         "write_operations_enabled": config.allow_write,
         "aws_region": config.aws_region,
-        "handoff_from": "contextualizer",
-        "handoff_context": state.get("handoff_context"),
+        "error_count": state.get("error_count", 0),
+        "error_source": state.get("error_source"),
+        "last_error": state.get("last_error"),
+        "processed_message_count": state.get("processed_message_count", 0),
+        "awaiting_user_input": state.get("awaiting_user_input", False),
     }
 
     # Execute Operations node
@@ -305,36 +210,19 @@ async def operations_wrapper(
     updated_state["messages"] = updated_domain_state["messages"]
     updated_state["operation_phase"] = updated_domain_state.get("operation_phase")
     updated_state["triage_findings"] = updated_domain_state.get("triage_findings")
-    updated_state["evidence_collected"] = updated_domain_state.get("evidence_collected")
-    updated_state["root_cause_analysis"] = updated_domain_state.get(
-        "root_cause_analysis"
-    )
     updated_state["repair_plan"] = updated_domain_state.get("repair_plan")
-    updated_state["plan_options"] = updated_domain_state.get("plan_options")
-    updated_state["risk_assessment"] = updated_domain_state.get("risk_assessment")
-    updated_state["user_approvals"] = updated_domain_state.get("user_approvals")
-    updated_state["execution_status"] = updated_domain_state.get("execution_status")
-    updated_state["executed_steps"] = updated_domain_state.get("executed_steps")
     updated_state["execution_results"] = updated_domain_state.get("execution_results")
-    updated_state["rollback_plan"] = updated_domain_state.get("rollback_plan")
-    updated_state["verification_status"] = updated_domain_state.get(
-        "verification_status"
-    )
-    updated_state["health_checks"] = updated_domain_state.get("health_checks")
-    updated_state["success_criteria"] = updated_domain_state.get("success_criteria")
-    updated_state["verification_findings"] = updated_domain_state.get(
-        "verification_findings"
-    )
     updated_state["operation_summary"] = updated_domain_state.get("operation_summary")
-    updated_state["audit_trail"] = updated_domain_state.get("audit_trail")
-    updated_state["documentation_files"] = updated_domain_state.get(
-        "documentation_files"
-    )
-    updated_state["next_agent"] = updated_domain_state.get("next_agent")
-    updated_state["routing_decision"] = updated_domain_state.get("routing_decision")
+    updated_state["operation_status"] = updated_domain_state.get("operation_status")
+    updated_state["error_count"] = updated_domain_state.get("error_count", 0)
+    updated_state["error_source"] = updated_domain_state.get("error_source")
+    updated_state["last_error"] = updated_domain_state.get("last_error")
+    updated_state["processed_message_count"] = updated_domain_state.get("processed_message_count", 0)
+    updated_state["awaiting_user_input"] = updated_domain_state.get("awaiting_user_input", False)
+    updated_state["current_agent"] = "operations"
 
     logger.info(
-        f"Operations completed. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
+        f"Operations completed. Phase: {updated_state.get('operation_phase')}, Status: {updated_state.get('operation_status')}"
     )
     return updated_state
 
@@ -346,7 +234,7 @@ async def graph(config: dict | None = None) -> CompiledStateGraph:
     supervisor system that coordinates between Contextualizer and Operations agents.
 
     Configuration can be passed through LangGraph Studio UI:
-    - model_name: LLM model to use (e.g., 'claude-3-5-sonnet-20241022')
+    - model_name: LLM model to use (e.g., 'claude-35-sonnet-20241022')
     - allow_write: Allow write operations (default: False)
     - allow_sensitive_data: Allow sensitive data handling (default: False)
     - aws_region: AWS region to use

@@ -31,9 +31,11 @@ class ContextualizerState(DeepAgentState):
     user_preferences: dict[str, Any] | None  # Risk tolerance, communication style
 
     # Agent routing and handoff
-    next_agent: str | None  # Which agent to hand off to
     handoff_context: dict[str, Any] | None  # Context to pass to next agent
-    routing_decision: str | None  # Reason for routing decision
+    context_extraction_status: str | None  # complete, partial, in_progress
+    total_errors: int | None  # Total error count
+    error_source: str | None  # Source of any errors
+    error_message: str | None  # Error message if any
 
     # Session management
     session_id: str | None
