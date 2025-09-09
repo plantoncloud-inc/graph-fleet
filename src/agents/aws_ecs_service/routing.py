@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 def supervisor_router(
     state: ECSDeepAgentState,
 ) -> Literal["contextualizer", "operations", "__end__"]:
-    """Simple router that prevents infinite loops.
+    """Simple router with one goal: get service name then hand off to operations.
     
-    Core routing logic:
-    1. If agent is awaiting user input, end to wait for response
-    2. Track processed messages to avoid reprocessing
-    3. Route based on context completeness and operation status
+    Simplified routing:
+    1. No service identified → contextualizer
+    2. Service identified → operations
+    3. Work complete or awaiting input → end
     
     Args:
         state: Current ECS Deep Agent state
@@ -31,22 +31,21 @@ def supervisor_router(
     logger.info("=== ROUTING DECISION ===")
     logger.info(f"Current agent: {state.get('current_agent')}")
     logger.info(f"Awaiting user input: {state.get('awaiting_user_input')}")
-    logger.info(f"Context status: {state.get('context_extraction_status')}")
-    logger.info(f"Operation phase: {state.get('operation_phase')}")
     
-    # Critical: If any agent is awaiting user input, end immediately
-    if state.get("awaiting_user_input"):
-        logger.info("Agent is awaiting user input, ending conversation")
-        return "__end__"
-    
-    # Check message count to prevent reprocessing
+    # Check message count to see if we have new messages
     messages = state.get("messages", [])
     current_message_count = len(messages)
     processed_count = state.get("processed_message_count", 0)
+    has_new_messages = current_message_count > processed_count
     
-    # If we've already processed all messages, end
-    if current_message_count <= processed_count:
-        logger.info("All messages already processed, ending")
+    if has_new_messages:
+        logger.info(f"New messages detected: {current_message_count} total, {processed_count} processed")
+    else:
+        # No new messages - check if we're waiting for input
+        if state.get("awaiting_user_input"):
+            logger.info("Awaiting user input and no new messages, ending")
+            return "__end__"
+        logger.info("No new messages to process, ending")
         return "__end__"
     
     # Check for errors
@@ -54,34 +53,26 @@ def supervisor_router(
         logger.warning("Too many errors, ending conversation")
         return "__end__"
     
-    # Determine routing based on context status
-    context_status = state.get("context_extraction_status")
+    # SIMPLIFIED ROUTING LOGIC
+    # Key decision: Do we know which ECS service to work with?
+    ecs_context = state.get("ecs_context", {})
+    has_service = bool(ecs_context and ecs_context.get("service"))
     
-    # If context extraction needs user input, we should have ended above
-    if context_status == "needs_input":
-        logger.info("Context needs input but awaiting_user_input not set, ending anyway")
-        return "__end__"
-    
-    # If we have complete context, go to operations
-    if context_status == "complete" and state.get("ecs_context") and state.get("user_intent"):
-        # Check if operations already completed
+    if has_service:
+        # We have the service - go to operations (unless already completed)
         if state.get("operation_status") == "completed":
             logger.info("Operations completed, ending")
             return "__end__"
-        logger.info("Context complete, routing to operations")
+        logger.info(f"Service identified: {ecs_context.get('service')}. Routing to operations")
         return "operations"
-    
-    # If context is partial or in progress, continue with contextualizer
-    if context_status in ["partial", "in_progress", None]:
-        # But only if we haven't just come from contextualizer
+    else:
+        # No service yet - need contextualizer (but prevent loops)
         if state.get("current_agent") == "contextualizer":
-            logger.info("Just came from contextualizer, checking if it needs user input")
-            # If contextualizer didn't set awaiting_user_input, something's wrong
-            # End to prevent loop
+            # Just came from contextualizer - it should have set awaiting_user_input
+            # If not, end to prevent loop
+            if not state.get("awaiting_user_input"):
+                logger.warning("Contextualizer didn't identify service or request input, ending to prevent loop")
+                return "__end__"
             return "__end__"
-        logger.info("Context incomplete, routing to contextualizer")
+        logger.info("Service not identified, routing to contextualizer")
         return "contextualizer"
-    
-    # Default: end to prevent loops
-    logger.info("No clear routing path, ending to prevent loops")
-    return "__end__"

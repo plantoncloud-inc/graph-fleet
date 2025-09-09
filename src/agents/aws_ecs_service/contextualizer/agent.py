@@ -62,6 +62,19 @@ async def _extract_context_from_response(
         else:
             return None
             
+        # Handle case where content might be a list (e.g., structured output)
+        if isinstance(content, list):
+            # If content is a list, try to extract text from it
+            text_parts = []
+            for item in content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                elif isinstance(item, dict) and "text" in item:
+                    text_parts.append(item["text"])
+                elif isinstance(item, dict) and "content" in item:
+                    text_parts.append(str(item["content"]))
+            content = " ".join(text_parts) if text_parts else ""
+            
         if not content:
             return None
             
@@ -94,7 +107,9 @@ async def _extract_context_from_response(
             
         # If no structured data, use pattern matching as fallback
         if not extracted_context:
-            content_lower = content.lower()
+            # Ensure content is a string before calling lower()
+            content_str = str(content) if content else ""
+            content_lower = content_str.lower()
             
             # Extract ECS context from patterns
             if "cluster" in content_lower or "service" in content_lower:
@@ -261,11 +276,32 @@ async def contextualizer_node(
         # Create agent if not cached
         agent = await create_contextualizer_agent(model=model)
 
+        # Filter out empty messages to prevent API errors
+        messages = state.get("messages", [])
+        filtered_messages = []
+        for msg in messages:
+            # Check if message has content
+            content = None
+            if hasattr(msg, "content"):
+                content = msg.content
+            elif isinstance(msg, dict) and "content" in msg:
+                content = msg["content"]
+            
+            # Only include messages with non-empty content
+            if content and str(content).strip():
+                filtered_messages.append(msg)
+            else:
+                logger.debug(f"Filtering out empty message: {msg}")
+
+        # Get Planton context from environment variables
+        org_id = state.get("orgId") or os.environ.get("PLANTON_ORG_ID", "planton-demo")
+        env_name = state.get("envName") or os.environ.get("PLANTON_ENV_NAME", "aws")
+        
         # Prepare input for agent
         agent_input = {
-            "messages": state["messages"],
-            "orgId": state.get("orgId", os.environ.get("PLANTON_ORG_ID")),
-            "envName": state.get("envName", os.environ.get("PLANTON_ENV_NAME")),
+            "messages": filtered_messages,
+            "orgId": org_id,
+            "envName": env_name,
         }
 
         # Invoke the agent
@@ -273,6 +309,10 @@ async def contextualizer_node(
 
         # Extract results and update state
         updated_state = state.copy()
+        
+        # Store Planton context in state for future use
+        updated_state["orgId"] = org_id
+        updated_state["envName"] = env_name
 
         # Update messages with agent response
         if "messages" in result:
@@ -297,9 +337,13 @@ async def contextualizer_node(
             if state.get(field) and not updated_state.get(field):
                 updated_state[field] = state[field]
 
-        # Check if we have any user messages to process
+        # Check message processing status
         messages = state.get("messages", [])
         current_message_count = len(messages)
+        processed_count = state.get("processed_message_count", 0)
+        has_new_messages = current_message_count > processed_count
+        
+        # Count user messages
         has_user_messages = False
         for msg in messages:
             # Handle both dict and LangChain message objects
@@ -313,33 +357,46 @@ async def contextualizer_node(
                 has_user_messages = True
                 break
         
-        # Update conversation phase based on context completeness
-        if updated_state.get("ecs_context") and updated_state.get("user_intent"):
+        # SIMPLIFIED: Just check if we have the service name
+        ecs_context = updated_state.get("ecs_context", {})
+        has_service = bool(ecs_context and ecs_context.get("service"))
+        
+        if has_service:
+            # Service identified - ready to hand off
             updated_state["conversation_phase"] = "context_complete"
             updated_state["context_extraction_status"] = "complete"
             updated_state["awaiting_user_input"] = False
-        elif updated_state.get("user_intent") or updated_state.get("problem_description"):
-            updated_state["conversation_phase"] = "partial_context"
-            updated_state["context_extraction_status"] = "partial"
-            # Check if the last message asked for user input
-            if messages and len(messages) > 0:
-                last_msg = messages[-1]
-                if hasattr(last_msg, "content"):
-                    content = last_msg.content.lower()
-                elif isinstance(last_msg, dict):
-                    content = last_msg.get("content", "").lower()
-                else:
-                    content = ""
-                # Check if we're asking for more information
-                if any(phrase in content for phrase in ["could you", "please provide", "which", "what", "can you", "i need"]):
-                    updated_state["awaiting_user_input"] = True
-                    updated_state["context_extraction_status"] = "needs_input"
-                else:
-                    updated_state["awaiting_user_input"] = False
+            logger.info(f"Service identified: {ecs_context.get('service')}. Ready for handoff to operations.")
         else:
+            # No service yet - check if we asked user to pick one
             updated_state["conversation_phase"] = "context_extraction"
             updated_state["context_extraction_status"] = "in_progress"
-            updated_state["awaiting_user_input"] = False
+            
+            # Check if we're asking the user to select a service
+            if has_new_messages and "messages" in updated_state:
+                for msg in reversed(updated_state["messages"]):
+                    content = ""
+                    msg_type = ""
+                    
+                    if hasattr(msg, "type"):
+                        msg_type = msg.type
+                        if hasattr(msg, "content"):
+                            content = msg.content
+                    elif isinstance(msg, dict):
+                        msg_type = msg.get("role", msg.get("type", ""))
+                        content = msg.get("content", "")
+                    
+                    if msg_type in ["assistant", "ai"]:
+                        content_lower = str(content).lower()
+                        # Check if we're asking user to pick a service
+                        if any(phrase in content_lower for phrase in ["which", "choose", "select", "pick", "?"]):
+                            updated_state["awaiting_user_input"] = True
+                            logger.info("Asking user to select a service")
+                        else:
+                            updated_state["awaiting_user_input"] = False
+                        break
+            else:
+                updated_state["awaiting_user_input"] = False
             
         # Update processed message count
         updated_state["processed_message_count"] = current_message_count

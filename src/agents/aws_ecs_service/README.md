@@ -21,35 +21,77 @@ This system leverages deepagents' built-in capabilities with advanced conversati
 - **MCP Integration**: AWS ECS tools via langchain-mcp-adapters with conversational orchestration
 - **Planton Cloud Integration**: Seamless context establishment and credential management through Planton Cloud MCP tools
 
-## Recent Updates (Infinite Loop Fix)
+## Recent Updates
 
-### Problem
-The agent was experiencing infinite loops where the contextualizer would be called repeatedly even after asking the user for more information, instead of properly ending and waiting for user input.
+### Major Simplification: Clear Agent Separation (2025-09-09)
 
-### Solution
+#### Changes Made
+We've dramatically simplified the agent responsibilities to prevent overlap and confusion:
+
+1. **Contextualizer Agent - ONE JOB ONLY**
+   - Identify which ECS service the user is referring to
+   - Show list of available services if unclear
+   - Immediately hand off to Operations once service is identified
+   - **REMOVED**: No longer asks about symptoms, errors, or tries to understand problems
+
+2. **Operations Agent - FULL AUTONOMY**
+   - Receives service name from Contextualizer
+   - Autonomously diagnoses issues using AWS APIs (logs, metrics, health)
+   - Does NOT ask user for symptoms - figures it out itself
+   - Handles all technical operations end-to-end
+
+3. **Simplified State**
+   - Reduced state attributes from ~50 to ~15 essential fields
+   - Removed unnecessary tracking fields
+   - Cleaner handoff between agents
+
+4. **Updated Prompts**
+   - Contextualizer prompts now explicitly forbid asking about symptoms
+   - Clear examples of good vs bad flows
+   - Operations agent instructed to be autonomous
+
+**Result**: Faster handoffs, no redundant questions, clearer separation of concerns.
+
+### Previous Fix: Empty Message Error and Conversation Continuation (2025-09-09)
+
+#### Problem
+After the initial fix for infinite loops, two new issues emerged:
+1. Error: "all messages must have non-empty content" when contextualizer was invoked
+2. System not continuing after user provided requested information
+
+#### Solution
+1. **Message Filtering**: Added validation to filter out empty messages before invoking the agent
+2. **Smart Continuation**: Router now detects new messages and automatically continues processing
+3. **State Reset**: When new messages arrive, `awaiting_user_input` is reset to allow continuation
+
+### Previous Fix: Infinite Loop Prevention
+
+#### Problem
+The agent was experiencing infinite loops where the contextualizer would be called repeatedly even after asking the user for more information.
+
+#### Solution
 We've implemented a simplified routing system with the following key changes:
 
 1. **Simplified State Management**
-   - Removed redundant state attributes (reduced from ~50 to ~20 essential attributes)
-   - Added `awaiting_user_input` flag to explicitly track when agents need user response
-   - Added `processed_message_count` to prevent reprocessing the same messages
+   - Reduced state attributes from ~50 to ~20 essential ones
+   - Added `awaiting_user_input` flag to track when agents need user response
+   - Added `processed_message_count` to prevent reprocessing
 
 2. **Fixed Routing Logic**
-   - Router now immediately ends if `awaiting_user_input` is true
-   - Prevents reprocessing messages by tracking processed count
-   - Simplified routing decisions based on clear state transitions
-   - Removed complex phase enums in favor of simple status checks
+   - Router checks for new messages before deciding to continue or end
+   - Prevents reprocessing by comparing message counts
+   - Simplified decisions based on clear state transitions
 
 3. **Agent Updates**
-   - Both contextualizer and operations agents now properly set `awaiting_user_input`
-   - Agents detect when they're asking questions and mark state accordingly
-   - Error handling ensures conversation ends gracefully on errors
+   - Both agents properly set `awaiting_user_input` when asking questions
+   - Better detection of question patterns in responses
+   - Graceful error handling
 
 ### Key State Attributes
-- `awaiting_user_input`: Boolean flag indicating if agent needs user response
+- `awaiting_user_input`: Boolean flag - true when agent needs user response
 - `processed_message_count`: Number of messages already processed
-- `context_extraction_status`: Can be "complete", "partial", "in_progress", or "needs_input"
-- `operation_status`: Can be "in_progress", "completed", "failed", "needs_approval", "needs_context"
+- `context_extraction_status`: "complete", "partial", "in_progress", or "needs_input"
+- `operation_status`: "in_progress", "completed", "failed", "needs_approval", "needs_context"
 
 ## Features
 
@@ -97,26 +139,32 @@ The ECS Deep Agent now includes comprehensive Planton Cloud integration for enha
 3. **Detailed Retrieval**: When operations need full details, call `get_aws_credential` or `get_aws_ecs_service`
 4. **SDK Integration**: Use `extract_aws_credentials_for_sdk` to get credentials in flat format for AWS operations
 
-### Agent Architecture
+### Agent Architecture (Simplified)
 
-#### Contextualizer Agent
-- **Context Extraction**: Parses natural language messages to extract ECS context, problem descriptions, and user intent
-- **Planton Cloud Integration**: Automatic service discovery and credential management through Planton Cloud APIs
-- **User Interaction Management**: Handles follow-up questions, approvals, and maintains conversation state
-- **Flow Orchestration**: Determines when to route conversations to the Operations Agent
+#### Contextualizer Agent - Single Responsibility
+**ONE JOB**: Identify which ECS service the user wants to work with and immediately hand off to Operations.
 
-#### Operations Agent
+- **Service Discovery**: Uses `list_aws_ecs_services` to show available services
+- **Service Selection**: If multiple services exist, asks user to pick one (e.g., "Which service: api-service or web-service?")
+- **Immediate Handoff**: Once service is identified, passes control to Operations Agent
+- **NO Problem Diagnosis**: Does NOT ask about symptoms, errors, or investigate issues
+
+#### Operations Agent - Full Autonomy
+**RESPONSIBILITY**: Handle ALL technical work after receiving the service name from Contextualizer.
+
 The Operations Agent contains specialized sub-agents for comprehensive ECS management:
-- **Triage Agent**: Conversation-aware diagnosis and evidence gathering with user-friendly explanations
-- **Change Planner**: Creates minimal repair plans incorporating user preferences through interactive dialogue
-- **Remediator**: Executes approved changes safely with real-time feedback and user interaction support
-- **Verifier**: Post-change verification and health checks with conversational validation
-- **Reporter**: Generates comprehensive audit reports with conversational context and collaboration history
+- **Triage Agent**: Autonomously diagnoses issues using AWS tools (logs, metrics, health checks)
+- **Change Planner**: Creates repair plans based on findings (not user descriptions)
+- **Remediator**: Executes approved changes safely
+- **Verifier**: Post-change verification and health checks
+- **Reporter**: Generates comprehensive audit reports
 
-#### Supervisor
-- **Agent Coordination**: Routes conversations between Contextualizer and Operations agents
-- **State Management**: Maintains overall conversation state and context across agent handoffs
-- **Safety Orchestration**: Ensures proper approval workflows and safety measures are followed
+**Key Principle**: Operations Agent figures out problems itself using AWS APIs, not by asking the user for symptoms.
+
+#### Supervisor Router - Minimal Logic
+- **Simple Routing**: Service unknown → Contextualizer; Service known → Operations
+- **State Tracking**: Prevents loops with message counting and state flags
+- **Clean Handoffs**: Ensures context is passed correctly between agents
 
 ### Conversational Features
 
