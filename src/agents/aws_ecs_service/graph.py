@@ -88,6 +88,12 @@ async def contextualizer_wrapper(
     """
     logger.info("Executing Contextualizer Agent")
 
+    # Check if we have new messages - if so, reset awaiting_user_input
+    messages = state.get("messages", [])
+    current_message_count = len(messages)
+    processed_count = state.get("processed_message_count", 0)
+    has_new_messages = current_message_count > processed_count
+    
     # Convert ECS Deep Agent state to Contextualizer state
     context_state = {
         "messages": state["messages"],
@@ -106,7 +112,8 @@ async def contextualizer_wrapper(
         "error_source": state.get("error_source"),
         "last_error": state.get("last_error"),
         "processed_message_count": state.get("processed_message_count", 0),
-        "awaiting_user_input": state.get("awaiting_user_input", False),
+        # Reset awaiting_user_input if we have new messages
+        "awaiting_user_input": False if has_new_messages else state.get("awaiting_user_input", False),
     }
 
     # Execute Contextualizer node
