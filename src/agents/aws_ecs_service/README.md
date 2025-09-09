@@ -8,7 +8,7 @@ The AWS ECS Service Agent is built on a multi-agent architecture with three spec
 
 - **Contextualizer Agent**: Extracts context from user messages, manages Planton Cloud integration, and handles user interactions
 - **Operations Agent**: Executes all AWS ECS-specific operations including triage, planning, remediation, verification, and reporting
-- **Supervisor**: Orchestrates the flow between agents and manages the overall conversation state
+- **Supervisor Router**: Production-grade state machine that orchestrates agent transitions and prevents infinite loops
 
 This system leverages deepagents' built-in capabilities with advanced conversational AI to provide:
 
@@ -21,7 +21,46 @@ This system leverages deepagents' built-in capabilities with advanced conversati
 - **MCP Integration**: AWS ECS tools via langchain-mcp-adapters with conversational orchestration
 - **Planton Cloud Integration**: Seamless context establishment and credential management through Planton Cloud MCP tools
 
+## Recent Updates (Infinite Loop Fix)
+
+### Problem
+The agent was experiencing infinite loops where the contextualizer would be called repeatedly even after asking the user for more information, instead of properly ending and waiting for user input.
+
+### Solution
+We've implemented a simplified routing system with the following key changes:
+
+1. **Simplified State Management**
+   - Removed redundant state attributes (reduced from ~50 to ~20 essential attributes)
+   - Added `awaiting_user_input` flag to explicitly track when agents need user response
+   - Added `processed_message_count` to prevent reprocessing the same messages
+
+2. **Fixed Routing Logic**
+   - Router now immediately ends if `awaiting_user_input` is true
+   - Prevents reprocessing messages by tracking processed count
+   - Simplified routing decisions based on clear state transitions
+   - Removed complex phase enums in favor of simple status checks
+
+3. **Agent Updates**
+   - Both contextualizer and operations agents now properly set `awaiting_user_input`
+   - Agents detect when they're asking questions and mark state accordingly
+   - Error handling ensures conversation ends gracefully on errors
+
+### Key State Attributes
+- `awaiting_user_input`: Boolean flag indicating if agent needs user response
+- `processed_message_count`: Number of messages already processed
+- `context_extraction_status`: Can be "complete", "partial", "in_progress", or "needs_input"
+- `operation_status`: Can be "in_progress", "completed", "failed", "needs_approval", "needs_context"
+
 ## Features
+
+### Production-Grade Routing
+- **State Machine Architecture**: Deterministic state transitions without hardcoded iteration limits
+- **Single Source of Truth**: Only the supervisor router makes routing decisions
+- **Intelligent Error Recovery**: Automatic recovery paths based on error context
+- **No Infinite Loops**: Proper state management prevents agent loops
+- **Observable State**: Clear status fields for debugging and monitoring
+
+For detailed routing documentation, see [ROUTING.md](./ROUTING.md).
 
 ### Memory Persistence
 - **PostgreSQL Checkpointer**: Persistent conversation memory across sessions
@@ -140,7 +179,7 @@ The ECS Deep Agent has been enhanced with advanced conversational capabilities t
 The agent is automatically available in LangGraph Studio as `ecs_deep_agent`.
 
 Configuration options:
-- `model_name`: LLM model (default: "claude-3-5-sonnet-20241022")
+- `model_name`: LLM model (default: "claude-3-5-haiku-20241022")
 - `allow_write`: Enable write operations (default: false)
 - `allow_sensitive_data`: Handle sensitive data (default: false)
 - `aws_region`: AWS region override
@@ -249,7 +288,7 @@ If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agen
 The agent uses `agent.yaml` for configuration:
 
 ```yaml
-model: "claude-3-5-sonnet-20241022"
+model: "claude-3-5-haiku-20241022"
 allowWrite: false
 allowSensitiveData: false
 region: ""  # Uses AWS_REGION env var

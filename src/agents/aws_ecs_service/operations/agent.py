@@ -97,7 +97,7 @@ OPERATIONS_SUBAGENTS = [
 
 
 async def create_operations_agent(
-    model: Union[str, LanguageModelLike] = "claude-sonnet-4-20250514", read_only: bool = True, **kwargs
+    model: Union[str, LanguageModelLike] = "claude-3-5-haiku-20241022", read_only: bool = True, **kwargs
 ) -> Any:
     """Create an Operations Agent.
 
@@ -158,9 +158,9 @@ async def operations_node(
     try:
         # Extract configuration
         model = (
-            config.get("model", "claude-sonnet-4-20250514")
+            config.get("model", "claude-3-5-haiku-20241022")
             if config
-            else "claude-sonnet-4-20250514"
+            else "claude-3-5-haiku-20241022"
         )
         read_only = config.get("read_only", True) if config else True
 
@@ -275,14 +275,21 @@ async def operations_node(
         updated_state["write_operations_enabled"] = (
             config.get("write_operations_enabled", False) if config else False
         )
-        updated_state["approval_required"] = determine_approval_required(updated_state)
 
-        # Determine next steps and routing
-        updated_state["next_agent"] = determine_next_agent(updated_state)
-        updated_state["routing_decision"] = determine_routing_decision(updated_state)
+        # Update operational status for the router to make decisions
+        updated_state["operation_status"] = determine_operation_status(updated_state)
+        
+        # Update message processing count
+        messages = state.get("messages", [])
+        updated_state["processed_message_count"] = len(messages)
+        
+        # Check if we need user input
+        updated_state["awaiting_user_input"] = check_if_awaiting_input(updated_state)
 
         logger.info(
-            f"Operations processing complete. Phase: {updated_state.get('operation_phase')}, Next: {updated_state.get('next_agent')}"
+            f"Operations processing complete. Phase: {updated_state.get('operation_phase')}, "
+            f"Status: {updated_state.get('operation_status')}, "
+            f"Awaiting input: {updated_state.get('awaiting_user_input')}"
         )
         return updated_state
 
@@ -291,7 +298,16 @@ async def operations_node(
         # Return state with error information
         error_state = state.copy()
         error_state["operation_phase"] = "error"
-        error_state["routing_decision"] = f"Error in operations: {str(e)}"
+        error_state["error_source"] = "operations"
+        error_state["last_error"] = str(e)
+        error_state["error_count"] = state.get("error_count", 0) + 1
+        error_state["awaiting_user_input"] = True  # End on error
+        
+        # Preserve operational context
+        for field in ["triage_findings", "repair_plan", "execution_results", "operation_summary"]:
+            if state.get(field):
+                error_state[field] = state[field]
+        
         return error_state
 
 
@@ -309,7 +325,16 @@ def determine_operation_phase(result: dict[str, Any], state: OperationsState) ->
     # Analyze agent response to determine current phase
     if "messages" in result and result["messages"]:
         last_message = result["messages"][-1]
-        content = last_message.get("content", "").lower()
+        
+        # Handle both dict and LangChain message objects
+        if hasattr(last_message, "content"):
+            # LangChain message object (AIMessage, HumanMessage, etc.)
+            content = last_message.content.lower() if last_message.content else ""
+        elif isinstance(last_message, dict):
+            # Dictionary message
+            content = last_message.get("content", "").lower()
+        else:
+            content = ""
 
         if "triage" in content or "diagnosing" in content:
             return "triage"
@@ -324,6 +349,41 @@ def determine_operation_phase(result: dict[str, Any], state: OperationsState) ->
 
     # Default based on current state
     return state.get("operation_phase", "triage")
+
+
+def check_if_awaiting_input(state: OperationsState) -> bool:
+    """Check if operations agent is awaiting user input.
+    
+    Args:
+        state: Current operations state
+        
+    Returns:
+        True if awaiting user input
+    """
+    # Check if we need context
+    if state.get("operation_status") == "needs_context":
+        return True
+        
+    # Check if we need approval
+    if state.get("operation_status") == "needs_approval":
+        return True
+        
+    # Check the last message for questions
+    messages = state.get("messages", [])
+    if messages:
+        last_msg = messages[-1]
+        if hasattr(last_msg, "content"):
+            content = last_msg.content.lower()
+        elif isinstance(last_msg, dict):
+            content = last_msg.get("content", "").lower()
+        else:
+            content = ""
+            
+        # Check for question patterns
+        if any(phrase in content for phrase in ["would you like", "do you want", "please confirm", "shall i", "should i"]):
+            return True
+            
+    return False
 
 
 def determine_approval_required(state: OperationsState) -> bool:
@@ -347,102 +407,34 @@ def determine_approval_required(state: OperationsState) -> bool:
     return False
 
 
-def determine_next_agent(state: OperationsState) -> str:
-    """Determine the next agent to route to based on current state.
+def determine_operation_status(state: OperationsState) -> str:
+    """Determine the overall operation status for routing decisions.
 
     Args:
         state: Current Operations state
 
     Returns:
-        Next agent name or "__end__" if complete
+        Status string: "in_progress", "completed", "failed", "needs_approval", "needs_context"
 
     """
-    operation_phase = state.get("operation_phase", "triage")
-
-    # If approval is required, route back to Contextualizer for user interaction
-    if determine_approval_required(state):
-        return "contextualizer"
-
-    # If operations are complete and verified, end the conversation
-    if operation_phase == "reporting" and state.get("verification_status") == "success":
-        return "__end__"
-
-    # If there are errors or issues, route to Contextualizer for user guidance
-    if state.get("verification_status") == "failed":
-        return "contextualizer"
-
-    # Continue with operations
-    return "operations"
-
-
-def determine_routing_decision(state: OperationsState) -> str:
-    """Determine the reasoning for routing decision.
-
-    Args:
-        state: Current Operations state
-
-    Returns:
-        Routing decision reasoning
-
-    """
-    next_agent = determine_next_agent(state)
-    operation_phase = state.get("operation_phase", "triage")
-
-    if next_agent == "contextualizer":
-        if determine_approval_required(state):
-            return f"User approval required for {operation_phase} operations"
-        elif state.get("verification_status") == "failed":
-            return "Operations failed verification, need user guidance"
-        else:
-            return "User interaction required"
-    elif next_agent == "__end__":
-        return "Operations completed successfully"
-    else:
-        return f"Continue {operation_phase} operations"
-
-
-def should_continue_operations(state: OperationsState) -> bool:
-    """Determine if Operations should continue processing.
-
-    Args:
-        state: Current Operations state
-
-    Returns:
-        True if should continue in Operations, False to hand off
-
-    """
-    # Continue if operations are ongoing
-    if state.get("operation_phase") in [
-        "triage",
-        "planning",
-        "remediation",
-        "verification",
-    ]:
-        return True
-
-    # Continue if no approval is required
-    if not state.get("approval_required", False):
-        return True
-
-    # Hand off if operations are complete or approval is needed
-    return False
-
-
-def get_next_agent_from_operations(state: OperationsState) -> str:
-    """Determine the next agent to route to from Operations.
-
-    Args:
-        state: Current Operations state
-
-    Returns:
-        Name of the next agent to route to
-
-    """
-    next_agent = state.get("next_agent", "operations")
-
-    # Route to supervisor for user interaction or completion
-    if next_agent == "supervisor":
-        return "supervisor"
-
-    # Stay in Operations by default
-    return "operations"
+    operation_phase = state.get("operation_phase")
+    verification_status = state.get("verification_status")
+    
+    # Check for completion
+    if operation_phase == "reporting" and verification_status in ["passed", "completed", "success"]:
+        return "completed"
+    
+    # Check for failure
+    if operation_phase in ["error", "failed"] or verification_status == "failed":
+        return "failed"
+    
+    # Check if approval is needed
+    if state.get("approval_required") and not state.get("user_approvals"):
+        return "needs_approval"
+        
+    # Check if more context is needed
+    if not state.get("ecs_context") or not state.get("user_intent"):
+        return "needs_context"
+    
+    # Otherwise still in progress
+    return "in_progress"

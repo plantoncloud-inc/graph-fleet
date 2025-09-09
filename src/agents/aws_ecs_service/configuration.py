@@ -22,7 +22,7 @@ class ECSDeepAgentConfig(BaseModel):
 
     # Model configuration
     model_name: str = Field(
-        default="claude-sonnet-4-20250514",
+        default="claude-3-5-haiku-20241022",
         description="LLM model to use for the agent",
     )
 
@@ -132,7 +132,7 @@ class ECSDeepAgentConfig(BaseModel):
                     "Please set it using: export ANTHROPIC_API_KEY='your-key' or add it to a .env file."
                 )
             return ChatAnthropic(
-                model="claude-sonnet-4-20250514",
+                model="claude-3-5-haiku-20241022",
                 max_tokens=4096,
                 temperature=0.1
             )
