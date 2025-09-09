@@ -1,697 +1,177 @@
 # AWS ECS Service Agent
 
-A sophisticated multi-agent system for diagnosing and managing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
+A unified Deep Agent for diagnosing and managing AWS ECS services with AI-driven autonomous workflow.
 
 ## Overview
 
-The AWS ECS Service Agent is built on a multi-agent architecture with three specialized components:
+The AWS ECS Service Agent is a single Deep Agent that autonomously diagnoses and fixes ECS service issues. It combines Planton Cloud context tools for service discovery with AWS ECS-specific tools for comprehensive operations.
 
-- **Contextualizer Agent**: Extracts context from user messages, manages Planton Cloud integration, and handles user interactions
-- **Operations Agent**: Executes all AWS ECS-specific operations including triage, planning, remediation, verification, and reporting
-- **Supervisor Router**: Production-grade state machine that orchestrates agent transitions and prevents infinite loops
+### Key Features
 
-This system leverages deepagents' built-in capabilities with advanced conversational AI to provide:
-
-- **Conversational Diagnosis**: Accept natural language problem descriptions and collaborate with users to understand ECS issues
-- **Context-Aware Operations**: Extract ECS context, user intent, and preferences from conversational interactions
-- **Interactive Repair Planning**: Generate minimal, targeted repair plans through collaborative dialogue
-- **Automated Diagnosis**: Read-only triage of ECS service issues with user-friendly explanations
-- **Safe Execution**: Human-in-the-loop approval for write operations with conversational feedback
-- **Comprehensive Reporting**: Markdown reports with audit trails and conversational context
-- **MCP Integration**: AWS ECS tools via langchain-mcp-adapters with conversational orchestration
-- **Planton Cloud Integration**: Seamless context establishment and credential management through Planton Cloud MCP tools
-
-## Recent Updates
-
-### Major Simplification: Clear Agent Separation (2025-09-09)
-
-#### Changes Made
-We've dramatically simplified the agent responsibilities to prevent overlap and confusion:
-
-1. **Contextualizer Agent - ONE JOB ONLY**
-   - Identify which ECS service the user is referring to
-   - Show list of available services if unclear
-   - Immediately hand off to Operations once service is identified
-   - **REMOVED**: No longer asks about symptoms, errors, or tries to understand problems
-
-2. **Operations Agent - FULL AUTONOMY**
-   - Receives service name from Contextualizer
-   - Autonomously diagnoses issues using AWS APIs (logs, metrics, health)
-   - Does NOT ask user for symptoms - figures it out itself
-   - Handles all technical operations end-to-end
-
-3. **Simplified State**
-   - Reduced state attributes from ~50 to ~15 essential fields
-   - Removed unnecessary tracking fields
-   - Cleaner handoff between agents
-
-4. **Updated Prompts**
-   - Contextualizer prompts now explicitly forbid asking about symptoms
-   - Clear examples of good vs bad flows
-   - Operations agent instructed to be autonomous
-
-**Result**: Faster handoffs, no redundant questions, clearer separation of concerns.
-
-### Previous Fix: Empty Message Error and Conversation Continuation (2025-09-09)
-
-#### Problem
-After the initial fix for infinite loops, two new issues emerged:
-1. Error: "all messages must have non-empty content" when contextualizer was invoked
-2. System not continuing after user provided requested information
-
-#### Solution
-1. **Message Filtering**: Added validation to filter out empty messages before invoking the agent
-2. **Smart Continuation**: Router now detects new messages and automatically continues processing
-3. **State Reset**: When new messages arrive, `awaiting_user_input` is reset to allow continuation
-
-### Previous Fix: Infinite Loop Prevention
-
-#### Problem
-The agent was experiencing infinite loops where the contextualizer would be called repeatedly even after asking the user for more information.
-
-#### Solution
-We've implemented a simplified routing system with the following key changes:
-
-1. **Simplified State Management**
-   - Reduced state attributes from ~50 to ~20 essential ones
-   - Added `awaiting_user_input` flag to track when agents need user response
-   - Added `processed_message_count` to prevent reprocessing
-
-2. **Fixed Routing Logic**
-   - Router checks for new messages before deciding to continue or end
-   - Prevents reprocessing by comparing message counts
-   - Simplified decisions based on clear state transitions
-
-3. **Agent Updates**
-   - Both agents properly set `awaiting_user_input` when asking questions
-   - Better detection of question patterns in responses
-   - Graceful error handling
-
-### Key State Attributes
-- `awaiting_user_input`: Boolean flag - true when agent needs user response
-- `processed_message_count`: Number of messages already processed
-- `context_extraction_status`: "complete", "partial", "in_progress", or "needs_input"
-- `operation_status`: "in_progress", "completed", "failed", "needs_approval", "needs_context"
-
-## Features
-
-### Production-Grade Routing
-- **State Machine Architecture**: Deterministic state transitions without hardcoded iteration limits
-- **Single Source of Truth**: Only the supervisor router makes routing decisions
-- **Intelligent Error Recovery**: Automatic recovery paths based on error context
-- **No Infinite Loops**: Proper state management prevents agent loops
-- **Observable State**: Clear status fields for debugging and monitoring
-
-For detailed routing documentation, see [ROUTING.md](./ROUTING.md).
-
-### Memory Persistence
-- **PostgreSQL Checkpointer**: Persistent conversation memory across sessions
-- **Automatic Fallback**: Falls back to in-memory storage if PostgreSQL not configured
-- **Thread-level Persistence**: Maintains conversation context and state
-
-### Planton Cloud Integration
-
-The ECS Deep Agent now includes comprehensive Planton Cloud integration for enhanced context establishment and credential management:
-
-#### Context Establishment
-- **Automatic Service Discovery**: Leverages Planton Cloud MCP tools to identify ECS services within your organization and environment
-- **Credential Management**: Seamlessly retrieves and manages AWS credentials through Planton Cloud
-- **Organization Context**: Automatically establishes operational context using organization and environment identifiers
-- **Service Identification**: Enhanced service discovery and validation through Planton Cloud service registry
-
-#### New MCP Tools
-- **`list_aws_credentials`**: Retrieve available AWS credential summaries from Planton Cloud
-- **`get_aws_credential`**: Get complete AWS credential details with proto structure
-- **`extract_aws_credentials_for_sdk`**: Extract credentials in flat format for AWS SDK usage
-- **`list_aws_ecs_services`**: Identify and enumerate AWS ECS Service cloud resources within specified organization/environment scope
-- **`get_aws_ecs_service`**: Get complete AWS ECS Service details with proto structure
-- **Enhanced Context Extraction**: Improved natural language processing with Planton Cloud context
-
-#### Configuration
-- **`planton_token`**: Authentication token for Planton Cloud API access
-- **`org_id`**: Organization identifier for scoped operations
-- **`env_name`**: Environment name for targeted service discovery
-- **Environment Variable Fallback**: Supports configuration via environment variables for flexible deployment
-
-#### Credential and Service Discovery Workflow
-1. **Context Establishment**: Contextualizer calls `list_aws_credentials` and `list_aws_ecs_services` to get summaries
-2. **Service Selection**: User or agent selects specific services from the list
-3. **Detailed Retrieval**: When operations need full details, call `get_aws_credential` or `get_aws_ecs_service`
-4. **SDK Integration**: Use `extract_aws_credentials_for_sdk` to get credentials in flat format for AWS operations
-
-### Agent Architecture (Simplified)
-
-#### Contextualizer Agent - Single Responsibility
-**ONE JOB**: Identify which ECS service the user wants to work with and immediately hand off to Operations.
-
-- **Service Discovery**: Uses `list_aws_ecs_services` to show available services
-- **Service Selection**: If multiple services exist, asks user to pick one (e.g., "Which service: api-service or web-service?")
-- **Immediate Handoff**: Once service is identified, passes control to Operations Agent
-- **NO Problem Diagnosis**: Does NOT ask about symptoms, errors, or investigate issues
-
-#### Operations Agent - Full Autonomy
-**RESPONSIBILITY**: Handle ALL technical work after receiving the service name from Contextualizer.
-
-The Operations Agent contains specialized sub-agents for comprehensive ECS management:
-- **Triage Agent**: Autonomously diagnoses issues using AWS tools (logs, metrics, health checks)
-- **Change Planner**: Creates repair plans based on findings (not user descriptions)
-- **Remediator**: Executes approved changes safely
-- **Verifier**: Post-change verification and health checks
-- **Reporter**: Generates comprehensive audit reports
-
-**Key Principle**: Operations Agent figures out problems itself using AWS APIs, not by asking the user for symptoms.
-
-#### Supervisor Router - Minimal Logic
-- **Simple Routing**: Service unknown → Contextualizer; Service known → Operations
-- **State Tracking**: Prevents loops with message counting and state flags
-- **Clean Handoffs**: Ensures context is passed correctly between agents
-
-### Conversational Features
-
-The ECS Deep Agent has been enhanced with advanced conversational capabilities that transform how users interact with ECS troubleshooting:
-
-#### Natural Language Input Processing
-- **Problem Description**: Accept plain English descriptions like "My API service is slow and users are complaining"
-- **Context Extraction**: Automatically extract ECS identifiers (cluster, service, region) from conversational messages
-- **Intent Recognition**: Understand user goals (diagnose, fix, monitor, report) from natural language
-- **Symptom Mapping**: Map user-described symptoms to technical ECS issues and diagnostic approaches
-
-#### User Preference Incorporation
-- **Risk Tolerance**: Adapt repair approaches based on user's expressed risk comfort level
-- **Timing Constraints**: Consider user's maintenance windows and urgency requirements
-- **Communication Style**: Adjust technical depth based on user preference (technical, business, mixed)
-- **Approval Workflows**: Customize approval processes based on user's operational preferences
-
-#### Real-Time Feedback During Execution
-- **Progress Updates**: Provide ongoing status updates during diagnostic and repair phases
-- **Action Explanations**: Explain what each subagent is doing and why it matters to the user
-- **User Interaction**: Handle questions, concerns, and modification requests during execution
-- **Transparent Operations**: Keep users informed of all actions with business-friendly explanations
-
-#### Iterative Conversation Support
-- **Multi-Turn Conversations**: Support follow-up questions and iterative problem refinement
-- **Context Preservation**: Maintain conversation history and context across multiple interactions
-- **Plan Modifications**: Allow users to modify approaches based on changing requirements
-- **Session Continuity**: Enable users to return and continue previous troubleshooting sessions
-
-#### Collaborative Troubleshooting
-- **Interactive Diagnosis**: Work with users to refine understanding of problems and symptoms
-- **Collaborative Planning**: Generate repair plans through dialogue that incorporates user constraints
-- **Dynamic Adaptation**: Modify approaches based on user feedback and changing circumstances
-- **Knowledge Sharing**: Explain technical findings in user-friendly terms for learning and transparency
-
-### Safety Features
-- Write operations disabled by default
-- Human approval required for all write operations
-- Limited blast radius (only specific ECS operations allowed)
-- Comprehensive audit logging
-
-### Supported Operations
-
-**Read Operations** (Always Available):
-- `ecs_describe_services`: Get service details and status
-- `ecs_describe_tasks`: Get task information and health
-- `ecs_list_services`: List services in a cluster
-- `ecs_describe_clusters`: Get cluster information
-- `logs_get_log_events`: Retrieve CloudWatch logs
-
-**Write Operations** (Requires Approval):
-- `ecs_update_service`: Update service desiredCount (±1) or taskDefinition
-- `ecs_stop_task`: Stop a single task
-- `ecs_run_task`: Run a single task
-
-## Usage
-
-### Via LangGraph Studio
-
-The agent is automatically available in LangGraph Studio as `ecs_deep_agent`.
-
-Configuration options:
-- `model_name`: LLM model (default: "claude-3-5-haiku-20241022")
-- `allow_write`: Enable write operations (default: false)
-- `allow_sensitive_data`: Handle sensitive data (default: false)
-- `aws_region`: AWS region override
-- `aws_profile`: AWS profile override
-
-#### Planton Cloud Configuration
-- `planton_token`: Authentication token for Planton Cloud API access
-- `org_id`: Organization identifier for scoped operations
-- `env_name`: Environment name for targeted service discovery
-
-The agent configuration automatically ignores extra fields passed by LangGraph Studio for compatibility.
-
-### Via Programmatic API
-
-```python
-from agents.aws_ecs_service import create_ecs_deep_agent, ECSDeepAgentConfig
-
-# Create agent with Planton Cloud integration
-config = ECSDeepAgentConfig(
-    allow_write=False,  # Safe read-only mode
-    planton_token="your-planton-token",
-    org_id="your-org-id",
-    env_name="your-env-name"
-)
-
-agent = await create_ecs_deep_agent(config=config)
-
-# Interact conversationally - agent will automatically establish context
-state = {
-    "messages": [{"role": "user", "content": "My API service is having issues"}]
-}
-result = await agent.ainvoke(state)
-
-# The multi-agent system will automatically:
-# 1. Contextualizer extracts ECS context and user intent
-# 2. Uses Planton Cloud to discover available AWS credentials
-# 3. Identifies ECS services in your organization/environment
-# 4. Routes to Operations Agent for technical diagnosis and remediation
-# 5. Supervisor orchestrates the entire conversation flow
-```
-
-
-
-## Memory Configuration
-
-### PostgreSQL Checkpointer (Optional)
-
-The ECS Deep Agent supports persistent memory across sessions using PostgreSQL. This allows the agent to maintain conversation context and state between runs.
-
-#### Setup
-
-1. **Install PostgreSQL** (if not already available):
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install postgresql postgresql-contrib
-   
-   # macOS
-   brew install postgresql
-   
-   # Or use a managed service like AWS RDS, Google Cloud SQL, etc.
-   ```
-
-2. **Create a database** for the agent:
-   ```sql
-   CREATE DATABASE ecs_agent_memory;
-   CREATE USER ecs_agent WITH PASSWORD 'your_password';
-   GRANT ALL PRIVILEGES ON DATABASE ecs_agent_memory TO ecs_agent;
-   ```
-
-3. **Set the DATABASE_URL environment variable**:
-   ```bash
-   export DATABASE_URL="postgresql://ecs_agent:your_password@localhost:5432/ecs_agent_memory"
-   ```
-
-#### Connection String Format
-
-The `DATABASE_URL` should follow the PostgreSQL connection string format:
-```
-postgresql://[user[:password]@][host][:port][/database][?param1=value1&...]
-```
-
-Examples:
-- Local: `postgresql://user:pass@localhost:5432/dbname`
-- AWS RDS: `postgresql://user:pass@mydb.123456789012.us-east-1.rds.amazonaws.com:5432/dbname`
-- With SSL: `postgresql://user:pass@host:5432/dbname?sslmode=require`
-
-#### Automatic Fallback
-
-If `DATABASE_URL` is not configured or the PostgreSQL connection fails, the agent automatically falls back to in-memory storage. This ensures the agent continues to work without requiring PostgreSQL setup for basic usage.
-
-## Configuration
-
-### Environment Variables
-
-- `AWS_REGION`: AWS region to use
-- `AWS_PROFILE`: AWS profile to use  
-- `DATABASE_URL`: PostgreSQL connection string for persistent memory (optional)
-
-#### Planton Cloud Configuration
-- `PLANTON_TOKEN`: Authentication token for Planton Cloud API access (optional)
-- `PLANTON_ORG_ID`: Organization identifier for scoped operations (optional)
-- `PLANTON_ENV_ID`: Environment identifier for targeted service discovery (optional)
-
-### Configuration File
-
-The agent uses `agent.yaml` for configuration:
-
-```yaml
-model: "claude-3-5-haiku-20241022"
-allowWrite: false
-allowSensitiveData: false
-region: ""  # Uses AWS_REGION env var
-profile: ""  # Uses AWS_PROFILE env var
-```
-
-## Output Files
-
-The agent generates Markdown reports:
-
-- **triage_report.md**: Initial diagnosis with hypotheses and evidence
-- **plan_repair_plan.md**: Numbered repair steps with success criteria
-- **verify_post_check.md**: Post-change verification results
-- **report_summary.md**: Complete timeline and audit trail
-
-## Prerequisites
-
-1. **AWS Credentials**: Configure via AWS CLI or environment variables
-2. **AWS API MCP Server**: Automatically installed via `awslabs-aws-api-mcp-server` dependency
-3. **PostgreSQL Dependencies**: Automatically installed via `psycopg` and `langgraph-checkpoint-postgres` dependencies (for persistent memory)
-4. **Permissions**: ECS read permissions required, write permissions for repairs
-
-## MCP Integration
-
-The ECS Deep Agent uses enhanced MCP integration with both AWS and Planton Cloud:
-
-### AWS API MCP Server
-- **AWS API MCP Server**: Uses `awslabs-aws-api-mcp-server` from dependencies
-- **ECS-Focused Tools**: Filters AWS API tools to ECS-specific operations  
-- **Credential Management**: Supports AWS credentials via environment variables
-- **Fallback Support**: Graceful fallback to sub-agents if MCP tools fail
-
-### Planton Cloud MCP Tools
-- **Context Establishment**: Automatic service discovery and credential management
-- **Organization Scoping**: Operations scoped to specific organization and environment
-- **Enhanced Service Discovery**: Improved identification of ECS services and resources
-- **Credential Retrieval**: Seamless AWS credential management through Planton Cloud
-
-### Implementation Status
-The current implementation includes:
-- ✅ Configuration enhancement with Planton Cloud authentication
-- ✅ New MCP tool interfaces (`list_aws_credentials`, `get_aws_credential`, `extract_aws_credentials_for_sdk`, `list_aws_ecs_services`, `get_aws_ecs_service`)
-- ✅ Enhanced context extractor prompt with Planton Cloud integration
-- ✅ Updated state management for context tracking
-- 🔄 Placeholder implementations with mock data structures
-
-### Next Steps
-- Replace placeholder implementations with actual Planton Cloud RPC calls
-- Expand context establishment logic for complex scenarios
-- Add comprehensive error handling and user guidance for Planton Cloud integration
-
-### Required AWS Permissions
-
-**Read Operations**:
-- `ecs:Describe*`
-- `ecs:List*`
-- `logs:GetLogEvents`
-
-**Write Operations** (if enabled):
-- `ecs:UpdateService`
-- `ecs:StopTask`
-- `ecs:RunTask`
+- **Autonomous Troubleshooting**: Uses the `ecs_troubleshooting_tool` with multiple diagnostic actions to investigate issues without requiring user input about symptoms
+- **High-Level ECS Operations**: Leverages the ECS MCP server for deployment, resource management, and infrastructure operations
+- **Comprehensive Diagnostics**: Can analyze CloudFormation stacks, service events, task failures, container logs, and network configurations
+- **Safe Operations**: All write operations require user approval with built-in rollback procedures
 
 ## Architecture
 
-```
-AWS ECS Service Agent (Multi-Agent Architecture)
-├── Supervisor (LangGraph)
-│   ├── Agent Coordination & Routing
-│   ├── State Management
-│   └── Safety Orchestration
-├── Contextualizer Agent
-│   ├── Natural Language Processing
-│   ├── Context Extraction (ECS Details, User Intent)
-│   ├── Planton Cloud Integration
-│   │   ├── Service Discovery
-│   │   └── Credential Management
-│   └── User Interaction Management
-├── Operations Agent
-│   ├── Specialized Sub-agents
-│   │   ├── Triage Agent (Diagnosis)
-│   │   ├── Change Planner (Repair Planning)
-│   │   ├── Remediator (Execution)
-│   │   ├── Verifier (Validation)
-│   │   └── Reporter (Documentation)
-│   └── AWS ECS MCP Tools
-│       ├── Read Operations (Always Available)
-│       └── Write Operations (Gated)
-├── Shared Components
-│   ├── Conversation State Management
-│   ├── Multi-turn History
-│   ├── PostgreSQL Persistence (Optional)
-│   └── Enhanced Safety Features
-└── Integration Points
-    ├── LangGraph Studio
-    ├── Planton Cloud APIs
-    └── AWS ECS APIs
-```
+- **Single Deep Agent**: No complex routing or state machines
+- **AI-Driven Workflow**: Autonomous decision making
+- **Specialized Subagents**: Focused helpers for specific tasks
+- **MCP Tools**: Direct access to Planton Cloud and AWS APIs
 
-### Multi-Agent Flow
+### Subagents
+1. **service-identifier**: Identifies ECS services using Planton Cloud
+2. **triage-specialist**: Autonomous diagnosis with AWS tools
+3. **repair-planner**: Creates targeted fix plans
+4. **fix-executor**: Executes approved repairs
+5. **verification-specialist**: Verifies service health
 
-```
-User Natural Language Input
-    ↓
-Supervisor (Route to Contextualizer)
-    ↓
-Contextualizer Agent
-├── Parse Intent & Extract ECS Context
-├── Planton Cloud Integration (Credentials & Services)
-├── User Interaction Management
-└── Determine Next Agent (Operations or End)
-    ↓
-Supervisor (Route to Operations if needed)
-    ↓
-Operations Agent
-┌───────────────────────────────────────────────────────────┐
-│                 Operations Sub-agents                     │
-│  Triage → Change Planner → Remediator → Verifier → Reporter  │
-│  │           │              │           │           │      │
-│  └───────────┘──────────────┘───────────┘───────────┘──────┘      │
-│     AWS ECS MCP Tools (Read/Write Operations)              │
-└───────────────────────────────────────────────────────────┘
-    ↓
-Supervisor (Coordinate Response & Maintain State)
-    ↓
-User-friendly Response with Full Context
-```
+## Quick Start
 
-## Examples
-
-### Conversational Usage Patterns
-
-The ECS Deep Agent now supports natural language interactions instead of requiring technical parameters. Here are examples of conversational usage:
-
-#### Initial Problem Report
-
-**User Input:**
-```
-"My API service in production is responding slowly and users are complaining about timeouts. Can you help me figure out what's wrong?"
-```
-
-**Agent Response:**
-```
-I'll help you diagnose the slow response issues with your API service. Let me extract the context and start investigating.
-
-🔍 Context Extracted:
-- Environment: Production
-- Service Type: API service
-- Symptoms: Slow responses, user timeouts
-- Urgency: High (user impact)
-
-🔗 Planton Cloud Context Established:
-- Organization: acme-corp
-- Environment: production
-- Available Services: api-service, worker-service, cache-service
-- AWS Credentials: production-account (us-east-1)
-
-I'll now run a comprehensive triage to identify the root cause. This will include:
-1. Checking service health and task status for api-service
-2. Analyzing resource utilization across production environment
-3. Reviewing recent deployment events
-4. Examining CloudWatch logs for errors
-
-Starting diagnosis with enhanced context...
-```
-
-#### Follow-up Questions and Clarifications
-
-**User Input:**
-```
-"Actually, the issues started after our deployment yesterday around 3 PM. Could that be related?"
-```
-
-**Agent Response:**
-```
-That's very helpful context! A deployment timing correlation is a strong indicator. Let me focus my analysis on:
-
-🎯 Updated Investigation Plan:
-- Comparing pre/post deployment metrics (around 3 PM yesterday)
-- Checking if the new task definition has resource constraint issues
-- Analyzing deployment events and task replacement patterns
-- Looking for configuration changes that might affect performance
-
-This deployment timing makes the investigation much more targeted. Continuing with enhanced focus...
-```
-
-#### Interactive Planning and User Preferences
-
-**User Input:**
-```
-"I found the issue - it's a memory leak in the new code. Can you help me roll back, but I need to be careful because we have a big customer demo at 2 PM today."
-```
-
-**Agent Response:**
-```
-I understand the urgency with your customer demo at 2 PM. Let me create a careful rollback plan that minimizes risk:
-
-📋 Rollback Plan Options:
-
-**Option 1: Conservative Rollback (Recommended)**
-- Gradual rollback with 25% traffic shifts
-- Monitor between each step
-- Total time: ~20 minutes
-- Risk: Low, allows quick halt if issues
-
-**Option 2: Quick Rollback**
-- Immediate rollback to previous task definition
-- Total time: ~5 minutes  
-- Risk: Medium, faster but less controlled
-
-Given your demo timing, I recommend Option 1 starting now (11:30 AM) to have everything stable well before 2 PM.
-
-Would you like me to proceed with the conservative approach, or do you prefer the quicker option?
-```
-
-#### Real-time Execution Feedback
-
-**User Input:**
-```
-"Go with the conservative approach, but keep me updated on each step."
-```
-
-**Agent Response:**
-```
-Perfect! Starting conservative rollback with real-time updates:
-
-🔄 **Step 1/4: Preparing Rollback** ✅
-- Retrieved previous stable task definition (revision 47)
-- Verified task definition is healthy
-- Ready to begin traffic shift
-
-🔄 **Step 2/4: First Traffic Shift (25%)** ⏳
-- Updating service to 25% new tasks with previous revision
-- Current: 75% problematic tasks, 25% stable tasks
-- Monitoring response times and error rates...
-
-**Update**: Response times improving! 25% of traffic now on stable revision.
-Error rate dropped from 15% to 11%. Continuing to next step...
-
-Would you like me to continue, or do you want to pause and check anything?
-```
-
-#### Multi-turn Problem Solving
-
-**User Input:**
-```
-"Great progress! Continue with the next step, but also can you help me set up monitoring alerts so this doesn't happen again?"
-```
-
-**Agent Response:**
-```
-Absolutely! I'll continue the rollback AND help you set up preventive monitoring.
-
-🔄 **Step 3/4: Second Traffic Shift (50%)** ⏳
-- Updating to 50% stable tasks
-- Current metrics looking good, proceeding...
-
-📊 **Monitoring Setup Plan** (I'll handle this in parallel):
-1. Memory utilization alerts (>80% threshold)
-2. Response time degradation alerts (>2x baseline)
-3. Error rate spike alerts (>5% increase)
-4. Post-deployment health checks automation
-
-The rollback is progressing smoothly. Once complete, I'll implement the monitoring alerts. This way you'll catch similar issues before they impact users.
-
-Current status: 50% traffic now on stable revision, error rate down to 7%!
-```
-
-### LangGraph Studio Integration
-
-The AWS ECS Service Agent is designed to work seamlessly with LangGraph Studio for interactive conversational troubleshooting.
-
-**Graph Node Architecture:**
-The agent uses properly configured async node functions to avoid coroutine handling issues:
-- Contextualizer and Operations nodes are wrapped with proper async handling
-- Each node function correctly awaits the underlying agent wrapper functions
-
+### Installation
 ```bash
-# Start LangGraph Studio
-make run  # From the main graph-fleet directory
+poetry install
+```
 
-# Access the agent at http://localhost:8123
-# Select 'supervisor' and start conversational interactions
+This will install the required dependencies including:
+- `awslabs-ecs-mcp-server` - ECS-specific MCP server for comprehensive ECS operations
+- `awslabs-aws-api-mcp-server` - Generic AWS API MCP server (fallback)
+- Other required packages
+
+### Environment Setup
+```bash
+# Planton Cloud
+export PLANTON_TOKEN="your-token"
+export PLANTON_ORG_ID="your-org-id"
+export PLANTON_ENV_NAME="your-env"
+
+# AWS (optional if using Planton Cloud)
+export AWS_ACCESS_KEY_ID="your-key"
+export AWS_SECRET_ACCESS_KEY="your-secret"
+export AWS_REGION="us-east-1"
+
+# LLM Provider
+export ANTHROPIC_API_KEY="your-key"  # For Claude
+# OR
+export OPENAI_API_KEY="your-key"     # For OpenAI
+```
+
+### Run with LangGraph Studio
+```bash
+poetry run langgraph dev
+```
+
+## Usage
+
+Simply describe your issue:
+```
+"My web service is unhealthy"
+"The API service keeps restarting"
+"Check health of my-api-service in production"
+```
+
+The agent will:
+1. **Identify the service** using Planton Cloud tools
+2. **Diagnose autonomously** using the `ecs_troubleshooting_tool` with various diagnostic actions
+3. **Create a repair plan** based on findings from AWS ECS tools
+4. **Execute fixes** using `ecs_resource_management` and other tools (with user approval)
+5. **Verify resolution** using deployment status and troubleshooting tools
+
+## Available Tools
+
+### Planton Cloud Tools
+- `list_aws_credentials`
+- `get_aws_credential`
+- `list_aws_ecs_services`
+- `get_aws_ecs_service`
+
+### AWS ECS Tools
+- `containerize_app` - Provides containerization guidance for applications
+- `create_ecs_infrastructure` - Creates ECS infrastructure using CloudFormation
+- `get_deployment_status` - Checks deployment status and provides ALB URLs
+- `ecs_resource_management` - Manages ECS resources and configurations
+- `ecs_troubleshooting_tool` - Comprehensive troubleshooting with multiple diagnostic actions:
+  - `get_ecs_troubleshooting_guidance` - Initial assessment and data collection
+  - `fetch_cloudformation_status` - Infrastructure-level diagnostics
+  - `fetch_service_events` - Service-level event analysis
+  - `fetch_task_failures` - Task failure diagnostics
+  - `fetch_task_logs` - Container log retrieval
+  - `detect_image_pull_failures` - Image pull issue detection
+  - `fetch_network_configuration` - Network configuration diagnostics
+- `delete_ecs_infrastructure` - Cleans up ECS infrastructure (non-production use)
+
+## Configuration
+
+```python
+from agents.aws_ecs_service import ECSDeepAgentConfig
+
+config = ECSDeepAgentConfig(
+    model_name="claude-3-5-haiku-20241022",
+    aws_region="us-east-1",
+    max_steps=20,
+    timeout_seconds=600,
+)
+```
+
+**Note**: Currently in learning phase with no write constraints.
+
+## Project Structure
+```
+aws_ecs_service/
+├── agent.py         # Main Deep Agent
+├── configuration.py # Config models
+├── graph.py        # LangGraph integration
+├── mcp_tools.py    # Tools integration
+└── agent.yaml      # Metadata
+```
+
+## Development
+
+### Add New Tools
+Update allowlists in `mcp_tools.py`:
+```python
+PLANTON_CLOUD_CONTEXT_TOOLS = ["new_tool"]
+ECS_TOOLS = ["new_ecs_tool"]  # High-level ECS MCP server tools
+```
+
+**Note**: The ECS MCP server provides high-level tools rather than low-level AWS API calls. Tools include deployment, troubleshooting, and resource management capabilities.
+
+### Add Subagents
+Update `SUBAGENTS` in `agent.py`:
+```python
+{
+    "name": "new-specialist",
+    "description": "What it does",
+    "prompt": "Instructions",
+}
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **AWS MCP Tools Not Loading**
-   ```bash
-   # Ensure AWS API MCP server is installed (should be automatic)
-   poetry show awslabs-aws-api-mcp-server
-   
-   # If not installed, reinstall dependencies
-   poetry install
-   ```
+- **MCP Server Issues**: 
+  - Ensure `awslabs-ecs-mcp-server` is installed: `poetry install`
+  - Check that `ecs-mcp-server` command is available in your environment
+  - Verify AWS credentials are properly configured
 
-2. **Permission Denied**
-   ```bash
-   # Check AWS credentials
-   aws sts get-caller-identity
-   ```
+- **Service Not Found**: 
+  - Verify `PLANTON_ORG_ID` and `PLANTON_ENV_NAME` are correct
+  - Check Planton Cloud access permissions
+  - Ensure the service exists in the specified environment
 
-3. **Write Operations Blocked**
-   - Configure `allow_write: true` in LangGraph Studio UI
-   - Check agent configuration in `agent.yaml`
-   - Ensure proper AWS permissions for write operations
+- **AWS Failures**: 
+  - Check AWS credentials and permissions
+  - Verify the correct AWS region is set
+  - Ensure ECS service permissions are granted
 
-4. **PostgreSQL Connection Issues**
-   ```bash
-   # Check if DATABASE_URL is set correctly
-   echo $DATABASE_URL
-   
-   # Test PostgreSQL connection
-   psql $DATABASE_URL -c "SELECT 1;"
-   ```
-   
-   Common solutions:
-   - Verify PostgreSQL server is running
-   - Check connection string format: `postgresql://user:pass@host:port/dbname`
-   - Ensure database and user exist with proper permissions
-   - Check firewall/security group settings for remote connections
-   - Verify SSL settings if using `sslmode=require`
+### Tool-Specific Issues
 
-5. **Memory Persistence Not Working**
-   - Agent automatically falls back to in-memory storage if PostgreSQL fails
-   - Check logs for "DATABASE_URL not configured" or "Failed to create PostgreSQL checkpointer" messages
-   - Ensure `psycopg` and `langgraph-checkpoint-postgres` dependencies are installed:
-     ```bash
-     poetry show psycopg langgraph-checkpoint-postgres
-     ```
+- **ecs_troubleshooting_tool**: This is the primary diagnostic tool - if it's not working, check AWS credentials and ECS service access
+- **get_deployment_status**: Requires proper ECS service name and cluster access
+- **ecs_resource_management**: May require additional IAM permissions for write operations
 
-6. **Blocking Call Errors in LangGraph**
-   If you see: `Error loading Planton Cloud context tools: Blocking call to ScandirIterator.__next__`
-   
-   - This happens when synchronous file operations occur in async context
-   - **Fix applied**: All MCP tool imports are now inside async functions
-   - **Quick workaround**: Run with `langgraph dev --allow-blocking` (development only)
-   - **Production fix**: Set `BG_JOB_ISOLATED_LOOPS=true` environment variable
+## License
 
-7. **async_create_deep_agent Await Error**
-   If you see: `Failed to create Contextualizer Agent: object CompiledStateGraph can't be used in 'await' expression`
-   
-   - The `async_create_deep_agent` function from deepagents is not actually async
-   - **Fix applied**: Removed `await` keyword from all `async_create_deep_agent` calls
-   - The function returns a `CompiledStateGraph` directly, not a coroutine
-
-### Debug Mode
-
-Enable debug logging for troubleshooting:
-```bash
-export LOG_LEVEL=DEBUG
-
-# Then start LangGraph Studio to see detailed logs
-make run
-```
-
+Part of Planton Cloud Graph Fleet project.
