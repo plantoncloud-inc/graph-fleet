@@ -76,6 +76,8 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
         if os.getenv("AWS_REGION"):
             env["AWS_REGION"] = os.getenv("AWS_REGION")
 
+    env["ALLOW_SENSITIVE_DATA"] = "true"
+
     # Try to import awslabs.ecs_mcp_server to check if it's installed
     try:
         import importlib.util

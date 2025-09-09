@@ -200,12 +200,25 @@ async def create_ecs_deep_agent(
     tools = await get_all_mcp_tools(aws_credentials=aws_credentials)
     logger.info(f"Total tools available: {len(tools)}")
     
-    # Create the agent
+    # Define a post-model hook to ensure messages have content
+    def ensure_message_content(state):
+        """Post-model hook to ensure all messages have non-empty content."""
+        if "messages" in state:
+            messages = state["messages"]
+            # Check the last message (which should be from the model)
+            if messages and hasattr(messages[-1], 'content'):
+                if not messages[-1].content or not str(messages[-1].content).strip():
+                    messages[-1].content = "Processing..."
+        return state
+    
+    # Create the agent with post-model hook
     agent = async_create_deep_agent(
         tools=tools,
         instructions=MAIN_PROMPT,
         subagents=SUBAGENTS,
         model=model,
+        builtin_tools=["write_todos"],  # Only include write_todos
+        post_model_hook=ensure_message_content,
         **kwargs,
     )
     
