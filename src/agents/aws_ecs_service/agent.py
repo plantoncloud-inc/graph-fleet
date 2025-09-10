@@ -78,12 +78,13 @@ async def create_ecs_deep_agent(
         return state
     
     # Create the agent with post-model hook
+    # Include file system tools for writing diagnostic reports and repair plans
     agent = async_create_deep_agent(
         tools=tools,
         instructions=MAIN_PROMPT,
         subagents=SUBAGENTS,
         model=model,
-        builtin_tools=["write_todos"],  # Only include write_todos
+        builtin_tools=["write_todos", "write_file", "read_file", "edit_file", "ls"],  # Include file system tools
         post_model_hook=ensure_message_content,
         **kwargs,
     )
