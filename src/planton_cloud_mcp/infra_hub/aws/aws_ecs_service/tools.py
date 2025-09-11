@@ -5,23 +5,40 @@ Implementation follows the actual proto message structure from:
 project.planton.provider.aws.awsecsservice.v1.AwsEcsService
 """
 
-from typing import Any
+import os
+import logging
+from typing import Any, Optional
+from google.protobuf.json_format import MessageToDict
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Import the API client
+from ....api_client import get_api_client, PlantonCloudConfig, GRPC_AVAILABLE
+
+# Try to import the protobuf types
+if GRPC_AVAILABLE:
+    try:
+        from planton_cloud.cloud.planton.apis.search.v1.infrahub.cloudresource import (
+            io_pb2 as cloudresource_io
+        )
+        from planton_cloud.project.planton.shared.cloudresourcekind import (
+            cloud_resource_kind_pb2 as resource_kind_pb2
+        )
+    except ImportError:
+        logger.warning("Planton Cloud protobuf stubs not available, using mock data")
+        GRPC_AVAILABLE = False
 
 
-async def list_aws_ecs_services(
-    org_id: str, env_name: str | None = None
-) -> list[dict[str, Any]]:
+async def list_aws_ecs_services() -> list[dict[str, Any]]:
     """List AWS ECS Service cloud resources available in Planton Cloud.
 
-    This follows the structure of:
-    CloudResourceSearchQueryController.getCloudResourcesCanvasView
+    This calls CloudResourceSearchQueryController.getCloudResourcesCanvasView
+    with cloud_resource_kind set to "AwsEcsService".
     
-    The RPC call will be made with cloud_resource_kind set to "AwsEcsService" since this tool
-    is specifically for listing AWS ECS Service cloud resources only.
-
-    Args:
-        org_id: The organization ID in Planton Cloud (mandatory)
-        env_name: The environment name in Planton Cloud (optional for scoped listing)
+    The organization ID and optional environment name are taken from environment variables:
+    - PLANTON_CLOUD_ORG_ID: Organization ID (required)
+    - PLANTON_CLOUD_ENV_NAME: Environment name (optional)
 
     Returns:
         List of ApiResourceSearchRecord dictionaries containing AWS ECS Service summaries:
@@ -36,77 +53,55 @@ async def list_aws_ecs_services(
         - is_active: Whether the resource is active
 
     """
-    # TODO: In production, this would call the actual Planton Cloud API
-    # using CloudResourceSearchQueryController.getCloudResourcesCanvasView
-    # with cloud_resource_kind="AwsEcsService"
-
-    # For now, return a mock response showing the expected cloud resource summary structure
-    # In production, this would:
-    # 1. Authenticate with Planton Cloud API using gRPC
-    # 2. Call getCloudResourcesCanvasView with:
-    #    - org_id: provided org_id
-    #    - env_name: optional env_name for scoping
-    #    - cloud_resource_kind: "AwsEcsService" (hardcoded for this tool)
-    # 3. Return list of cloud resource summaries from the canvas view
-
-    # Mock data structure matching ApiResourceSearchRecord format
-    mock_ecs_services = [
-        {
-            "id": "ecs-service-api-prod-001",
-            "name": "api-service",
-            "kind": "AwsEcsService", 
-            "org_id": org_id,
-            "env_name": "production",
-            "tags": ["api", "production", "web-service"],
-            "created_by": "devops@acme-corp.com",
-            "created_at": "2024-01-01T00:00:00Z",
-            "is_active": True
-        },
-        {
-            "id": "ecs-service-worker-prod-001",
-            "name": "background-worker",
-            "kind": "AwsEcsService",
-            "org_id": org_id, 
-            "env_name": "production",
-            "tags": ["worker", "production", "background"],
-            "created_by": "devops@acme-corp.com",
-            "created_at": "2024-01-05T10:30:00Z",
-            "is_active": True
-        },
-        {
-            "id": "ecs-service-api-staging-001",
-            "name": "api-service",
-            "kind": "AwsEcsService",
-            "org_id": org_id,
-            "env_name": "staging", 
-            "tags": ["api", "staging", "web-service"],
-            "created_by": "dev@acme-corp.com",
-            "created_at": "2024-01-10T14:15:00Z",
-            "is_active": True
-        },
-        {
-            "id": "ecs-demo-service-prod-001", 
-            "name": "ecs-demo-service",
-            "kind": "AwsEcsService",
-            "org_id": org_id,
-            "env_name": "aws",
-            "tags": ["legacy", "production", "deprecated"],
-            "created_by": "admin@acme-corp.com", 
-            "created_at": "2023-12-01T09:00:00Z",
-            "is_active": True  # Inactive service example
-        }
-    ]
-
-    # If env_name is provided, filter services for that environment
-    # In production, this filtering would happen server-side in the RPC call
-    if env_name:
-        filtered_services = [
-            svc for svc in mock_ecs_services 
-            if svc["env_name"] == env_name
-        ]
-        return filtered_services
-
-    return mock_ecs_services
+    # Get configuration from environment
+    org_id = os.getenv("PLANTON_CLOUD_ORG_ID")
+    env_name = os.getenv("PLANTON_CLOUD_ENV_NAME")
+    
+    if not org_id:
+        logger.error("PLANTON_CLOUD_ORG_ID environment variable is required")
+        return []
+    
+    # Try to make the actual API call if gRPC is available
+    if GRPC_AVAILABLE:
+        try:
+            # Get the API client
+            client = get_api_client()
+            stub = client.get_search_stub()
+            
+            # Build the request
+            request = cloudresource_io.ExploreCloudResourcesRequest(
+                org=org_id,
+                kinds=[resource_kind_pb2.aws_ecs_service]  # CloudResourceKind enum for AwsEcsService
+            )
+            
+            # Add environment filter if specified
+            if env_name:
+                request.envs.append(env_name)
+            
+            # Make the gRPC call
+            response = stub.getCloudResourcesCanvasView(request)
+            
+            # Convert the response to dictionaries
+            result = []
+            for canvas_env in response.canvas_environments:
+                # Check if AwsEcsService resources exist in this environment
+                if "AwsEcsService" in canvas_env.resource_kind_mapping:
+                    records = canvas_env.resource_kind_mapping["AwsEcsService"].records
+                    for record in records:
+                        # Convert protobuf message to dictionary
+                        record_dict = MessageToDict(record, preserving_proto_field_name=True)
+                        # Ensure consistent field names
+                        if "env" in record_dict:
+                            record_dict["env_name"] = record_dict.pop("env")
+                        if "org" in record_dict:
+                            record_dict["org_id"] = record_dict.pop("org")
+                        result.append(record_dict)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to call Planton Cloud API: {e}")
+            
 
 
 async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:

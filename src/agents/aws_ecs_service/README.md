@@ -37,16 +37,30 @@ poetry install
 This will install the required dependencies including:
 - `awslabs-ecs-mcp-server` - ECS-specific MCP server for comprehensive ECS operations
 - `awslabs-aws-api-mcp-server` - Generic AWS API MCP server (fallback)
+- `grpcio` - For gRPC communication with Planton Cloud API
 - Other required packages
 
-### Environment Setup
-```bash
-# Planton Cloud
-export PLANTON_TOKEN="your-token"
-export PLANTON_ORG_ID="your-org-id"
-export PLANTON_ENV_NAME="your-env"
+**Note on Planton Cloud Protobuf Stubs**: 
+To use the actual Planton Cloud API (instead of mock data), you'll need the Planton Cloud protobuf stubs. These can be obtained from:
+- The Planton Cloud Python SDK (when available)
+- Generated from protobuf definitions in the `planton-cloud` repository
 
-# AWS (optional if using Planton Cloud)
+Without the protobuf stubs, the agent will gracefully fall back to mock data for development.
+
+### Environment Setup
+
+#### Required Environment Variables
+
+```bash
+# Planton Cloud API Authentication
+export PLANTON_CLOUD_AUTH_TOKEN="your-auth-token"  # Required: Your Planton Cloud auth token
+export PLANTON_CLOUD_ORG_ID="your-org-id"         # Required: Your organization ID
+
+# Optional Environment Variables
+export PLANTON_CLOUD_ENV_NAME="production"         # Optional: Filter by environment
+export PLANTON_CLOUD_API_ENDPOINT="api.live.planton.cloud:443"  # Optional: API endpoint
+
+# AWS (retrieved from Planton Cloud if not set)
 export AWS_ACCESS_KEY_ID="your-key"
 export AWS_SECRET_ACCESS_KEY="your-secret"
 export AWS_REGION="us-east-1"
@@ -77,6 +91,25 @@ The agent will:
 3. **Create a repair plan** based on findings from AWS ECS tools
 4. **Execute fixes** using `ecs_resource_management` and other tools (with user approval)
 5. **Verify resolution** using deployment status and troubleshooting tools
+
+## API Integration
+
+### Planton Cloud API
+
+The agent integrates with Planton Cloud API using gRPC to fetch real-time data about your AWS ECS services. The integration:
+
+1. **Authentication**: Uses bearer token authentication similar to AWS credentials
+2. **Organization Context**: Organization ID acts like an AWS Account ID
+3. **Environment Filtering**: Optional environment name to scope resources
+4. **Fallback Mode**: Uses mock data if API is unavailable (for development)
+
+### API Endpoints
+
+- **Production**: `api.live.planton.cloud:443` (default)
+- **Testing**: `api.test.planton.cloud:443`
+- **Local Development**: `localhost:8080`
+
+The agent calls the `CloudResourceSearchQueryController.getCloudResourcesCanvasView` RPC to list ECS services with the resource kind set to `AwsEcsService`.
 
 ## Available Tools
 

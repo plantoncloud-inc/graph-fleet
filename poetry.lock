@@ -5388,4 +5388,4 @@ mcp = ["langchain-mcp-adapters"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "e968952a4f7bdd648f8a981fc6354ae9e21b882cb8bf6b5f23f087bf0ed158e1"
+content-hash = "032d729daeee09a723732114f5c1f7711d5c456ad4a896b2b62897ad7a7928e9"
