@@ -8,26 +8,8 @@ This module handles:
 
 import os
 import grpc
-from typing import Optional
+from typing import Optional, Type, Any
 from dataclasses import dataclass
-
-# Import the generated protobuf/gRPC code
-# Note: These imports assume the protobuf stubs are available in the Python path
-try:
-    from planton_cloud.cloud.planton.apis.search.v1.infrahub.cloudresource import (
-        query_pb2_grpc as cloudresource_grpc,
-        io_pb2 as cloudresource_io
-    )
-    from planton_cloud.project.planton.shared.cloudresourcekind import (
-        cloud_resource_kind_pb2 as resource_kind_pb2
-    )
-    GRPC_AVAILABLE = True
-except ImportError:
-    # Fallback for development/testing when stubs aren't available
-    GRPC_AVAILABLE = False
-    cloudresource_grpc = None
-    cloudresource_io = None
-    resource_kind_pb2 = None
 
 
 @dataclass
@@ -103,7 +85,7 @@ class PlantonCloudAPIClient:
         """
         self.config = config
         self._channel: Optional[grpc.Channel] = None
-        self._stub: Optional[any] = None
+        self._stubs: dict[Type, Any] = {}  # Cache for different stub types
     
     def _get_channel(self) -> grpc.Channel:
         """Get or create the gRPC channel with authentication."""
@@ -138,26 +120,33 @@ class PlantonCloudAPIClient:
         
         return self._channel
     
-    def get_search_stub(self):
-        """Get the CloudResourceSearchQueryController stub."""
-        if not GRPC_AVAILABLE:
-            raise ImportError(
-                "gRPC stubs are not available. Please ensure the Planton Cloud "
-                "protobuf stubs are installed."
+    def get_stub(self, stub_class: Type) -> Any:
+        """Get or create a gRPC stub of the specified type.
+        
+        Args:
+            stub_class: The gRPC stub class to instantiate
+            
+        Returns:
+            An instance of the specified stub class
+            
+        Example:
+            from planton_cloud.cloud.planton.apis.search.v1.infrahub.cloudresource import (
+                query_pb2_grpc as cloudresource_grpc
             )
-        
-        if self._stub is None:
+            stub = client.get_stub(cloudresource_grpc.CloudResourceSearchQueryControllerStub)
+        """
+        if stub_class not in self._stubs:
             channel = self._get_channel()
-            self._stub = cloudresource_grpc.CloudResourceSearchQueryControllerStub(channel)
+            self._stubs[stub_class] = stub_class(channel)
         
-        return self._stub
+        return self._stubs[stub_class]
     
     def close(self):
         """Close the gRPC channel."""
         if self._channel:
             self._channel.close()
             self._channel = None
-            self._stub = None
+            self._stubs.clear()
     
     def __enter__(self):
         """Context manager entry."""

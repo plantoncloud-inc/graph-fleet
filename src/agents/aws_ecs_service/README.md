@@ -59,7 +59,17 @@ export PLANTON_CLOUD_ORG_ID="your-org-id"         # Required: Your organization 
 # Optional Environment Variables
 export PLANTON_CLOUD_ENV_NAME="production"         # Optional: Filter by environment
 export PLANTON_CLOUD_API_ENDPOINT="api.live.planton.cloud:443"  # Optional: API endpoint
+```
 
+**Important Note on Environment Variables**: 
+Currently, these environment variables are read at runtime from the process environment. In a multi-user MCP server scenario, you may need to:
+- Pass these as part of the MCP client configuration when creating the client
+- Use a configuration management system that can provide user-specific values
+- Implement a context system that passes user credentials through the tool calls
+
+#### AWS Credentials
+
+```bash
 # AWS (retrieved from Planton Cloud if not set)
 export AWS_ACCESS_KEY_ID="your-key"
 export AWS_SECRET_ACCESS_KEY="your-secret"
