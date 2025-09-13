@@ -8,7 +8,7 @@ No complex routing, no state-based decisions - just AI-driven workflow.
 
 import logging
 import os
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 from deepagents import async_create_deep_agent
 from langchain_core.language_models import LanguageModelLike
@@ -16,15 +16,21 @@ from langchain_core.tools import BaseTool
 
 from .mcp_tools import get_all_mcp_tools as get_mcp_tools
 from .prompts import MAIN_PROMPT, SUBAGENTS
+from .credential_tools import CREDENTIAL_MANAGEMENT_TOOLS
+from .credential_context import CredentialContext
 
 logger = logging.getLogger(__name__)
 
 
-async def get_all_mcp_tools(aws_credentials: dict[str, str] | None = None) -> list[BaseTool]:
+async def get_all_mcp_tools(
+    aws_credentials: dict[str, str] | None = None,
+    credential_context: Optional[CredentialContext] = None
+) -> list[BaseTool]:
     """Get all MCP tools - both Planton Cloud and AWS.
     
     Args:
         aws_credentials: Optional AWS credentials dictionary
+        credential_context: Optional session-specific credential context
     
     Returns:
         Combined list of all available MCP tools
@@ -32,7 +38,7 @@ async def get_all_mcp_tools(aws_credentials: dict[str, str] | None = None) -> li
     logger.info("Getting MCP tools for ECS Deep Agent")
     
     # Get tools from the mcp_tools module
-    tools = await get_mcp_tools(aws_credentials=aws_credentials)
+    tools = await get_mcp_tools(aws_credentials=aws_credentials, credential_context=credential_context)
     
     if not tools:
         logger.warning("No MCP tools available - agent will work with subagents only")
@@ -45,6 +51,7 @@ async def get_all_mcp_tools(aws_credentials: dict[str, str] | None = None) -> li
 async def create_ecs_deep_agent(
     model: Union[str, LanguageModelLike] = "claude-3-5-haiku-20241022",
     aws_credentials: dict[str, str] | None = None,
+    credential_context: Optional[CredentialContext] = None,
     **kwargs,
 ) -> Any:
     """Create the unified ECS Deep Agent.
@@ -55,6 +62,7 @@ async def create_ecs_deep_agent(
     Args:
         model: LLM model to use
         aws_credentials: Optional AWS credentials dictionary
+        credential_context: Optional session-specific credential context for isolation
         **kwargs: Additional configuration
         
     Returns:
@@ -62,9 +70,23 @@ async def create_ecs_deep_agent(
     """
     logger.info("Creating unified ECS Deep Agent")
     
-    # Get all tools
-    tools = await get_all_mcp_tools(aws_credentials=aws_credentials)
-    logger.info(f"Total tools available: {len(tools)}")
+    # Get all tools with the session context
+    tools = await get_all_mcp_tools(aws_credentials=aws_credentials, credential_context=credential_context)
+    
+    # Create session-specific credential management tools if context provided
+    if credential_context:
+        logger.info("Using provided session-specific credential context")
+        from .credential_tools import create_session_credential_tools
+        session_tools = create_session_credential_tools(credential_context)
+        tools.extend(session_tools)
+        tool_count = len(session_tools)
+    else:
+        logger.warning("No credential context provided - using global singleton (SECURITY RISK!)")
+        # Fall back to global tools for backward compatibility
+        tools.extend(CREDENTIAL_MANAGEMENT_TOOLS)
+        tool_count = len(CREDENTIAL_MANAGEMENT_TOOLS)
+    
+    logger.info(f"Total tools available: {len(tools)} (including {tool_count} credential management tools)")
     
     # Define a post-model hook to ensure messages have content
     def ensure_message_content(state):
