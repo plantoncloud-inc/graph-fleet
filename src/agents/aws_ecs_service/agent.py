@@ -16,6 +16,7 @@ from langchain_core.tools import BaseTool
 
 from .mcp_tools import get_all_mcp_tools as get_mcp_tools
 from .prompts import MAIN_PROMPT, SUBAGENTS
+from .credential_tools import CREDENTIAL_MANAGEMENT_TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,11 @@ async def create_ecs_deep_agent(
     
     # Get all tools
     tools = await get_all_mcp_tools(aws_credentials=aws_credentials)
-    logger.info(f"Total tools available: {len(tools)}")
+    
+    # Add credential management tools
+    tools.extend(CREDENTIAL_MANAGEMENT_TOOLS)
+    
+    logger.info(f"Total tools available: {len(tools)} (including {len(CREDENTIAL_MANAGEMENT_TOOLS)} credential management tools)")
     
     # Define a post-model hook to ensure messages have content
     def ensure_message_content(state):
