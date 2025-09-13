@@ -2,8 +2,6 @@
 
 A unified Deep Agent for diagnosing and managing AWS ECS services with AI-driven autonomous workflow.
 
-> ⚠️ **SECURITY WARNING**: The current implementation has a credential isolation issue. See `docs/IMPLEMENTATION_STATUS.md` for details. Do not use in production until fixed.
-
 ## Overview
 
 The AWS ECS Service Agent is a single Deep Agent that autonomously diagnoses and fixes ECS service issues. It combines Planton Cloud context tools for service discovery with AWS ECS-specific tools for comprehensive operations.
@@ -204,20 +202,16 @@ config = ECSDeepAgentConfig(
 ## Project Structure
 ```
 aws_ecs_service/
-├── agent.py             # Main Deep Agent (⚠️ needs session isolation fix)
+├── agent.py             # Main Deep Agent with session isolation
 ├── configuration.py     # Config models
-├── graph.py             # LangGraph integration
+├── graph.py             # LangGraph integration with credential isolation
 ├── mcp_tools.py         # MCP tools integration
 ├── credential_context.py # In-memory credential storage
 ├── credential_tools.py  # Credential management tools
 ├── prompts.py           # Agent and subagent prompts
 ├── agent.yaml           # Metadata
-├── demos/               # Demonstration scripts
-│   ├── simple_credential_demo.py
-│   ├── demo_credential_isolation.py
-│   └── standalone_credential_test.py
 ├── tests/               # Test files
-│   └── test_credential_sharing.py
+│   └── verify_isolation.py
 └── docs/                # Documentation
     ├── CREDENTIAL_ARCHITECTURE.md
     ├── CREDENTIAL_HANDLING.md
@@ -236,7 +230,7 @@ The agent creates several files during its workflow:
    - Managed by: credential management tools
    - Contains: access_key_id, secret_access_key, region (stored in memory)
    - **Security Note**: Credentials are never written to disk, only stored in memory
-   - **Architecture Note**: Each agent invocation should have its own credential context for proper isolation
+   - **Isolation**: Each agent invocation has its own credential context for complete security
 
 3. **`diagnostic_report.md`** - Diagnostic findings
    - Created by: triage-specialist subagent

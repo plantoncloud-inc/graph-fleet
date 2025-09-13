@@ -2,19 +2,26 @@
 
 This directory contains test files for the AWS ECS Deep Agent.
 
-## Files
+## Test Files
 
-- `test_credential_sharing.py` - Comprehensive test suite for credential sharing functionality
-  - Tests basic credential storage and retrieval
-  - Tests isolation between contexts
-  - Tests concurrent agent invocations
-  - Tests the full subagent credential flow
+### `verify_isolation.py`
+Core test that verifies credential isolation works correctly:
+- Tests basic context isolation
+- Tests concurrent operations  
+- Tests cleanup mechanism
+- Simulates graph invocations
+- Shows credential sharing within invocations
+- Demonstrates isolation between invocations
+- No external dependencies required
+
+### `TEST_RESULTS.md`
+Summary of test results and findings from running the test.
 
 ## Running Tests
 
 ```bash
-cd /path/to/graph-fleet
-poetry run pytest src/agents/aws_ecs_service/tests/
+cd tests/
+python3 verify_isolation.py
 ```
 
-Note: Some tests require the full agent dependencies (deepagents, langchain, etc.)
+The test runs without external dependencies and comprehensively verifies that the credential isolation implementation is working correctly.
