@@ -6,29 +6,29 @@ This module provides MCP (Model Context Protocol) tools for managing AWS ECS Ser
 
 The AWS ECS Service tools allow you to:
 - **List AWS ECS Service cloud resources** available in your organization/environment
-- **Get detailed AWS ECS Service information** including the complete proto structure with spec and status
-- **Query ECS services deployed through Planton Cloud** infrastructure management
+- **Get detailed AWS ECS Service information** including the complete CloudResource proto structure
+- **Retrieve the latest stack job** (deployment/infrastructure operation) for an ECS service
+
+These tools integrate with Planton Cloud's Infrastructure Hub to provide comprehensive ECS service management capabilities.
 
 ## Tools
 
 ### `list_aws_ecs_services`
 
-Lists AWS ECS Service cloud resources available in Planton Cloud for a given organization and environment.
+Lists AWS ECS Service cloud resources available in Planton Cloud for your organization and optionally filtered by environment.
 
 **Function Signature:**
 ```python
-async def list_aws_ecs_services(
-    org_id: str, 
-    env_name: str | None = None
-) -> list[dict[str, Any]]
+async def list_aws_ecs_services() -> list[dict[str, Any]]
 ```
 
-**Parameters:**
-- `org_id` (required): The organization ID in Planton Cloud
-- `env_name` (optional): Environment name for scoped listing (e.g., "production", "staging")
+**Configuration:**
+Uses environment variables for configuration:
+- `PLANTON_CLOUD_ORG_ID` (required): Organization ID
+- `PLANTON_CLOUD_ENV_NAME` (optional): Environment name for filtering
 
 **Returns:**
-List of ApiResourceSearchRecord dictionaries with the following structure:
+List of `ApiResourceSearchRecord` dictionaries with the following structure:
 
 ```python
 {
@@ -44,21 +44,20 @@ List of ApiResourceSearchRecord dictionaries with the following structure:
 }
 ```
 
-**Note:** Additional ECS-specific details like cluster name, region, and service status are available through `get_aws_ecs_service()` which returns the complete proto structure.
-
 **RPC Implementation:**
 - Uses `CloudResourceSearchQueryController.getCloudResourcesCanvasView`
-- `cloud_resource_kind` is hardcoded to `"AwsEcsService"` for this specific tool
+- Filters by `cloud_resource_kind` = `aws_ecs_service`
 - Server-side filtering by organization and environment
-- Returns standard `ApiResourceSearchRecord` format
+- Returns paginated results in standard `ApiResourceSearchRecord` format
 
 **Usage Examples:**
 ```python
-# List all AWS ECS services for an organization
-services = await list_aws_ecs_services("acme-corp")
+# List all AWS ECS services for the configured organization
+services = await list_aws_ecs_services()
 
-# List AWS ECS services for a specific environment
-prod_services = await list_aws_ecs_services("acme-corp", "production")
+# Environment filtering is done via PLANTON_CLOUD_ENV_NAME environment variable
+# export PLANTON_CLOUD_ENV_NAME=production
+prod_services = await list_aws_ecs_services()
 ```
 
 ### `get_aws_ecs_service`
@@ -74,7 +73,7 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]
 - `service_id` (required): The ID of the AWS ECS Service resource (from `list_aws_ecs_services`)
 
 **Returns:**
-Complete `AwsEcsService` proto message structure:
+Complete `CloudResource` proto message structure containing the ECS service:
 
 ```python
 {
@@ -97,7 +96,11 @@ Complete `AwsEcsService` proto message structure:
         "version": {
             "id": "v2.1.0",
             "message": "Updated container configuration"
-        }
+        },
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-15T10:30:00Z",
+        "created_by": "devops@acme-corp.com",
+        "updated_by": "admin@acme-corp.com"
     },
     "spec": {
         "cluster_arn": "arn:aws:ecs:us-west-2:123456789012:cluster/production-cluster",
@@ -136,7 +139,7 @@ Complete `AwsEcsService` proto message structure:
             "created_by": "devops@acme-corp.com",
             "updated_by": "admin@acme-corp.com"
         },
-        "outputs": {
+        "stack_outputs": {
             "service_arn": "arn:aws:ecs:us-west-2:123456789012:service/...",
             "service_name": "api-service",
             "cluster_arn": "arn:aws:ecs:us-west-2:123456789012:cluster/...",
@@ -148,17 +151,111 @@ Complete `AwsEcsService` proto message structure:
 }
 ```
 
-**Proto Compliance:**
-- Follows exact structure from `project.planton.provider.aws.awsecsservice.v1.AwsEcsService`
-- Includes complete spec configuration for container, network, load balancer, and scaling
-- Contains status with stack outputs and runtime information
-- Provides all necessary information for ECS service management and monitoring
+**RPC Implementation:**
+- Uses `CloudResourceQueryController.get`
+- Takes a `CloudResourceId` with the service ID
+- Returns the complete `CloudResource` proto message
+- Includes full spec and status information
+
+### `get_aws_ecs_service_latest_stack_job`
+
+Retrieves the most recent stack job (deployment/infrastructure operation) for an AWS ECS Service.
+
+**Function Signature:**
+```python
+async def get_aws_ecs_service_latest_stack_job(
+    service_id: str, 
+    env_name: str = None
+) -> dict[str, Any]
+```
+
+**Parameters:**
+- `service_id` (required): The ID of the AWS ECS Service resource
+- `env_name` (optional): Environment name to filter stack jobs (uses `PLANTON_CLOUD_ENV_NAME` if not provided)
+
+**What is a Stack Job?**
+A stack job in Planton Cloud is a deployment/infrastructure operation that applies changes to cloud resources. It contains information about:
+- What infrastructure changes were made (create, update, destroy)
+- When the operation was performed and by whom
+- The status and results of the operation (success, failure, in-progress)
+- Logs and detailed execution information
+- Provider credentials and configuration used
+- Infrastructure-as-Code (IaC) modules and their outputs
+
+**Returns:**
+Complete `StackJob` proto message structure:
+
+```python
+{
+    "id": "stack-job-ecs-service-api-prod-001-20240115103000",
+    "metadata": {
+        "name": "Deploy api-service to production",
+        "created_at": "2024-01-15T10:30:00Z",
+        "created_by": "devops@acme-corp.com",
+        "org": "acme-corp",
+        "env": "production"
+    },
+    "spec": {
+        "cloud_resource_id": "ecs-service-api-prod-001",
+        "cloud_resource_kind": "AwsEcsService",
+        "stack_job_operation": "apply",           # create, update, destroy
+        "iac_module": {
+            "name": "aws-ecs-service",
+            "version": "v1.2.0",
+            "source": "github.com/project-planton/aws-ecs-service-pulumi-module"
+        },
+        "provider_credential_id": "aws-cred-prod-001",
+        "backend_credential_id": "terraform-backend-prod",
+        "flow_control_policy": {
+            "requires_approval": false,
+            "auto_apply": true
+        }
+    },
+    "status": {
+        "phase": "completed",                     # pending, running, completed, failed
+        "result": "success",                      # success, failure, cancelled
+        "started_at": "2024-01-15T10:30:00Z",
+        "completed_at": "2024-01-15T10:35:00Z",
+        "duration_seconds": 300,
+        "progress": {
+            "total_steps": 5,
+            "completed_steps": 5,
+            "current_step": "Apply complete"
+        },
+        "logs": [
+            {
+                "timestamp": "2024-01-15T10:30:15Z",
+                "level": "info",
+                "message": "Initializing Terraform..."
+            },
+            {
+                "timestamp": "2024-01-15T10:32:00Z",
+                "level": "info",
+                "message": "Creating ECS service..."
+            }
+        ],
+        "stack_outputs": {
+            "service_arn": "arn:aws:ecs:us-west-2:123456789012:service/...",
+            "task_definition_arn": "arn:aws:ecs:us-west-2:123456789012:task-definition/..."
+        },
+        "error_message": null                     # Present if result is "failure"
+    }
+}
+```
+
+**RPC Implementation:**
+- Uses `StackJobQueryController.listByFilters`
+- Filters by `cloud_resource_kind` = `aws_ecs_service`
+- Filters by `cloud_resource_id` = provided service_id
+- Filters by `org` from `PLANTON_CLOUD_ORG_ID`
+- Optionally filters by environment
+- Uses pagination to get only the latest result (`page_size=1`)
 
 ## Workflow Example
 
 ```python
 # 1. List available ECS services
-services = await list_aws_ecs_services("acme-corp", "production")
+services = await list_aws_ecs_services()
 print(f"Found {len(services)} ECS services")
 
 # 2. Select a service
@@ -168,73 +265,111 @@ service_name = services[0]["name"]  # "api-service"
 # 3. Get full service details
 service = await get_aws_ecs_service(service_id)
 cluster_arn = service["spec"]["cluster_arn"]
-service_arn = service["status"]["outputs"]["service_arn"]
-
-# 4. Access configuration details
-container_image = service["spec"]["container"]["image"]
 desired_count = service["spec"]["scaling"]["desired_count"]
-service_url = service["status"]["outputs"]["service_url"]
-cluster_arn = service["spec"]["cluster_arn"]
-region = service["status"]["outputs"]["service_arn"].split(":")[3]  # Extract from ARN
+service_url = service["status"]["stack_outputs"]["service_url"]
 
-print(f"Service {service_name} running {desired_count} tasks")
-print(f"Image: {container_image}")
-print(f"URL: {service_url}")
-print(f"Cluster: {cluster_arn}")
-print(f"Region: {region}")
+# 4. Get latest deployment information
+latest_deployment = await get_aws_ecs_service_latest_stack_job(service_id)
+deployment_status = latest_deployment["status"]["result"]
+deployment_time = latest_deployment["status"]["completed_at"]
+provider_cred = latest_deployment["spec"]["provider_credential_id"]
+
+print(f"Service: {service_name} ({service_id})")
+print(f"Running {desired_count} tasks on {cluster_arn}")
+print(f"Service URL: {service_url}")
+print(f"Last deployment: {deployment_status} at {deployment_time}")
+print(f"Using AWS credentials: {provider_cred}")
+
+# 5. Check deployment logs if needed
+if deployment_status == "failure":
+    error_msg = latest_deployment["status"]["error_message"]
+    print(f"Deployment failed: {error_msg}")
+    
+    # Get detailed logs
+    logs = latest_deployment["status"]["logs"]
+    for log in logs:
+        if log["level"] == "error":
+            print(f"Error at {log['timestamp']}: {log['message']}")
 ```
 
-## Integration with AWS ECS Service Agent
+## Agent Integration
 
-These tools are designed to work with the AWS ECS Service Agent for comprehensive ECS management:
+These tools are designed to work seamlessly with AI agents for comprehensive ECS management:
 
+### Service Discovery
 ```python
-# Use with contextualizer agent for service discovery
-services = await list_aws_ecs_services(org_id, env_name)
-identified_services = [
-    {
-        "service_id": svc["id"],
-        "service_name": svc["name"],
-        "tags": svc["tags"],
-        "is_active": svc["is_active"]
-    }
-    for svc in services if svc["is_active"]
-]
+# Agent can discover services and understand their context
+services = await list_aws_ecs_services()
+active_services = [s for s in services if s["is_active"]]
 
-# Get detailed service information for operations
-for service_summary in identified_services:
-    service_detail = await get_aws_ecs_service(service_summary["service_id"])
-    # Use service_detail for diagnosis, monitoring, or operations
+# Agent understands service relationships through tags
+web_services = [s for s in services if "web-service" in s["tags"]]
+prod_services = [s for s in services if s["env_name"] == "production"]
+```
+
+### Operational Insights
+```python
+# Agent can analyze service configuration and deployment status
+service = await get_aws_ecs_service(service_id)
+stack_job = await get_aws_ecs_service_latest_stack_job(service_id)
+
+# Agent can provide insights about:
+# - Service health and configuration
+# - Recent deployment activities
+# - Infrastructure credentials and modules used
+# - Scaling configuration and resource allocation
+```
+
+### Troubleshooting Support
+```python
+# Agent can help diagnose issues by examining stack jobs
+if stack_job["status"]["result"] == "failure":
+    error_logs = [log for log in stack_job["status"]["logs"] if log["level"] == "error"]
+    # Agent can analyze error logs and provide recommendations
+```
+
+## Environment Configuration
+
+All tools use environment variables for configuration:
+
+```bash
+# Required
+export PLANTON_CLOUD_API_ENDPOINT="api.live.planton.cloud:443"
+export PLANTON_CLOUD_AUTH_TOKEN="your-auth-token"
+export PLANTON_CLOUD_ORG_ID="your-org-id"
+
+# Optional (for environment-specific filtering)
+export PLANTON_CLOUD_ENV_NAME="production"
 ```
 
 ## Error Handling
 
-All functions are designed to fail gracefully:
-- Invalid `org_id` or `service_id` will return empty results in mock mode
-- Missing optional parameters will use sensible defaults
-- Malformed service structures will be handled appropriately
+All functions include comprehensive error handling:
+- **Input validation**: Empty or invalid parameters are rejected
+- **Environment validation**: Missing required environment variables are reported
+- **API errors**: gRPC errors are logged and re-raised with context
+- **Not found cases**: Clear error messages when resources don't exist
+- **Network issues**: Proper error propagation for connectivity problems
 
 ## Production Integration
 
-In production, these tools will:
-1. **Authenticate** with Planton Cloud using gRPC and provided tokens
-2. **Call actual RPCs** instead of returning mock data:
-   - `list_aws_ecs_services` → `CloudResourceSearchQueryController.getCloudResourcesCanvasView`
-   - `get_aws_ecs_service` → AWS ECS Service query controller (specific RPC to be determined)
-3. **Handle real errors** from the Planton Cloud API
-4. **Respect permissions** and organization/environment access controls
-5. **Return actual ECS service data** from deployed infrastructure
+These tools are production-ready and integrate with:
+1. **Planton Cloud gRPC APIs** using authenticated connections
+2. **Real-time data** from deployed ECS services
+3. **Organization and environment access controls**
+4. **Audit logging** for all operations
+5. **Provider credential management** for secure AWS access
 
 ## Proto Definitions
 
 The tools are based on these proto definitions:
+- `cloud.planton.apis.infrahub.cloudresource.v1.CloudResource`
+- `cloud.planton.apis.infrahub.stackjob.v1.StackJob`
+- `cloud.planton.apis.search.v1.infrahub.cloudresource.ApiResourceSearchRecord`
 - `project.planton.provider.aws.awsecsservice.v1.AwsEcsService`
-- `project.planton.provider.aws.awsecsservice.v1.AwsEcsServiceSpec`
-- `project.planton.provider.aws.awsecsservice.v1.AwsEcsServiceStatus`
-- `project.planton.shared.ApiResourceMetadata`
-- `project.planton.shared.ApiResourceLifecycleAndAuditStatus`
+- `project.planton.shared.cloudresourcekind.CloudResourceKind`
 
-See the [project-planton repository](https://github.com/project-planton/project-planton) for complete proto definitions.
+See the [planton-cloud APIs](https://github.com/plantoncloud-inc/planton-cloud) for complete proto definitions.
 
 ## Relationship to Infrastructure Hub
 
