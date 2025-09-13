@@ -5,36 +5,43 @@ Implementation follows the actual proto message structure from:
 project.planton.provider.aws.awsecsservice.v1.AwsEcsService
 """
 
-import os
 import logging
+import os
 from typing import Any
+
+from cloud.planton.apis.commons.apiresource.apiresourcekind.api_resource_kind_pb2 import (
+    ApiResourceKind,
+)
+from cloud.planton.apis.commons.rpc import (
+    pagination_pb2 as pagination_pb2,
+)
+from cloud.planton.apis.infrahub.cloudresource.v1 import (
+    io_pb2 as cloudresource_query_io,
+)
+from cloud.planton.apis.infrahub.cloudresource.v1 import (
+    query_pb2_grpc as cloudresource_query_grpc,
+)
+from cloud.planton.apis.infrahub.stackjob.v1 import (
+    io_pb2 as stackjob_io,
+)
+from cloud.planton.apis.infrahub.stackjob.v1 import (
+    query_pb2_grpc as stackjob_grpc,
+)
+from cloud.planton.apis.search.v1.infrahub.cloudresource import (
+    io_pb2 as cloudresource_io,
+)
+from cloud.planton.apis.search.v1.infrahub.cloudresource import (
+    query_pb2_grpc as cloudresource_grpc,
+)
 from google.protobuf.json_format import MessageToDict
+from project.planton.shared.cloudresourcekind.cloud_resource_kind_pb2 import (
+    CloudResourceKind,
+)
+
+from ....api_client import get_api_client
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-# Import the API client
-from ....api_client import get_api_client
-
-# Import the protobuf types
-from planton_cloud.cloud.planton.apis.search.v1.infrahub.cloudresource import (
-    query_pb2_grpc as cloudresource_grpc,
-    io_pb2 as cloudresource_io
-)
-from planton_cloud.cloud.planton.apis.infrahub.cloudresource.v1 import (
-    query_pb2_grpc as cloudresource_query_grpc,
-    io_pb2 as cloudresource_query_io
-)
-from planton_cloud.cloud.planton.apis.infrahub.stackjob.v1 import (
-    query_pb2_grpc as stackjob_grpc,
-    io_pb2 as stackjob_io
-)
-from planton_cloud.cloud.planton.apis.commons.rpc import (
-    pagination_pb2 as pagination_pb2
-)
-from planton_cloud.project.planton.shared.cloudresourcekind import (
-    cloud_resource_kind_pb2 as resource_kind_pb2
-)
 
 
 async def list_aws_ecs_services() -> list[dict[str, Any]]:
@@ -42,7 +49,7 @@ async def list_aws_ecs_services() -> list[dict[str, Any]]:
 
     This calls CloudResourceSearchQueryController.getCloudResourcesCanvasView
     with cloud_resource_kind set to "AwsEcsService".
-    
+
     The organization ID and optional environment name are taken from environment variables:
     - PLANTON_CLOUD_ORG_ID: Organization ID (required)
     - PLANTON_CLOUD_ENV_NAME: Environment name (optional)
@@ -63,48 +70,56 @@ async def list_aws_ecs_services() -> list[dict[str, Any]]:
     # Get configuration from environment
     org_id = os.getenv("PLANTON_CLOUD_ORG_ID")
     env_name = os.getenv("PLANTON_CLOUD_ENV_NAME")
-    
+
     if not org_id:
         logger.error("PLANTON_CLOUD_ORG_ID environment variable is required")
         return []
-    
+
     try:
         # Get the API client
         client = get_api_client()
-        
+
         # Get the search stub using the generic method
-        stub = client.get_stub(cloudresource_grpc.CloudResourceSearchQueryControllerStub)
-        
+        stub = client.get_stub(
+            cloudresource_grpc.CloudResourceSearchQueryControllerStub
+        )
+
         # Build the request
         request = cloudresource_io.ExploreCloudResourcesRequest(
-            org=org_id,
-            kinds=[resource_kind_pb2.aws_ecs_service]  # CloudResourceKind enum for AwsEcsService
+            org_id=org_id,
+            kinds=[
+                CloudResourceKind.AwsEcsService,
+            ],  # CloudResourceKind enum for AwsEcsService
         )
-        
+
         # Add environment filter if specified
         if env_name:
-            request.envs.append(env_name)
-        
+            request.env_names.append(env_name)
+
         # Make the gRPC call
         response = stub.getCloudResourcesCanvasView(request)
-        
+
         # Convert the response to dictionaries
         result = []
         for canvas_env in response.canvas_environments:
             # Loop through all resource kinds in the mapping (no hardcoded check needed since we filtered by kinds)
-            for resource_kind, resource_data in canvas_env.resource_kind_mapping.items():
+            for (
+                resource_kind,
+                resource_data,
+            ) in canvas_env.resource_kind_mapping.items():
                 # Extract records from each resource kind (value contains the records we need)
                 for record in resource_data.records:
                     # Convert protobuf message to dictionary, preserving original field names
-                    record_dict = MessageToDict(record, preserving_proto_field_name=True)
+                    record_dict = MessageToDict(
+                        record, preserving_proto_field_name=True
+                    )
                     result.append(record_dict)
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to call Planton Cloud API: {e}")
         raise  # Re-raise the exception instead of silently returning empty list
-            
 
 
 async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
@@ -131,36 +146,38 @@ async def get_aws_ecs_service(service_id: str) -> dict[str, Any]:
     """
     if not service_id or not service_id.strip():
         raise ValueError("service_id is required and cannot be empty")
-    
+
     try:
         # Get the API client
         client = get_api_client()
-        
+
         # Get the CloudResourceQueryController stub
-        stub = client.get_stub(cloudresource_query_grpc.CloudResourceQueryControllerStub)
-        
-        # Build the request with the service ID
-        request = cloudresource_query_io.CloudResourceId(
-            value=service_id.strip()
+        stub = client.get_stub(
+            cloudresource_query_grpc.CloudResourceQueryControllerStub
         )
-        
+
+        # Build the request with the service ID
+        request = cloudresource_query_io.CloudResourceId(value=service_id.strip())
+
         # Make the gRPC call to get the cloud resource
         response = stub.get(request)
-        
+
         # Convert the protobuf response to dictionary, preserving original field names
         result = MessageToDict(response, preserving_proto_field_name=True)
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to get AWS ECS Service with ID '{service_id}': {e}")
         raise  # Re-raise the exception instead of silently returning empty dict
 
 
-async def get_aws_ecs_service_latest_stack_job(service_id: str, env_name: str = None) -> dict[str, Any]:
+async def get_aws_ecs_service_latest_stack_job(
+    service_id: str, env_name: str | None = None
+) -> dict[str, Any]:
     """Get the latest stack job for an AWS ECS Service.
 
-    A stack job in Planton Cloud is a deployment/infrastructure operation that applies 
+    A stack job in Planton Cloud is a deployment/infrastructure operation that applies
     changes to cloud resources. It contains information about:
     - What infrastructure changes were made (create, update, destroy)
     - When the operation was performed and by whom
@@ -195,58 +212,69 @@ async def get_aws_ecs_service_latest_stack_job(service_id: str, env_name: str = 
     """
     if not service_id or not service_id.strip():
         raise ValueError("service_id is required and cannot be empty")
-    
+
     # Get configuration from environment
     org_id = os.getenv("PLANTON_CLOUD_ORG_ID")
     if not org_id:
         logger.error("PLANTON_CLOUD_ORG_ID environment variable is required")
         raise ValueError("PLANTON_CLOUD_ORG_ID environment variable is required")
-    
+
     # Use provided env_name or fall back to environment variable
     if not env_name:
         env_name = os.getenv("PLANTON_CLOUD_ENV_NAME")
-    
+        if not env_name:
+            logger.error(
+                "env_name parameter or PLANTON_CLOUD_ENV_NAME environment variable is required"
+            )
+            raise ValueError(
+                "env_name parameter or PLANTON_CLOUD_ENV_NAME environment variable is required"
+            )
+
     try:
         # Get the API client
         client = get_api_client()
-        
+
         # Get the StackJobQueryController stub
         stub = client.get_stub(stackjob_grpc.StackJobQueryControllerStub)
-        
+
         # Build the request to get the latest stack job for this ECS service
         # Set page_info to get only the first result (most recent)
         page_info = pagination_pb2.PageInfo(
-            page_size=1,  # Only get the latest one
-            page_number=1  # First page
+            size=1,  # Only get the latest one
+            num=1,  # First page
         )
-        
+
         request = stackjob_io.ListStackJobsByFiltersQueryInput(
             page_info=page_info,
             org=org_id,
-            cloud_resource_kind=resource_kind_pb2.aws_ecs_service,  # Filter for AWS ECS Service
-            cloud_resource_id=service_id.strip()
+            resource_kind=ApiResourceKind.cloud_resource,  # Filter for AWS ECS Service
+            resource_id=service_id.strip(),
         )
-        
+
         # Add environment filter if specified
         if env_name and env_name.strip():
             request.env = env_name.strip()
-        
+
         # Make the gRPC call to list stack jobs with filters
         response = stub.listByFilters(request)
-        
+
         # Check if we got any results
         if not response.entries:
-            raise Exception(f"No stack jobs found for AWS ECS Service '{service_id}'" + 
-                          (f" in environment '{env_name}'" if env_name else ""))
-        
+            raise Exception(
+                f"No stack jobs found for AWS ECS Service '{service_id}'"
+                + (f" in environment '{env_name}'" if env_name else "")
+            )
+
         # Get the first (latest) stack job
         latest_stack_job = response.entries[0]
-        
+
         # Convert the protobuf response to dictionary, preserving original field names
         result = MessageToDict(latest_stack_job, preserving_proto_field_name=True)
-        
+
         return result
-        
+
     except Exception as e:
-        logger.error(f"Failed to get latest stack job for AWS ECS Service '{service_id}': {e}")
+        logger.error(
+            f"Failed to get latest stack job for AWS ECS Service '{service_id}': {e}"
+        )
         raise  # Re-raise the exception instead of silently returning empty dict

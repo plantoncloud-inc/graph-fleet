@@ -8,7 +8,7 @@ discovery, cluster operations, and CloudWatch logs integration.
 import asyncio
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -22,18 +22,22 @@ def get_planton_cloud_mcp_config() -> dict[str, Any]:
 
     Returns:
         Dictionary with Planton Cloud MCP server configuration
+
     """
     env = {
         "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
     }
 
     # Add Planton Cloud specific environment variables if available
-    if os.getenv("PLANTON_TOKEN"):
-        env["PLANTON_TOKEN"] = os.getenv("PLANTON_TOKEN")
-    if os.getenv("PLANTON_ORG_ID"):
-        env["PLANTON_ORG_ID"] = os.getenv("PLANTON_ORG_ID")
-    if os.getenv("PLANTON_ENV_NAME"):
-        env["PLANTON_ENV_NAME"] = os.getenv("PLANTON_ENV_NAME")
+    planton_token = os.getenv("PLANTON_TOKEN")
+    if planton_token:
+        env["PLANTON_TOKEN"] = planton_token
+    planton_org_id = os.getenv("PLANTON_ORG_ID")
+    if planton_org_id:
+        env["PLANTON_ORG_ID"] = planton_org_id
+    planton_env_name = os.getenv("PLANTON_ENV_NAME")
+    if planton_env_name:
+        env["PLANTON_ENV_NAME"] = planton_env_name
 
     return {
         "command": "planton_cloud_mcp",
@@ -52,6 +56,7 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
 
     Returns:
         Dictionary with AWS ECS MCP server configuration
+
     """
     env = {
         "FASTMCP_LOG_LEVEL": os.getenv("FASTMCP_LOG_LEVEL", "ERROR"),
@@ -69,14 +74,18 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
         )
     else:
         # Use environment variables if available
-        if os.getenv("AWS_ACCESS_KEY_ID"):
-            env["AWS_ACCESS_KEY_ID"] = os.getenv("AWS_ACCESS_KEY_ID")
-        if os.getenv("AWS_SECRET_ACCESS_KEY"):
-            env["AWS_SECRET_ACCESS_KEY"] = os.getenv("AWS_SECRET_ACCESS_KEY")
-        if os.getenv("AWS_SESSION_TOKEN"):
-            env["AWS_SESSION_TOKEN"] = os.getenv("AWS_SESSION_TOKEN")
-        if os.getenv("AWS_REGION"):
-            env["AWS_REGION"] = os.getenv("AWS_REGION")
+        aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        if aws_access_key_id:
+            env["AWS_ACCESS_KEY_ID"] = aws_access_key_id
+        aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        if aws_secret_access_key:
+            env["AWS_SECRET_ACCESS_KEY"] = aws_secret_access_key
+        aws_session_token = os.getenv("AWS_SESSION_TOKEN")
+        if aws_session_token:
+            env["AWS_SESSION_TOKEN"] = aws_session_token
+        aws_region = os.getenv("AWS_REGION")
+        if aws_region:
+            env["AWS_REGION"] = aws_region
 
     env["ALLOW_SENSITIVE_DATA"] = "true"
 
@@ -94,12 +103,10 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
             }
     except ImportError:
         pass
-    
+
     # Fall back to uvx
     logger.warning("AWS ECS MCP server not installed. Using uvx to run it.")
-    logger.warning(
-        "For better performance, install: poetry add awslabs.ecs-mcp-server"
-    )
+    logger.warning("For better performance, install: poetry add awslabs.ecs-mcp-server")
     return {
         "command": "uvx",
         "args": ["awslabs.ecs-mcp-server@latest"],
@@ -123,12 +130,12 @@ PLANTON_CLOUD_CONTEXT_TOOLS = [
 # The ECS MCP server provides higher-level tools for deployment and troubleshooting
 ECS_TOOLS = [
     # Core ECS tools
-    "containerize_app",                # Containerization guidance
-    "create_ecs_infrastructure",       # Create ECS infrastructure
-    "get_deployment_status",           # Check deployment status
-    "ecs_resource_management",         # Manage ECS resources
-    "ecs_troubleshooting_tool",        # Comprehensive troubleshooting
-    "delete_ecs_infrastructure",       # Clean up infrastructure
+    "containerize_app",  # Containerization guidance
+    "create_ecs_infrastructure",  # Create ECS infrastructure
+    "get_deployment_status",  # Check deployment status
+    "ecs_resource_management",  # Manage ECS resources
+    "ecs_troubleshooting_tool",  # Comprehensive troubleshooting
+    "delete_ecs_infrastructure",  # Clean up infrastructure
 ]
 
 
@@ -143,6 +150,7 @@ def _get_planton_cloud_mcp_tools_sync(planton_config: dict[str, Any]) -> list[Ba
 
     Raises:
         Exception: If MCP client creation or tool retrieval fails
+
     """
     try:
         # Import MultiServerMCPClient inside the function to prevent blocking during module load
@@ -161,7 +169,9 @@ def _get_planton_cloud_mcp_tools_sync(planton_config: dict[str, Any]) -> list[Ba
         finally:
             loop.close()
 
-        logger.info(f"Retrieved {len(all_tools)} total tools from Planton Cloud MCP server")
+        logger.info(
+            f"Retrieved {len(all_tools)} total tools from Planton Cloud MCP server"
+        )
 
         # Filter tools based on context-focused allowlist
         allowed_tools = []
@@ -178,7 +188,7 @@ def _get_planton_cloud_mcp_tools_sync(planton_config: dict[str, Any]) -> list[Ba
 
         logger.info(f"Filtered to {len(allowed_tools)} Planton Cloud context tools")
         return allowed_tools
-        
+
     except Exception as e:
         logger.error(f"Failed to get Planton Cloud MCP tools: {e}")
         return []
@@ -195,6 +205,7 @@ def _get_aws_mcp_tools_sync(aws_config: dict[str, Any]) -> list[BaseTool]:
 
     Raises:
         Exception: If MCP client creation or tool retrieval fails
+
     """
     try:
         # Import MultiServerMCPClient inside the function to prevent blocking during module load
@@ -230,15 +241,14 @@ def _get_aws_mcp_tools_sync(aws_config: dict[str, Any]) -> list[BaseTool]:
 
         logger.info(f"Filtered to {len(allowed_tools)} ECS-focused tools")
         return allowed_tools
-        
+
     except Exception as e:
         logger.error(f"Failed to get AWS ECS MCP tools: {e}")
         return []
 
 
 async def get_all_mcp_tools(
-    aws_credentials: dict[str, str] | None = None,
-    credential_context: Optional[Any] = None
+    aws_credentials: dict[str, str] | None = None, credential_context: Any | None = None
 ) -> list[BaseTool]:
     """Get all MCP tools for the ECS Deep Agent.
 
@@ -252,13 +262,14 @@ async def get_all_mcp_tools(
 
     Returns:
         List of all LangChain tools for the agent.
+
     """
     all_tools = []
-    
+
     # Get Planton Cloud tools
     logger.info("Getting Planton Cloud MCP tools...")
     planton_config = {"planton_cloud": get_planton_cloud_mcp_config()}
-    
+
     try:
         planton_tools = await asyncio.to_thread(
             _get_planton_cloud_mcp_tools_sync, planton_config
@@ -268,38 +279,44 @@ async def get_all_mcp_tools(
     except Exception as e:
         logger.error(f"Failed to get Planton Cloud tools: {e}")
         logger.warning("Continuing without Planton Cloud MCP tools")
-    
+
     # Get AWS credentials from context if not provided
     if not aws_credentials:
         if credential_context:
-            logger.info("No AWS credentials provided, checking session credential context...")
+            logger.info(
+                "No AWS credentials provided, checking session credential context..."
+            )
             aws_credentials = await credential_context.get_aws_credentials()
             if aws_credentials:
                 logger.info("Found AWS credentials in session context")
             else:
-                logger.warning("No AWS credentials in session context, will use environment variables if available")
+                logger.warning(
+                    "No AWS credentials in session context, will use environment variables if available"
+                )
         else:
-            logger.info("No AWS credentials provided, checking global credential context...")
+            logger.info(
+                "No AWS credentials provided, checking global credential context..."
+            )
             context = get_credential_context()
             aws_credentials = await context.get_aws_credentials()
             if aws_credentials:
                 logger.info("Found AWS credentials in global context")
             else:
-                logger.warning("No AWS credentials in context, will use environment variables if available")
-    
+                logger.warning(
+                    "No AWS credentials in context, will use environment variables if available"
+                )
+
     # Get AWS ECS tools
     logger.info("Getting AWS ECS MCP tools...")
     aws_config = {"aws_ecs": get_aws_mcp_config(aws_credentials)}
-    
+
     try:
-        aws_tools = await asyncio.to_thread(
-            _get_aws_mcp_tools_sync, aws_config
-        )
+        aws_tools = await asyncio.to_thread(_get_aws_mcp_tools_sync, aws_config)
         all_tools.extend(aws_tools)
         logger.info(f"Added {len(aws_tools)} AWS ECS tools")
     except Exception as e:
         logger.error(f"Failed to get AWS tools: {e}")
         logger.warning("Continuing without AWS MCP tools")
-    
+
     logger.info(f"Total MCP tools available: {len(all_tools)}")
     return all_tools

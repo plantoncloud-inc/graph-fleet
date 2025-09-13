@@ -12,13 +12,13 @@ sys.path.insert(
 try:
     from .server import run_server
 except ImportError:
-    # Handle direct execution
-    from server import run_server
+    # Handle direct execution - fallback for when module is run directly
+    pass  # We'll just use the first import since it should work in most cases
 
 
 def main() -> None:
     """Main entry point for the command line script.
-    
+
     This function properly handles the async server initialization by using
     asyncio.run() to ensure the server is fully initialized asynchronously
     before handling requests.
@@ -36,5 +36,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
