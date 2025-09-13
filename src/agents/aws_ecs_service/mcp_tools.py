@@ -8,9 +8,11 @@ discovery, cluster operations, and CloudWatch logs integration.
 import asyncio
 import logging
 import os
-from typing import Any
+from typing import Any, Optional
 
 from langchain_core.tools import BaseTool
+
+from .credential_context import get_credential_context
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +111,12 @@ def get_aws_mcp_config(aws_credentials: dict[str, str] | None = None) -> dict[st
 # Planton Cloud context tools allowlist
 PLANTON_CLOUD_CONTEXT_TOOLS = [
     # AWS credential management
-    # "list_aws_credentials",
-    # "get_aws_credential",
+    "list_aws_credentials",
+    "get_aws_credential",
     # AWS ECS service discovery
     "list_aws_ecs_services",
     "get_aws_ecs_service",
+    "get_aws_ecs_service_latest_stack_job",
 ]
 
 # ECS-focused tools allowlist (from AWS ECS MCP server)
@@ -240,7 +243,8 @@ async def get_all_mcp_tools(aws_credentials: dict[str, str] | None = None) -> li
     for the unified ECS Deep Agent.
 
     Args:
-        aws_credentials: Optional AWS credentials dictionary
+        aws_credentials: Optional AWS credentials dictionary. If not provided,
+                        will attempt to get from the credential context.
 
     Returns:
         List of all LangChain tools for the agent.
@@ -260,6 +264,16 @@ async def get_all_mcp_tools(aws_credentials: dict[str, str] | None = None) -> li
     except Exception as e:
         logger.error(f"Failed to get Planton Cloud tools: {e}")
         logger.warning("Continuing without Planton Cloud MCP tools")
+    
+    # Get AWS credentials from context if not provided
+    if not aws_credentials:
+        logger.info("No AWS credentials provided, checking credential context...")
+        context = get_credential_context()
+        aws_credentials = await context.get_aws_credentials()
+        if aws_credentials:
+            logger.info("Found AWS credentials in context")
+        else:
+            logger.warning("No AWS credentials in context, will use environment variables if available")
     
     # Get AWS ECS tools
     logger.info("Getting AWS ECS MCP tools...")
