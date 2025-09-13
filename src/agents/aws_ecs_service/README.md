@@ -21,7 +21,10 @@ The AWS ECS Service Agent is a single Deep Agent that autonomously diagnoses and
 - **MCP Tools**: Direct access to Planton Cloud and AWS APIs
 
 ### Subagents
-1. **service-identifier**: Identifies ECS services using Planton Cloud
+1. **service-identifier**: 
+   - Identifies ECS services using Planton Cloud
+   - Retrieves latest stack job to get credential mapping
+   - Extracts and saves AWS credentials for MCP tools
 2. **triage-specialist**: Autonomous diagnosis with AWS tools
 3. **repair-planner**: Creates targeted fix plans
 4. **fix-executor**: Executes approved repairs
@@ -69,13 +72,22 @@ Currently, these environment variables are read at runtime from the process envi
 
 #### AWS Credentials
 
+AWS credentials are **automatically discovered** from the ECS service's deployment:
+- The agent retrieves the latest stack job for the service
+- Extracts the provider_credential_id used for deployment
+- Fetches the actual AWS credentials from Planton Cloud
+- Saves them temporarily to `aws_credentials.json` for MCP tools
+
+Manual AWS credentials (optional fallback):
 ```bash
-# AWS (retrieved from Planton Cloud if not set)
+# Only needed if automatic discovery fails
 export AWS_ACCESS_KEY_ID="your-key"
 export AWS_SECRET_ACCESS_KEY="your-secret"
 export AWS_REGION="us-east-1"
+```
 
-# LLM Provider
+#### LLM Provider
+```bash
 export ANTHROPIC_API_KEY="your-key"  # For Claude
 # OR
 export OPENAI_API_KEY="your-key"     # For OpenAI
@@ -96,11 +108,30 @@ Simply describe your issue:
 ```
 
 The agent will:
-1. **Identify the service** using Planton Cloud tools
-2. **Diagnose autonomously** using the `ecs_troubleshooting_tool` with various diagnostic actions
-3. **Create a repair plan** based on findings from AWS ECS tools
-4. **Execute fixes** using `ecs_resource_management` and other tools (with user approval)
-5. **Verify resolution** using deployment status and troubleshooting tools
+1. **Identify the service** using Planton Cloud tools:
+   - Lists all available ECS services
+   - Matches your description to actual service IDs
+   - Retrieves full service configuration
+2. **Extract AWS credentials** from the service's deployment:
+   - Gets the latest stack job (deployment operation)
+   - Extracts the provider_credential_id used for deployment
+   - Fetches the actual AWS credentials for MCP tools
+3. **Diagnose autonomously** using the `ecs_troubleshooting_tool` with various diagnostic actions
+4. **Create a repair plan** based on findings from AWS ECS tools
+5. **Execute fixes** using `ecs_resource_management` and other tools (with user approval)
+6. **Verify resolution** using deployment status and troubleshooting tools
+
+## Credential Discovery Flow
+
+The agent automatically discovers and uses the correct AWS credentials for each ECS service:
+
+1. **Service Identification**: Matches user's description to actual service IDs
+2. **Stack Job Retrieval**: Gets the latest deployment operation (stack job)
+3. **Credential Extraction**: Extracts the `provider_credential_id` from the stack job
+4. **Credential Fetching**: Uses the credential ID to get AWS SDK-ready credentials
+5. **Credential Storage**: Temporarily saves credentials to `aws_credentials.json` for MCP tools
+
+This ensures the agent always uses the same AWS credentials that were used to deploy the service, maintaining consistency and proper access permissions.
 
 ## API Integration
 
@@ -124,10 +155,11 @@ The agent calls the `CloudResourceSearchQueryController.getCloudResourcesCanvasV
 ## Available Tools
 
 ### Planton Cloud Tools
-- `list_aws_credentials`
-- `get_aws_credential`
-- `list_aws_ecs_services`
-- `get_aws_ecs_service`
+- `list_aws_ecs_services` - Lists all ECS services in the organization/environment
+- `get_aws_ecs_service` - Gets detailed configuration of a specific ECS service
+- `get_aws_ecs_service_latest_stack_job` - Gets the latest deployment with credential information
+- `list_aws_credentials` - Lists available AWS credentials (optional, credentials are auto-discovered)
+- `get_aws_credential` - Retrieves AWS SDK-ready credentials (access_key_id, secret_access_key, region)
 
 ### AWS ECS Tools
 - `containerize_app` - Provides containerization guidance for applications
@@ -168,6 +200,31 @@ aws_ecs_service/
 ├── mcp_tools.py    # Tools integration
 └── agent.yaml      # Metadata
 ```
+
+## Files Created During Workflow
+
+The agent creates several files during its workflow:
+
+1. **`service_context.md`** - Service configuration and details
+   - Created by: service-identifier subagent
+   - Contains: Service config, network settings, stack job info
+
+2. **`aws_credentials.json`** - AWS credentials for MCP tools
+   - Created by: service-identifier subagent
+   - Contains: access_key_id, secret_access_key, region
+   - **Security Note**: This is temporary for testing. In production, use secure credential passing.
+
+3. **`diagnostic_report.md`** - Diagnostic findings
+   - Created by: triage-specialist subagent
+
+4. **`repair_plan.md`** - Planned fixes
+   - Created by: repair-planner subagent
+
+5. **`execution_log.md`** - Execution results
+   - Created by: fix-executor subagent
+
+6. **`final_report.md`** - Resolution summary
+   - Created by: verification-specialist subagent
 
 ## Development
 
