@@ -12,6 +12,7 @@ from langgraph.graph import StateGraph
 from langgraph.types import RunnableConfig
 
 from .agent import create_ecs_deep_agent
+from .credential_context import CredentialContext
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +53,13 @@ async def ecs_agent_node(
     org_id = state.get("orgId") or os.environ.get("PLANTON_ORG_ID", "planton-demo")
     env_name = state.get("envName") or os.environ.get("PLANTON_ENV_NAME", "aws")
     
-    # Create the agent
+    # Create a session-specific credential context for this invocation
+    session_context = CredentialContext()
+    logger.info("Created session-specific credential context")
+    
+    # Create the agent with the session context
     model = config.get("model", "claude-3-5-haiku-20241022")
-    agent = await create_ecs_deep_agent(model=model)
+    agent = await create_ecs_deep_agent(model=model, credential_context=session_context)
     
     # Prepare input - filter out any messages with empty content
     messages = state.get("messages", [])
@@ -84,18 +89,23 @@ async def ecs_agent_node(
         "envName": env_name,
     }
     
-    # Run the agent
-    result = await agent.ainvoke(agent_input)
-    
-    # Update state
-    updated_state = state.copy()
-    if "messages" in result:
-        updated_state["messages"] = result["messages"]
-    updated_state["orgId"] = org_id
-    updated_state["envName"] = env_name
-    
-    logger.info("ECS Agent processing complete")
-    return updated_state
+    try:
+        # Run the agent
+        result = await agent.ainvoke(agent_input)
+        
+        # Update state
+        updated_state = state.copy()
+        if "messages" in result:
+            updated_state["messages"] = result["messages"]
+        updated_state["orgId"] = org_id
+        updated_state["envName"] = env_name
+        
+        logger.info("ECS Agent processing complete")
+        return updated_state
+    finally:
+        # Always clean up credentials after invocation
+        await session_context.clear()
+        logger.info("Cleared session-specific credentials")
 
 
 async def graph(config: dict | None = None):

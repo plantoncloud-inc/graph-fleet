@@ -76,7 +76,7 @@ AWS credentials are **automatically discovered** from the ECS service's deployme
 - The agent retrieves the latest stack job for the service
 - Extracts the provider_credential_id used for deployment
 - Fetches the actual AWS credentials from Planton Cloud
-- Saves them temporarily to `aws_credentials.json` for MCP tools
+- Stores them securely in memory for MCP tools (no file I/O)
 
 Manual AWS credentials (optional fallback):
 ```bash
@@ -129,7 +129,7 @@ The agent automatically discovers and uses the correct AWS credentials for each 
 2. **Stack Job Retrieval**: Gets the latest deployment operation (stack job)
 3. **Credential Extraction**: Extracts the `provider_credential_id` from the stack job
 4. **Credential Fetching**: Uses the credential ID to get AWS SDK-ready credentials
-5. **Credential Storage**: Temporarily saves credentials to `aws_credentials.json` for MCP tools
+5. **Credential Storage**: Stores credentials securely in memory for MCP tools (no file I/O)
 
 This ensures the agent always uses the same AWS credentials that were used to deploy the service, maintaining consistency and proper access permissions.
 
@@ -160,6 +160,14 @@ The agent calls the `CloudResourceSearchQueryController.getCloudResourcesCanvasV
 - `get_aws_ecs_service_latest_stack_job` - Gets the latest deployment with credential information
 - `list_aws_credentials` - Lists available AWS credentials (optional, credentials are auto-discovered)
 - `get_aws_credential` - Retrieves AWS SDK-ready credentials (access_key_id, secret_access_key, region)
+
+### Credential Management Tools
+- `set_aws_credentials_context` - Store AWS credentials in memory for MCP tools
+- `get_aws_credentials_context` - Retrieve stored AWS credentials
+- `extract_and_set_credentials_from_stack_job` - Extract and store credentials from stack job
+- `set_service_context_info` - Store service configuration in memory
+- `get_service_context_info` - Retrieve stored service configuration
+- `clear_credential_context` - Clear all credentials from memory
 
 ### AWS ECS Tools
 - `containerize_app` - Provides containerization guidance for applications
@@ -194,11 +202,20 @@ config = ECSDeepAgentConfig(
 ## Project Structure
 ```
 aws_ecs_service/
-├── agent.py         # Main Deep Agent
-├── configuration.py # Config models
-├── graph.py        # LangGraph integration
-├── mcp_tools.py    # Tools integration
-└── agent.yaml      # Metadata
+├── agent.py             # Main Deep Agent with session isolation
+├── configuration.py     # Config models
+├── graph.py             # LangGraph integration with credential isolation
+├── mcp_tools.py         # MCP tools integration
+├── credential_context.py # In-memory credential storage
+├── credential_tools.py  # Credential management tools
+├── prompts.py           # Agent and subagent prompts
+├── agent.yaml           # Metadata
+├── tests/               # Test files
+│   └── verify_isolation.py
+└── docs/                # Documentation
+    ├── CREDENTIAL_ARCHITECTURE.md
+    ├── CREDENTIAL_HANDLING.md
+    └── IMPLEMENTATION_STATUS.md
 ```
 
 ## Files Created During Workflow
@@ -209,10 +226,11 @@ The agent creates several files during its workflow:
    - Created by: service-identifier subagent
    - Contains: Service config, network settings, stack job info
 
-2. **`aws_credentials.json`** - AWS credentials for MCP tools
-   - Created by: service-identifier subagent
-   - Contains: access_key_id, secret_access_key, region
-   - **Security Note**: This is temporary for testing. In production, use secure credential passing.
+2. **In-Memory Credentials** - AWS credentials stored securely
+   - Managed by: credential management tools
+   - Contains: access_key_id, secret_access_key, region (stored in memory)
+   - **Security Note**: Credentials are never written to disk, only stored in memory
+   - **Isolation**: Each agent invocation has its own credential context for complete security
 
 3. **`diagnostic_report.md`** - Diagnostic findings
    - Created by: triage-specialist subagent
