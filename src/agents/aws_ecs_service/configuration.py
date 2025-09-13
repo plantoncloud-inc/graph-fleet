@@ -1,7 +1,6 @@
 """Configuration for ECS Deep Agent."""
 
 import os
-from typing import Union
 
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
@@ -86,15 +85,16 @@ class ECSDeepAgentConfig(BaseModel):
 
     def create_language_model(self) -> LanguageModelLike:
         """Create a properly configured language model instance.
-        
+
         Returns:
             A LangChain language model instance based on the model_name configuration
-            
+
         Raises:
             ValueError: If the model name is not supported or API key is missing
+
         """
         model_name = self.model_name.lower()
-        
+
         # Anthropic Claude models
         if "claude" in model_name:
             api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -104,11 +104,13 @@ class ECSDeepAgentConfig(BaseModel):
                     "Please set it using: export ANTHROPIC_API_KEY='your-key' or add it to a .env file."
                 )
             return ChatAnthropic(
-                model=self.model_name,
-                max_tokens=4096,
-                temperature=0.1
+                model_name=self.model_name,
+                max_tokens_to_sample=4096,
+                temperature=0.1,
+                timeout=60.0,
+                stop=None
             )
-        
+
         # OpenAI models
         elif any(model in model_name for model in ["gpt", "o1"]):
             api_key = os.getenv("OPENAI_API_KEY")
@@ -122,7 +124,7 @@ class ECSDeepAgentConfig(BaseModel):
                 max_tokens=4096,
                 temperature=0.1
             )
-        
+
         # Default to Anthropic Claude if model name is not recognized
         else:
             api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -132,7 +134,9 @@ class ECSDeepAgentConfig(BaseModel):
                     "Please set it using: export ANTHROPIC_API_KEY='your-key' or add it to a .env file."
                 )
             return ChatAnthropic(
-                model="claude-3-5-haiku-20241022",
-                max_tokens=4096,
-                temperature=0.1
+                model_name="claude-3-5-haiku-20241022",
+                max_tokens_to_sample=4096,
+                temperature=0.1,
+                timeout=60.0,
+                stop=None
             )
