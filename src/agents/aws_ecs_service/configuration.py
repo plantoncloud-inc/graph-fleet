@@ -108,7 +108,7 @@ class ECSDeepAgentConfig(BaseModel):
                 max_tokens_to_sample=4096,
                 temperature=0.1,
                 timeout=60.0,
-                stop=None
+                stop=None,
             )
 
         # OpenAI models
@@ -119,11 +119,7 @@ class ECSDeepAgentConfig(BaseModel):
                     "OPENAI_API_KEY environment variable is required for OpenAI models. "
                     "Please set it using: export OPENAI_API_KEY='your-key' or add it to a .env file."
                 )
-            return ChatOpenAI(
-                model=self.model_name,
-                max_tokens=4096,
-                temperature=0.1
-            )
+            return ChatOpenAI(model=self.model_name, temperature=0.1)
 
         # Default to Anthropic Claude if model name is not recognized
         else:
@@ -138,5 +134,5 @@ class ECSDeepAgentConfig(BaseModel):
                 max_tokens_to_sample=4096,
                 temperature=0.1,
                 timeout=60.0,
-                stop=None
+                stop=None,
             )
