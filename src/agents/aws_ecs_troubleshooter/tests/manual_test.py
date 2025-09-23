@@ -64,17 +64,15 @@ async def test_context_gathering():
     print("\n=== Testing Context Gathering ===")
     
     try:
-        from ..tools.context_tools import (
-            gather_planton_context,
+        # Context gathering is now handled by MCP wrappers
+        # Use the new wrapper tools instead
+        from ..tools.mcp_wrappers import (
+            list_aws_ecs_services_wrapped,
+            get_aws_ecs_service_wrapped,
         )
         
-        # Create context and tool
+        # Create context
         context = CredentialContext()
-        context_tool = gather_planton_context(
-            context,
-            os.getenv("PLANTON_ORG_ID", "planton-demo"),
-            os.getenv("PLANTON_ENV_NAME", "aws"),
-        )
         
         # Test with a mock service name
         print("Testing context gathering for service: test-service")
