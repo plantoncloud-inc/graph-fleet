@@ -11,7 +11,6 @@ from deepagents import async_create_deep_agent, SubAgent  # type: ignore[import-
 from langchain_anthropic import ChatAnthropic
 from langgraph.prebuilt.interrupt import HumanInterruptConfig
 
-from .credential_context import CredentialContext
 from .instructions import (
     REMEDIATION_SPECIALIST_INSTRUCTIONS,
     get_context_gathering_instructions,
@@ -20,7 +19,6 @@ from .instructions import (
 )
 from .mcp_tools import get_troubleshooting_mcp_tools
 from .tools import (
-    analyze_ecs_service,
     execute_ecs_fix,
     analyze_and_remediate,
     think_tool,
@@ -43,7 +41,6 @@ logger = logging.getLogger(__name__)
 
 async def create_ecs_troubleshooter_agent(
     model: str = "claude-3-5-haiku-20241022",
-    credential_context: CredentialContext | None = None,
     org_id: str = "project-planton",
     env_name: str = "aws",
 ) -> Any:
@@ -57,7 +54,6 @@ async def create_ecs_troubleshooter_agent(
     
     Args:
         model: The LLM model to use
-        credential_context: Context for managing AWS credentials
         org_id: Planton Cloud organization ID
         env_name: Planton Cloud environment name
         
@@ -90,31 +86,24 @@ async def create_ecs_troubleshooter_agent(
         get_deployment_status_wrapped,
     ]
     
-    # Diagnostic and remediation tools (existing)
-    diagnostic_tool = analyze_ecs_service(credential_context)
-    remediation_tool = execute_ecs_fix(credential_context)
-    intelligent_remediation_tool = analyze_and_remediate(credential_context)
+    # Remediation tools (diagnostic tools now use DeepAgent wrapped patterns)
+    remediation_tool = execute_ecs_fix(None)  # TODO: Update this to use DeepAgent patterns
+    intelligent_remediation_tool = analyze_and_remediate(None)  # TODO: Update this to use DeepAgent patterns
     
     diagnostic_remediation_tools = [
-        diagnostic_tool,
         remediation_tool,
         intelligent_remediation_tool,
     ]
     
-    # Get MCP tools if credentials are available
+    # Get MCP tools (credentials are now loaded from filesystem/state)
     mcp_tools = []
     try:
-        # Try to get credentials from context for MCP tools
-        aws_credentials = None
-        if credential_context:
-            aws_credentials = await credential_context.get_aws_credentials()
-        
-        # Get MCP tools - these will be available after context is set up
+        # Get MCP tools - credentials will be discovered dynamically
         logger.info("Attempting to load MCP tools for agent")
         mcp_tools = await get_troubleshooting_mcp_tools(
             include_planton=True,  # Include Planton Cloud tools
-            include_aws=bool(aws_credentials),  # Only include AWS if we have creds
-            aws_credentials=aws_credentials,
+            include_aws=True,  # AWS credentials will be discovered from state
+            aws_credentials=None,  # Let the system discover credentials
         )
         
         if mcp_tools:

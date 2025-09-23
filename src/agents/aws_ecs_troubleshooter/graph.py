@@ -13,7 +13,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
 
 from .agent import create_ecs_troubleshooter_agent
-from .credential_context import CredentialContext
+# from .credential_context import CredentialContext  # TODO: Remove - using DeepAgent patterns now
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +67,9 @@ async def troubleshooter_agent_node(
     
     logger.info(f"Using Planton Cloud context: org={org_id}, env={env_name}")
     
-    # Create a session-specific credential context
-    session_context = CredentialContext()
-    logger.info("Created session-specific credential context")
+    # TODO: Remove credential context - using DeepAgent patterns now
+    # session_context = CredentialContext()  # No longer needed
+    logger.info("Using DeepAgent patterns for credential management")
     
     try:
         # Get model from config
@@ -80,7 +80,6 @@ async def troubleshooter_agent_node(
         # Create the troubleshooting agent v2
         agent = await create_ecs_troubleshooter_agent(
             model=model_name,
-            credential_context=session_context,
             org_id=org_id,
             env_name=env_name
         )
