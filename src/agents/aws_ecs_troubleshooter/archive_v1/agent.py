@@ -1,7 +1,7 @@
-"""Updated agent implementation using deep-agents patterns for context gathering.
+"""Main agent implementation for AWS ECS Troubleshooting.
 
-This module creates the ECS troubleshooter with file-based MCP wrappers
-and LLM-driven tool selection for the context phase.
+This module creates the deep agent with autonomous troubleshooting capabilities
+using the Deep Agents framework and AWS ECS MCP server.
 """
 
 import logging
@@ -13,24 +13,17 @@ from langgraph.prebuilt.interrupt import HumanInterruptConfig
 
 from .credential_context import CredentialContext
 from .instructions import (
+    CONTEXT_SPECIALIST_INSTRUCTIONS,
     DIAGNOSTIC_SPECIALIST_INSTRUCTIONS,
+    ECS_TROUBLESHOOTER_INSTRUCTIONS,
     REMEDIATION_SPECIALIST_INSTRUCTIONS,
-    get_context_gathering_instructions,
-    get_main_agent_instructions,
 )
 from .mcp_tools import get_troubleshooting_mcp_tools
 from .tools import (
     analyze_ecs_service,
     execute_ecs_fix,
+    gather_planton_context,
     analyze_and_remediate,
-    think_tool,
-    review_reflections,
-)
-from .tools.mcp_wrappers import (
-    get_aws_ecs_service_wrapped,
-    list_aws_ecs_services_wrapped,
-    get_aws_ecs_service_stack_job_wrapped,
-    extract_and_store_credentials,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,13 +35,10 @@ async def create_ecs_troubleshooter_agent(
     org_id: str = "project-planton",
     env_name: str = "aws",
 ) -> Any:
-    """Create the ECS troubleshooting agent with deep-agents patterns.
+    """Create the ECS troubleshooting deep agent with MCP integration.
     
-    This version uses:
-    - File-based MCP wrappers for context gathering
-    - LLM-driven tool selection
-    - TODO management for visibility
-    - Structured prompts from deep-agents
+    This agent provides autonomous troubleshooting and self-healing
+    capabilities for AWS ECS services using the AWS ECS MCP server.
     
     Args:
         model: The LLM model to use
@@ -59,7 +49,7 @@ async def create_ecs_troubleshooter_agent(
     Returns:
         Configured deep agent ready for troubleshooting
     """
-    logger.info(f"Creating ECS troubleshooter agent v2 with model: {model}")
+    logger.info(f"Creating ECS troubleshooter agent with model: {model}")
     
     # Initialize the LLM
     llm = ChatAnthropic(
@@ -68,22 +58,15 @@ async def create_ecs_troubleshooter_agent(
         max_tokens=8192,  # Allow detailed responses
     )
     
-    # Context gathering tools (wrapped for file persistence)
-    context_tools = [
-        list_aws_ecs_services_wrapped,
-        get_aws_ecs_service_wrapped,
-        get_aws_ecs_service_stack_job_wrapped,
-        extract_and_store_credentials,
-        think_tool,  # Strategic reflection tool
-        review_reflections,  # Review past reflections
-    ]
-    
-    # Diagnostic and remediation tools (existing)
+    # Create tool instances with context
+    context_tool = gather_planton_context(credential_context, org_id, env_name)
     diagnostic_tool = analyze_ecs_service(credential_context)
     remediation_tool = execute_ecs_fix(credential_context)
     intelligent_remediation_tool = analyze_and_remediate(credential_context)
     
-    diagnostic_remediation_tools = [
+    # Our custom wrapper tools
+    custom_tools = [
+        context_tool,
         diagnostic_tool,
         remediation_tool,
         intelligent_remediation_tool,
@@ -107,8 +90,10 @@ async def create_ecs_troubleshooter_agent(
         
         if mcp_tools:
             logger.info(f"Loaded {len(mcp_tools)} MCP tools for agent")
-            # Note: We're NOT wrapping these MCP tools - they're for diagnosis/remediation
-            # Our wrapped tools are specifically for context gathering
+            # Log tool names for debugging
+            for tool in mcp_tools[:5]:  # Log first 5 tools
+                tool_name = tool.name if hasattr(tool, "name") else str(tool)
+                logger.debug(f"  - MCP tool available: {tool_name}")
         else:
             logger.warning("No MCP tools available at agent creation time")
             logger.info("MCP tools will be available after context setup")
@@ -118,40 +103,30 @@ async def create_ecs_troubleshooter_agent(
         logger.info("MCP tools will be loaded dynamically when needed")
     
     # Combine all tools
-    # Order matters: context tools first, then diagnostic/remediation, then MCP
-    all_tools = context_tools + diagnostic_remediation_tools + mcp_tools
+    all_tools = custom_tools + mcp_tools
     
-    # Define specialized sub-agents for each phase
+    # Define specialized sub-agents for complex tasks
+    # Note: Sub-agents need tool names (strings), not the actual tool functions
     subagents = [
         SubAgent(
-            name="context-gatherer",
-            description="Specialized agent for gathering AWS ECS service context from Planton Cloud and storing it in files for troubleshooting",
-            prompt=get_context_gathering_instructions(),
-            tools=[
-                "list_aws_ecs_services_wrapped",
-                "get_aws_ecs_service_wrapped",
-                "get_aws_ecs_service_stack_job_wrapped",
-                "extract_and_store_credentials",
-                "think_tool",  # Now actually implemented and available
-                "review_reflections",
-                # Note: Deep agents automatically provides these tools to sub-agents:
-                # "write_todos", "read_todos", 
-                # "write_file", "read_file", "ls"
-            ],
+            name="context-specialist",
+            description="Specialist for gathering Planton Cloud context and AWS credentials",
+            prompt=CONTEXT_SPECIALIST_INSTRUCTIONS,
+            tools=["gather_planton_context"],  # Use tool name
             model=llm,
         ),
         SubAgent(
             name="diagnostic-specialist",
             description="Specialist for deep ECS service analysis and troubleshooting",
             prompt=DIAGNOSTIC_SPECIALIST_INSTRUCTIONS,
-            tools=["analyze_ecs_service", "think_tool", "review_reflections"],  # Added reflection tools
+            tools=["analyze_ecs_service"],  # Use tool name
             model=llm,
         ),
         SubAgent(
             name="remediation-specialist",
             description="Specialist for executing fixes and remediation actions",
             prompt=REMEDIATION_SPECIALIST_INSTRUCTIONS,
-            tools=["execute_ecs_fix", "analyze_and_remediate", "think_tool"],  # Added think_tool
+            tools=["execute_ecs_fix", "analyze_and_remediate"],  # Use tool name
             model=llm,
         ),
     ]
@@ -185,32 +160,22 @@ async def create_ecs_troubleshooter_agent(
             }
             logger.debug(f"Added interrupt for MCP tool: {tool_name}")
     
-    logger.info(f"Configuring deep agent v2 with {len(all_tools)} total tools")
-    logger.info(f"- Context tools: {len(context_tools)}")
-    logger.info(f"- Diagnostic/Remediation tools: {len(diagnostic_remediation_tools)}")
-    logger.info(f"- MCP tools: {len(mcp_tools)}")
-    logger.info("- Sub-agents: context-gatherer, diagnostic-specialist, remediation-specialist")
+    logger.info(f"Configuring deep agent with {len(all_tools)} total tools")
     
-    # Create the deep agent as a coordinator
+    # Create the deep agent - async_create_deep_agent is not actually async, it returns a graph
     agent = async_create_deep_agent(
         tools=all_tools,
-        instructions=get_main_agent_instructions(),  # Main coordinator instructions
+        instructions=ECS_TROUBLESHOOTER_INSTRUCTIONS,
         subagents=subagents,
         model=llm,
         interrupt_config=interrupt_config,
         # The agent will automatically include:
         # - write_todos for planning
-        # - read_todos for checking progress
-        # - file system tools (write_file, read_file, ls)
-        # - think_tool for reflection
-        # - task for delegation to sub-agents
+        # - file system tools (write_file, read_file, edit_file, ls)
+        # - call_subagent for delegation
     )
     
-    logger.info("ECS troubleshooter agent v2 created successfully")
-    logger.info("Agent architecture:")
-    logger.info("- Main agent: Coordinates the troubleshooting workflow")
-    logger.info("- Context sub-agent: Gathers service context and credentials")
-    logger.info("- Diagnostic sub-agent: Analyzes issues")
-    logger.info("- Remediation sub-agent: Executes fixes")
+    logger.info("ECS troubleshooter agent created successfully")
+    logger.info(f"Agent has access to {len(all_tools)} tools including MCP tools")
     
     return agent

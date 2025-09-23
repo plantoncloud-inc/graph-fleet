@@ -36,7 +36,7 @@ ECS Troubleshooting Agent
 │   ├── Diagnostic Specialist
 │   └── Remediation Specialist
 ├── Enhanced Tools
-│   ├── gather_planton_context
+│   ├── MCP Wrappers (context gathering)
 │   ├── analyze_ecs_service (with diagnostic patterns)
 │   ├── execute_ecs_fix
 │   └── analyze_and_remediate (intelligent remediation)
