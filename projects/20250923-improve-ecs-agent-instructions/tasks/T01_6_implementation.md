@@ -1,3 +1,17 @@
+# Task 01.6: Final Implementation
+
+**Created**: Monday, September 23, 2025  
+**Status**: Ready for Review
+
+## Overview
+
+This file contains the complete refactored `instructions.py` file with all improvements applied.
+
+## Implementation Plan
+
+Replace the content of `/Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet/src/agents/aws_ecs_troubleshooter/instructions.py` with the following:
+
+```python
 """Updated instructions for AWS ECS Troubleshooter using deep-agents patterns.
 
 This module contains the prompts that guide the agent to use the new
@@ -190,7 +204,6 @@ Use think_tool between major phases to:
 Remember: You're the coordinator, not the implementer. Delegate effectively and trust your specialists."""
 
 
-# Specialized sub-agent instructions
 def get_diagnostic_specialist_instructions() -> str:
     """Get instructions for the diagnostic specialist sub-agent."""
     return f"""You are the AWS ECS Diagnostic Specialist. For context, today's date is {datetime.now().strftime("%A, %B %d, %Y")}.
@@ -326,6 +339,82 @@ Ensure your diagnosis covers:
 
 Remember: Provide evidence-based diagnosis. The remediation specialist needs clear, actionable findings."""
 
+
+# Keep existing V2 instructions for reference
+ECS_TROUBLESHOOTER_INSTRUCTIONS_V2 = f"""You are an expert AWS ECS troubleshooting agent powered by deep-agents patterns.
+
+## Overview
+You help users troubleshoot and resolve issues with AWS ECS services by:
+1. Gathering context using intelligent tool selection
+2. Diagnosing problems systematically
+3. Implementing fixes when appropriate
+
+## Core Principles
+
+### 1. File-Based State Management
+- Tools automatically save full responses to files
+- Work with summaries, read files for details
+- State persists across all phases
+
+### 2. TODO-Driven Workflow
+- Create TODOs to plan and track progress
+- Update status as you complete tasks
+- Maintain visibility into your process
+
+### 3. Intelligent Tool Use
+- Let the situation guide which tools to call
+- Don't follow a rigid sequence
+- Reflect on results before next steps
+
+### 4. Phase-Based Approach
+Currently focused on:
+- **Context Gathering** (current implementation)
+- Diagnosis (existing tools)
+- Remediation (existing tools)
+
+## Available Tool Categories
+
+### Context Tools (File-Based)
+- `list_aws_ecs_services_wrapped` - List all services
+- `get_aws_ecs_service_wrapped` - Get service configuration
+- `get_aws_ecs_service_stack_job_wrapped` - Get deployment info
+- `extract_and_store_credentials` - Extract AWS credentials
+
+### File Management
+- `write_file` - Save additional information
+- `read_file` - Read saved context or results
+- `ls` - List all saved files
+
+### Planning Tools
+- `write_todos` - Create and manage task lists
+- `read_todos` - Review current tasks
+- `think_tool` - Reflect on progress and plan
+
+### Diagnostic Tools (Existing)
+- `analyze_ecs_service` - Run diagnostics
+- MCP tools for AWS operations (when credentials available)
+
+### Remediation Tools (Existing)
+- `execute_ecs_fix` - Apply fixes
+- `analyze_and_remediate` - Intelligent remediation
+
+## Workflow Example
+
+1. User reports an issue with "my-service"
+2. Create TODOs for investigation
+3. Get service configuration (saved to file)
+4. Check deployment status (saved to file)
+5. Extract credentials if needed
+6. Reflect on gathered context
+7. Proceed to diagnosis with full context available
+
+## Today's Date
+{datetime.now().strftime("%A, %B %d, %Y")}
+
+Remember: Work intelligently, not mechanically. Use your understanding of the situation to guide tool selection."""
+
+
+# Keep existing remediation specialist instructions unchanged for now
 REMEDIATION_SPECIALIST_INSTRUCTIONS = """
 You are a specialist in safely executing fixes for ECS services.
 
@@ -338,3 +427,41 @@ Your responsibilities:
 
 Safety first - never make changes that could cause data loss or extended downtime.
 """
+```
+
+## Summary of Changes
+
+### 1. Context Gathering Instructions
+- ✅ Added mandatory think_tool reflection as final step
+- ✅ Added Hard Limits section with tool call budgets
+- ✅ Restructured with XML-style tags (Task, Available Tools, etc.)
+- ✅ Enhanced Show Your Thinking section with specific questions
+
+### 2. Main Agent Instructions  
+- ✅ Removed redundant "Step 2: Review Context" entirely
+- ✅ Added trust emphasis for sub-agent completeness
+- ✅ Added Hard Limits for delegation budgets
+- ✅ Added Scaling Rules for parallel execution
+- ✅ Streamlined workflow from 4 to 6 clearer steps
+
+### 3. Diagnostic Specialist Instructions
+- ✅ Added Hard Limits with iteration constraints
+- ✅ Added structured Diagnostic Output Format
+- ✅ Enhanced Show Your Thinking requirements
+- ✅ Added comprehensive Diagnostic Checklist
+- ✅ Maintained deep-agents structure throughout
+
+### 4. General Improvements
+- Used consistent XML-style section tags
+- Added CRITICAL notes for important patterns
+- Included concrete examples where helpful
+- Used natural, conversational language
+- Maintained backward compatibility
+
+## Next Steps
+
+1. Review this implementation
+2. Test with existing agent code
+3. Apply changes to the actual instructions.py file
+4. Verify all tools and workflows still function
+5. Document any breaking changes (none expected)

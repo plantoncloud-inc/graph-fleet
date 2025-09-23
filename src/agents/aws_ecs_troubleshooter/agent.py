@@ -13,7 +13,6 @@ from langgraph.prebuilt.interrupt import HumanInterruptConfig
 
 from .credential_context import CredentialContext
 from .instructions import (
-    DIAGNOSTIC_SPECIALIST_INSTRUCTIONS,
     REMEDIATION_SPECIALIST_INSTRUCTIONS,
     get_context_gathering_instructions,
     get_diagnostic_specialist_instructions,
