@@ -12,15 +12,13 @@ from langchain_anthropic import ChatAnthropic
 from langgraph.prebuilt.interrupt import HumanInterruptConfig
 
 from .instructions import (
-    REMEDIATION_SPECIALIST_INSTRUCTIONS,
+    get_remediation_specialist_instructions,
     get_context_gathering_instructions,
     get_diagnostic_specialist_instructions,
     get_main_agent_instructions,
 )
 from .mcp_tools import get_troubleshooting_mcp_tools
 from .tools import (
-    execute_ecs_fix,
-    analyze_and_remediate,
     think_tool,
     review_reflections,
 )
@@ -86,15 +84,6 @@ async def create_ecs_troubleshooter_agent(
         get_deployment_status_wrapped,
     ]
     
-    # Remediation tools (diagnostic tools now use DeepAgent wrapped patterns)
-    remediation_tool = execute_ecs_fix(None)  # TODO: Update this to use DeepAgent patterns
-    intelligent_remediation_tool = analyze_and_remediate(None)  # TODO: Update this to use DeepAgent patterns
-    
-    diagnostic_remediation_tools = [
-        remediation_tool,
-        intelligent_remediation_tool,
-    ]
-    
     # Get MCP tools (credentials are now loaded from filesystem/state)
     mcp_tools = []
     try:
@@ -120,7 +109,7 @@ async def create_ecs_troubleshooter_agent(
     
     # Combine all tools
     # Order matters: context tools first, diagnostic wrappers, then diagnostic/remediation, then MCP
-    all_tools = context_tools + diagnostic_wrapped_tools + diagnostic_remediation_tools + mcp_tools
+    all_tools = context_tools + diagnostic_wrapped_tools + mcp_tools
     
     # Define specialized sub-agents for each phase
     subagents = [
@@ -158,28 +147,23 @@ async def create_ecs_troubleshooter_agent(
         ),
         SubAgent(
             name="remediation-specialist",
-            description="Specialist for executing fixes and remediation actions",
-            prompt=REMEDIATION_SPECIALIST_INSTRUCTIONS,
-            tools=["execute_ecs_fix", "analyze_and_remediate", "think_tool"],  # Added think_tool
+            description="Specialist for executing fixes using AWS MCP tools directly",
+            prompt=get_remediation_specialist_instructions(),
+            tools=[
+                # Core DeepAgent tools (automatically available)
+                # "write_file", "read_file", "ls", "write_todos", "read_todos"
+                "think_tool",
+                "review_reflections",
+                # AWS MCP tools will be available when needed:
+                # "ecs_resource_management", "update_ecs_service", "stop_task"
+                # "describe_ecs_services", "describe_ecs_tasks"
+            ],
             model=llm,
         ),
     ]
     
     # Configure interrupts for approval on fixes
-    interrupt_config = {
-        "execute_ecs_fix": HumanInterruptConfig(
-            allow_ignore=False,  # User cannot skip fixes
-            allow_respond=True,   # User can provide feedback
-            allow_edit=True,      # User can modify fix parameters
-            allow_accept=True,    # User can approve as-is
-        ),
-        "analyze_and_remediate": HumanInterruptConfig(
-            allow_ignore=False,  # User cannot skip fixes
-            allow_respond=True,   # User can provide feedback
-            allow_edit=True,      # User can modify fix parameters
-            allow_accept=True,    # User can approve as-is
-        )
-    }
+    interrupt_config = {}
     
     # Add interrupts for any MCP tools that modify resources
     for tool in mcp_tools:
@@ -197,7 +181,6 @@ async def create_ecs_troubleshooter_agent(
     logger.info(f"Configuring deep agent v2 with {len(all_tools)} total tools")
     logger.info(f"- Context tools: {len(context_tools)}")
     logger.info(f"- Diagnostic wrapped tools: {len(diagnostic_wrapped_tools)}")
-    logger.info(f"- Diagnostic/Remediation tools: {len(diagnostic_remediation_tools)}")
     logger.info(f"- MCP tools: {len(mcp_tools)}")
     logger.info("- Sub-agents: context-gatherer, diagnostic-specialist, remediation-specialist")
     
