@@ -12,7 +12,7 @@ from typing import Any
 
 from langchain_core.tools import BaseTool
 
-from .credential_context import get_credential_context
+# from .credential_context import get_credential_context  # TODO: Remove - using DeepAgent patterns now
 
 logger = logging.getLogger(__name__)
 
@@ -287,8 +287,8 @@ async def get_troubleshooting_mcp_tools(
         
         # Try to get credentials from context if not provided
         if not aws_credentials:
-            credential_context = get_credential_context()
-            aws_credentials = await credential_context.get_aws_credentials()
+            # TODO: Use DeepAgent patterns to get credentials from filesystem/state
+            aws_credentials = None  # Will be loaded dynamically by MCP tools
         
         if aws_credentials:
             aws_config = get_aws_troubleshooting_mcp_config(aws_credentials)

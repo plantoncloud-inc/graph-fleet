@@ -18,6 +18,8 @@ from typing_extensions import Annotated
 
 from deepagents import DeepAgentState  # type: ignore[import-untyped]
 
+from .credential_loader import load_aws_credentials_from_state
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,19 +89,11 @@ async def describe_ecs_services_wrapped(
     try:
         # Import MCP tools dynamically
         from ...mcp_tools import get_troubleshooting_mcp_tools
-        from ...credential_context import get_credential_context
         
-        # Get credentials from context
-        credential_context = get_credential_context()
-        credentials = credential_context.get_aws_credentials_sync()
-        
-        if not credentials:
-            error_msg = "❌ No AWS credentials available. Please ensure context gathering completed."
-            return Command(
-                update={
-                    "messages": [ToolMessage(error_msg, tool_call_id=tool_call_id)]
-                }
-            )
+        # Load credentials using shared utility
+        credentials, error_cmd = load_aws_credentials_from_state(state, tool_call_id)
+        if error_cmd:
+            return error_cmd
         
         # Get MCP tools
         import asyncio
@@ -239,19 +233,11 @@ async def describe_ecs_tasks_wrapped(
     try:
         # Import MCP tools dynamically
         from ...mcp_tools import get_troubleshooting_mcp_tools
-        from ...credential_context import get_credential_context
         
-        # Get credentials
-        credential_context = get_credential_context()
-        credentials = credential_context.get_aws_credentials_sync()
-        
-        if not credentials:
-            error_msg = "❌ No AWS credentials available. Please ensure context gathering completed."
-            return Command(
-                update={
-                    "messages": [ToolMessage(error_msg, tool_call_id=tool_call_id)]
-                }
-            )
+        # Load credentials using shared utility
+        credentials, error_cmd = load_aws_credentials_from_state(state, tool_call_id)
+        if error_cmd:
+            return error_cmd
         
         # Get MCP tools
         import asyncio
@@ -429,19 +415,11 @@ async def get_deployment_status_wrapped(
     try:
         # Import MCP tools
         from ...mcp_tools import get_troubleshooting_mcp_tools
-        from ...credential_context import get_credential_context
         
-        # Get credentials
-        credential_context = get_credential_context()
-        credentials = credential_context.get_aws_credentials_sync()
-        
-        if not credentials:
-            error_msg = "❌ No AWS credentials available. Please ensure context gathering completed."
-            return Command(
-                update={
-                    "messages": [ToolMessage(error_msg, tool_call_id=tool_call_id)]
-                }
-            )
+        # Load credentials using shared utility
+        credentials, error_cmd = load_aws_credentials_from_state(state, tool_call_id)
+        if error_cmd:
+            return error_cmd
         
         # Get MCP tools
         import asyncio

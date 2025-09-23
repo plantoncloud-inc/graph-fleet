@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Any, Callable, Dict, Literal
 
-from ..credential_context import CredentialContext
+# TODO: Update to use DeepAgent credential patterns from filesystem/state
 from ..mcp_tools import get_troubleshooting_mcp_tools
 from .remediation_scenarios import remediation_engine
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def execute_ecs_fix(
-    credential_context: CredentialContext | None,
+    credential_context: Any | None,  # TODO: Remove this parameter when migrating to DeepAgent patterns
 ) -> Callable:
     """Create an ECS remediation tool using AWS MCP server.
     
@@ -23,7 +23,7 @@ def execute_ecs_fix(
     awslabs.ecs-mcp-server for safe remediation actions.
     
     Args:
-        credential_context: Context for managing credentials
+        credential_context: Legacy parameter, will be removed when migrating to DeepAgent patterns
         
     Returns:
         Tool function for executing ECS fixes

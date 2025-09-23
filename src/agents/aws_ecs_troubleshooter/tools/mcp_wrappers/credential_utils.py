@@ -95,34 +95,39 @@ The deployment may be incomplete or using a different credential type."""
                 }
             )
         
-        # Save credentials to a separate file for reference
+        # Save credentials to files
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        creds_filename = f"aws_credentials_{timestamp}.json"
         
-        # Save sanitized version (without actual secrets)
+        # Save actual credentials to fixed filename for persistence
+        aws_creds_file = "aws_credentials.json"
+        actual_creds = {
+            "access_key_id": credentials['access_key_id'],
+            "secret_access_key": credentials['secret_access_key'],
+            "region": credentials['region'],
+            "extracted_from": stack_job_file,
+            "timestamp": timestamp
+        }
+        files[aws_creds_file] = json.dumps(actual_creds, indent=2)
+        
+        # Also save sanitized version for display (with timestamp)
+        sanitized_filename = f"aws_credentials_sanitized_{timestamp}.json"
         sanitized_creds = {
             "access_key_id": f"{credentials['access_key_id'][:4]}...{credentials['access_key_id'][-4:]}" if credentials['access_key_id'] else None,
             "has_secret_access_key": bool(credentials['secret_access_key']),
-            "has_session_token": bool(credentials.get('session_token')),
             "region": credentials['region'],
             "extracted_from": stack_job_file,
             "timestamp": timestamp,
         }
-        
-        files[creds_filename] = json.dumps(sanitized_creds, indent=2)
-        
-        # TODO: In the actual implementation, we would need to pass these
-        # credentials to the CredentialContext or configure them for AWS tools
-        # For now, we'll just indicate success
+        files[sanitized_filename] = json.dumps(sanitized_creds, indent=2)
         
         summary = f"""✅ Successfully extracted AWS credentials from stack job
 
 Credential Details:
 - Region: {credentials['region']}
 - Access Key: {sanitized_creds['access_key_id']}
-- Session Token: {'Present' if sanitized_creds['has_session_token'] else 'Not present'}
-- Saved to: {creds_filename}
+- Saved to: {aws_creds_file} (actual credentials for persistence)
+- Sanitized copy: {sanitized_filename}
 
 🔐 AWS credentials are now configured and ready for use by AWS tools."""
         
