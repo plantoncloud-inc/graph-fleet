@@ -13,9 +13,9 @@ from langgraph.prebuilt.interrupt import HumanInterruptConfig
 
 from .credential_context import CredentialContext
 from .instructions import (
-    DIAGNOSTIC_SPECIALIST_INSTRUCTIONS,
     REMEDIATION_SPECIALIST_INSTRUCTIONS,
     get_context_gathering_instructions,
+    get_diagnostic_specialist_instructions,
     get_main_agent_instructions,
 )
 from .mcp_tools import get_troubleshooting_mcp_tools
@@ -31,6 +31,11 @@ from .tools.mcp_wrappers import (
     list_aws_ecs_services_wrapped,
     get_aws_ecs_service_stack_job_wrapped,
     extract_and_store_credentials,
+)
+from .tools.mcp_wrappers.diagnostic_wrappers import (
+    describe_ecs_services_wrapped,
+    describe_ecs_tasks_wrapped,
+    get_deployment_status_wrapped,
 )
 
 logger = logging.getLogger(__name__)
@@ -78,6 +83,13 @@ async def create_ecs_troubleshooter_agent(
         review_reflections,  # Review past reflections
     ]
     
+    # Diagnostic tools (wrapped for file persistence)
+    diagnostic_wrapped_tools = [
+        describe_ecs_services_wrapped,
+        describe_ecs_tasks_wrapped,
+        get_deployment_status_wrapped,
+    ]
+    
     # Diagnostic and remediation tools (existing)
     diagnostic_tool = analyze_ecs_service(credential_context)
     remediation_tool = execute_ecs_fix(credential_context)
@@ -118,8 +130,8 @@ async def create_ecs_troubleshooter_agent(
         logger.info("MCP tools will be loaded dynamically when needed")
     
     # Combine all tools
-    # Order matters: context tools first, then diagnostic/remediation, then MCP
-    all_tools = context_tools + diagnostic_remediation_tools + mcp_tools
+    # Order matters: context tools first, diagnostic wrappers, then diagnostic/remediation, then MCP
+    all_tools = context_tools + diagnostic_wrapped_tools + diagnostic_remediation_tools + mcp_tools
     
     # Define specialized sub-agents for each phase
     subagents = [
@@ -142,9 +154,17 @@ async def create_ecs_troubleshooter_agent(
         ),
         SubAgent(
             name="diagnostic-specialist",
-            description="Specialist for deep ECS service analysis and troubleshooting",
-            prompt=DIAGNOSTIC_SPECIALIST_INSTRUCTIONS,
-            tools=["analyze_ecs_service", "think_tool", "review_reflections"],  # Added reflection tools
+            description="Specialist for deep ECS service analysis and troubleshooting using file-based diagnostic tools",
+            prompt=get_diagnostic_specialist_instructions(),
+            tools=[
+                "describe_ecs_services_wrapped",
+                "describe_ecs_tasks_wrapped", 
+                "get_deployment_status_wrapped",
+                "think_tool",
+                "review_reflections",
+                # Note: Deep agents automatically provides file tools:
+                # "write_todos", "read_todos", "write_file", "read_file", "ls"
+            ],
             model=llm,
         ),
         SubAgent(
@@ -187,6 +207,7 @@ async def create_ecs_troubleshooter_agent(
     
     logger.info(f"Configuring deep agent v2 with {len(all_tools)} total tools")
     logger.info(f"- Context tools: {len(context_tools)}")
+    logger.info(f"- Diagnostic wrapped tools: {len(diagnostic_wrapped_tools)}")
     logger.info(f"- Diagnostic/Remediation tools: {len(diagnostic_remediation_tools)}")
     logger.info(f"- MCP tools: {len(mcp_tools)}")
     logger.info("- Sub-agents: context-gatherer, diagnostic-specialist, remediation-specialist")
