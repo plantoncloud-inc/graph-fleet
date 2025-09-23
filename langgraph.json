@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "aws_ecs_service": "src.agents.aws_ecs_service.graph:graph"
+    "aws_ecs_service": "src.agents.aws_ecs_service.graph:graph",
+    "aws_ecs_troubleshooter": "src.agents.aws_ecs_troubleshooter.graph:graph"
   },
   "env": ".env",
   "python_version": "3.11",
