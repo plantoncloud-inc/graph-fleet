@@ -1,0 +1,24 @@
+apiVersion: aws.project-planton.org/v1
+kind: AwsRdsInstance
+metadata:
+  name: dev-mysql-db
+  org: project-planton
+  env: development
+  labels:
+    environment: development
+    team: engineering
+spec:
+  engine: mysql
+  engineVersion: "8.0"
+  instanceClass: db.t3.micro
+  allocatedStorageGb: 20
+  username: devuser
+  password: DevPassword123
+  port: 3306
+  publiclyAccessible: false
+  subnetIds:
+    - subnet-dev-1a
+    - subnet-dev-1b
+  securityGroupIds:
+    - sg-dev-mysql
+
