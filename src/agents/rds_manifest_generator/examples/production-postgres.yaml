@@ -1,0 +1,27 @@
+apiVersion: aws.project-planton.org/v1
+kind: AwsRdsInstance
+metadata:
+  name: production-api-db
+  org: project-planton
+  env: production
+  labels:
+    environment: production
+    team: backend
+    service: api
+spec:
+  engine: postgres
+  engineVersion: "15.5"
+  instanceClass: db.m6g.large
+  allocatedStorageGb: 100
+  username: dbadmin
+  password: REPLACE_WITH_SECURE_PASSWORD
+  port: 5432
+  publiclyAccessible: false
+  multiAz: true
+  storageEncrypted: true
+  subnetIds:
+    - subnet-0abc123def456789a
+    - subnet-0bcd234eff567890b
+  securityGroupIds:
+    - sg-0123456789abcdef0
+
