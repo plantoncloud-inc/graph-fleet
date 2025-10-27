@@ -1,9 +1,12 @@
-"""Deep agent creation for AWS RDS manifest generation."""
+"""Agent creation for AWS RDS manifest generation."""
 
 from collections.abc import Sequence
 
-from deepagents import create_deep_agent
+from deepagents.middleware.filesystem import FilesystemMiddleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import TodoListMiddleware
 from langchain.agents.middleware.types import AgentMiddleware
+from langchain_anthropic import ChatAnthropic
 
 from .tools.manifest_tools import (
     generate_rds_manifest,
@@ -463,16 +466,38 @@ Always be friendly, patient, and helpful!"""
 
 
 def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
-    """Create the AWS RDS manifest generator deep agent.
+    """Create the AWS RDS manifest generator agent.
+
+    Uses create_agent directly instead of create_deep_agent to have full control
+    over the middleware stack. We only include the middleware we actually need:
+    - TodoListMiddleware: For write_todos tool
+    - FilesystemMiddleware: For file operations (read_file, write_file, ls, edit_file)
+    
+    This avoids the buggy PatchToolCallsMiddleware from deepagents that causes
+    RemoveMessage streaming errors in the UI.
 
     Args:
         middleware: Optional sequence of additional middleware to apply to the agent.
-                   These are applied after the standard deepagent middleware.
+                   These are applied after TodoListMiddleware and FilesystemMiddleware.
 
     Returns:
         A compiled LangGraph agent ready for use
     """
-    return create_deep_agent(
+    # Build middleware list with only what we need
+    rds_middleware = [
+        TodoListMiddleware(),  # For write_todos tool
+        FilesystemMiddleware(),  # For file operations
+    ]
+    
+    # Add custom middleware (like FirstRequestProtoLoader)
+    if middleware:
+        rds_middleware.extend(middleware)
+    
+    return create_agent(
+        model=ChatAnthropic(
+            model_name="claude-sonnet-4-5-20250929",
+            max_tokens=20000,
+        ),
         tools=[
             # Schema query tools
             get_rds_field_info,
@@ -489,6 +514,6 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
             set_manifest_metadata,
         ],
         system_prompt=SYSTEM_PROMPT,
-        middleware=middleware,
-    )
+        middleware=rds_middleware,
+    ).with_config({"recursion_limit": 1000})
 
