@@ -1,7 +1,26 @@
-"""Initialization module for RDS manifest generator agent.
+"""DEPRECATED: Initialization module for RDS manifest generator agent.
 
-This module handles the one-time initialization of proto schema files
-from the Git repository into the DeepAgent filesystem.
+⚠️ THIS MODULE IS NO LONGER USED ⚠️
+
+This module previously handled runtime initialization of proto schema files
+via a tool that the LLM would call on first user request. This caused significant
+delays as users would experience a "hang" while waiting for:
+- Git clone of the entire project-planton repository
+- Proto file reading and parsing
+- Schema validation
+
+NEW APPROACH (implemented in graph.py):
+Proto schema initialization now happens at APPLICATION STARTUP (module import time)
+when the LangGraph server loads the agent graph. The initialization:
+1. Runs once when graph.py is imported (before any user requests)
+2. Caches proto files locally in ~/.cache/graph-fleet/repos
+3. Initializes a global schema loader that reads from the cache
+4. Makes schema available immediately for all conversations
+
+This module is kept for reference but should not be imported or used.
+The initialize_proto_schema tool has been removed from the agent's tools list.
+
+See graph.py for the current implementation.
 """
 
 from datetime import UTC, datetime
