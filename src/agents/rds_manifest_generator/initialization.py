@@ -61,6 +61,9 @@ def create_filesystem_reader(runtime: ToolRuntime) -> callable:
             raise ValueError(f"File not found in filesystem: {file_path}")
 
         file_data = files[file_path]
+        # Handle both plain string (new format) and FileData object (old format)
+        if isinstance(file_data, str):
+            return file_data
         # FileData has content as list of lines
         return "\n".join(file_data["content"])
 
@@ -94,21 +97,15 @@ def initialize_proto_schema(runtime: ToolRuntime) -> Command | str:
             content = proto_path.read_text(encoding="utf-8")
             filesystem_path = f"{FILESYSTEM_PROTO_DIR}/{proto_path.name}"
 
-            # Create file data structure for DeepAgent filesystem
-            file_data = {
-                "content": content.split("\n"),
-                "created_at": datetime.now(UTC).isoformat(),
-                "modified_at": datetime.now(UTC).isoformat(),
-            }
-
-            files_to_add[filesystem_path] = file_data
+            # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
+            files_to_add[filesystem_path] = content
             loaded_files.append(proto_path.name)
 
         # Create a reader function that will work after state is updated
         # For now, we'll initialize with a temporary reader
         def temp_reader(file_path: str) -> str:
             if file_path in files_to_add:
-                return "\n".join(files_to_add[file_path]["content"])
+                return files_to_add[file_path]
             raise ValueError(f"File not found: {file_path}")
 
         # Initialize the schema loader with temporary reader
