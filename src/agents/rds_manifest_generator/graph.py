@@ -17,7 +17,6 @@ from langgraph.runtime import Runtime
 
 from .agent import create_rds_agent
 from .config import CACHE_DIR, FILESYSTEM_PROTO_DIR, PROTO_REPO_URL
-from .middleware.file_serialization import FileSerializationMiddleware
 from .schema.fetcher import ProtoFetchError, fetch_proto_files
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
@@ -68,17 +67,16 @@ class FirstRequestProtoLoader(AgentMiddleware):
         logger.info("=" * 60)
         
         # Copy files from in-memory cache to virtual filesystem
+        # Store as plain strings for UI compatibility - DeepAgents will convert
+        # to FileData format internally when filesystem tools are used
         files_to_add = {}
         for filename, content in _cached_proto_contents.items():
             vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
             
             logger.info(f"  {filename} -> {vfs_path}")
             
-            files_to_add[vfs_path] = {
-                "content": content.split("\n"),
-                "created_at": datetime.now(UTC).isoformat(),
-                "modified_at": datetime.now(UTC).isoformat(),
-            }
+            # Store as plain string - not FileData object
+            files_to_add[vfs_path] = content
         
         # Create a file reader that reads from the virtual filesystem
         def read_from_vfs(file_path: str) -> str:
@@ -98,7 +96,8 @@ class FirstRequestProtoLoader(AgentMiddleware):
             vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
             
             if vfs_path in files_to_add:
-                return "\n".join(files_to_add[vfs_path]["content"])
+                # Files are stored as plain strings now
+                return files_to_add[vfs_path]
             
             raise ValueError(f"Proto file not found in virtual filesystem: {filename}")
         
@@ -271,11 +270,10 @@ _initialize_proto_schema_at_startup()
 # Export the compiled graph for LangGraph with middleware chain:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
 # 2. FilterRemoveMessagesMiddleware - Prevents RemoveMessage instances from being streamed to UI
-# 3. FileSerializationMiddleware - Converts FileData objects to strings for UI compatibility
+# Note: Files are stored as plain strings (not FileData) for UI compatibility
 graph = create_rds_agent(middleware=[
     FirstRequestProtoLoader(),
     FilterRemoveMessagesMiddleware(),
-    FileSerializationMiddleware()
 ])
 
 
