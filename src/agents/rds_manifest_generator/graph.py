@@ -6,6 +6,11 @@ ready before any user requests are processed.
 """
 
 import logging
+from typing import Any
+
+from langchain.agents.middleware import AgentMiddleware, AgentState
+from langchain_core.messages import RemoveMessage
+from langgraph.runtime import Runtime
 
 from .agent import create_rds_agent
 from .schema.fetcher import ProtoFetchError, fetch_proto_files
@@ -14,6 +19,50 @@ from .schema.loader import ProtoSchemaLoader, set_schema_loader
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class FilterRemoveMessagesMiddleware(AgentMiddleware):
+    """Defensive middleware to filter out RemoveMessage instances before streaming.
+    
+    RemoveMessage is an internal LangGraph state management construct that should
+    never be sent to external clients. This middleware acts as a safety net to
+    prevent RemoveMessage instances from being streamed to the UI, which would
+    cause errors since the UI only supports human, AI, system, developer, and tool
+    message types.
+    
+    This is a defensive measure that protects against:
+    1. Bugs in other middleware that might create RemoveMessages
+    2. Future changes in deepagents library behavior
+    3. Any other code that might accidentally expose RemoveMessages
+    """
+    
+    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
+        """Filter out any RemoveMessage instances from the message list.
+        
+        Args:
+            state: The current agent state containing messages
+            runtime: The LangGraph runtime
+            
+        Returns:
+            State update with RemoveMessages filtered out, or None if no filtering needed
+        """
+        messages = state.get("messages", [])
+        if not messages:
+            return None
+        
+        # Check if there are any RemoveMessage instances
+        has_remove_messages = any(isinstance(msg, RemoveMessage) for msg in messages)
+        
+        if has_remove_messages:
+            # Filter out RemoveMessage instances
+            filtered_messages = [msg for msg in messages if not isinstance(msg, RemoveMessage)]
+            logger.warning(
+                f"Filtered out {len(messages) - len(filtered_messages)} RemoveMessage instances "
+                f"to prevent streaming errors. This should not happen in normal operation."
+            )
+            return {"messages": filtered_messages}
+        
+        return None
 
 
 def _initialize_proto_schema_at_startup() -> None:
@@ -83,7 +132,9 @@ def _initialize_proto_schema_at_startup() -> None:
 # This ensures proto files are ready before any user requests
 _initialize_proto_schema_at_startup()
 
-# Export the compiled graph for LangGraph
-graph = create_rds_agent()
+# Export the compiled graph for LangGraph with defensive middleware
+# The FilterRemoveMessagesMiddleware prevents RemoveMessage instances from being
+# streamed to the UI, which would cause errors
+graph = create_rds_agent(middleware=[FilterRemoveMessagesMiddleware()])
 
 
