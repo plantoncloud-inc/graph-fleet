@@ -44,10 +44,12 @@ User Presentation
 - Manages conversation flow and context
 
 **Proto Schema System**
+- Dynamically fetches proto files from Git repository at startup
 - Parses protobuf files to extract field definitions
 - Identifies required vs optional fields
 - Extracts validation rules from buf.validate annotations
 - No hardcoded field definitions
+- Uses DeepAgent in-memory filesystem for runtime access
 
 **Requirement Store**
 - In-memory dictionary storing user responses
@@ -294,13 +296,92 @@ set_manifest_metadata(name="production-api-db", labels={"team": "backend", "env"
 
 ## Schema System
 
+### Dynamic Proto Fetching
+
+The agent dynamically fetches proto schema files from the `project-planton` Git repository at startup, eliminating the need for local copies and ensuring the schema is always up-to-date.
+
+**Architecture**:
+1. **Git Repository**: Source of truth at `https://github.com/project-planton/project-planton.git`
+2. **Local Cache**: Cloned to `~/.cache/graph-fleet/repos/project-planton/`
+3. **DeepAgent Filesystem**: Proto files loaded into in-memory filesystem at `/schema/protos/`
+4. **Schema Loader**: Reads from in-memory filesystem instead of local files
+
+**Initialization Flow** (automatic on first user interaction):
+```
+Agent Startup
+    ↓
+initialize_proto_schema() tool called
+    ↓
+Git clone/pull to cache directory
+    ↓
+Read proto files from cache
+    ↓
+Load into DeepAgent filesystem (/schema/protos/)
+    ↓
+Initialize ProtoSchemaLoader with filesystem reader
+    ↓
+Ready for schema queries
+```
+
+**Configuration** (`config.py`):
+```python
+PROTO_REPO_URL = "https://github.com/project-planton/project-planton.git"
+PROTO_REPO_PATH = "apis/project/planton/provider/aws/awsrdsinstance/v1"
+PROTO_FILES = ["api.proto", "spec.proto", "stack_outputs.proto"]
+CACHE_DIR = Path.home() / ".cache" / "graph-fleet" / "repos"
+FILESYSTEM_PROTO_DIR = "/schema/protos"
+```
+
+**Key Benefits**:
+- **Always Current**: Pulls latest proto definitions from main branch
+- **No Maintenance**: No need to manually update proto files
+- **Version Consistency**: Single source of truth in Git
+- **Fast Access**: Cached locally, in-memory during runtime
+- **Clear Errors**: Fails immediately with actionable error if Git unavailable
+
+**Requirements**:
+- Network access on first run (or when cache is cleared)
+- Git installed and available in PATH
+- Read access to project-planton repository (public, no auth needed)
+
+**Error Handling**:
+If proto initialization fails (network issues, Git not installed, repo unavailable), the agent will:
+1. Return clear error message explaining the issue
+2. Not proceed with user requests until schema is loaded
+3. Suggest checking network connectivity and Git installation
+
+**Manual Cache Management**:
+```bash
+# Clear cache to force fresh clone
+rm -rf ~/.cache/graph-fleet/repos/project-planton/
+
+# Check cache status
+ls -la ~/.cache/graph-fleet/repos/project-planton/
+```
+
 ### Proto File Structure
 
-The agent reads three proto files:
+The agent reads three proto files from the repository:
 
-1. **api.proto**: API resource definition
-2. **spec.proto**: Spec field definitions (main configuration)
-3. **stack_outputs.proto**: Output definitions
+1. **api.proto**: API resource definition (AwsRdsInstance message)
+2. **spec.proto**: Spec field definitions (AwsRdsInstanceSpec - main configuration)
+3. **stack_outputs.proto**: Output definitions (AwsRdsInstanceStackOutputs)
+
+**Source Location** (in Git repo):
+```
+apis/project/planton/provider/aws/awsrdsinstance/v1/
+├── api.proto
+├── spec.proto
+└── stack_outputs.proto
+```
+
+**Runtime Location** (in DeepAgent filesystem):
+```
+/schema/protos/
+├── api.proto
+├── spec.proto
+└── stack_outputs.proto
+```
 
 ### Schema Loader
 

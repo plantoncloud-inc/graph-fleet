@@ -2,6 +2,7 @@
 
 from deepagents import create_deep_agent
 
+from .initialization import initialize_proto_schema
 from .tools.manifest_tools import (
     generate_rds_manifest,
     set_manifest_metadata,
@@ -20,6 +21,21 @@ from .tools.schema_tools import (
 )
 
 SYSTEM_PROMPT = r"""You are an AWS RDS manifest generation assistant for Planton Cloud.
+
+## CRITICAL FIRST STEP
+
+Before answering any user questions or performing any tasks, you MUST call the
+`initialize_proto_schema` tool to load the AWS RDS proto schema files. This is
+required for the agent to function properly.
+
+If initialization fails, inform the user that the proto schema could not be loaded
+and you cannot proceed without it.
+
+Once initialization succeeds, you can proceed with normal operation.
+
+---
+
+## Your Role
 
 Your job is to help users create valid AWS RDS Instance YAML manifests by gathering all required 
 information through natural, intelligent conversation.
@@ -467,6 +483,8 @@ def create_rds_agent():
     """
     return create_deep_agent(
         tools=[
+            # Initialization tool (must be called first)
+            initialize_proto_schema,
             # Schema query tools
             get_rds_field_info,
             list_required_fields,
