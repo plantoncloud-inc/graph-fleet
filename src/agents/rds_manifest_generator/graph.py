@@ -17,6 +17,7 @@ from langgraph.runtime import Runtime
 
 from .agent import create_rds_agent
 from .config import CACHE_DIR, FILESYSTEM_PROTO_DIR, PROTO_REPO_URL
+from .middleware.file_serialization import FileSerializationMiddleware
 from .schema.fetcher import ProtoFetchError, fetch_proto_files
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
@@ -270,9 +271,11 @@ _initialize_proto_schema_at_startup()
 # Export the compiled graph for LangGraph with middleware chain:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
 # 2. FilterRemoveMessagesMiddleware - Prevents RemoveMessage instances from being streamed to UI
+# 3. FileSerializationMiddleware - Converts FileData objects to strings for UI compatibility
 graph = create_rds_agent(middleware=[
     FirstRequestProtoLoader(),
-    FilterRemoveMessagesMiddleware()
+    FilterRemoveMessagesMiddleware(),
+    FileSerializationMiddleware()
 ])
 
 
