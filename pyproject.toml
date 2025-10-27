@@ -13,7 +13,6 @@ langchain-openai = "0.3.32"
 langchain-anthropic = "0.3.19"
 python-dotenv = "1.0.1"
 pyyaml = "6.0.2"
-deepagents = "^0.0.5"  # Core framework for autonomous agents
 langchain-mcp-adapters = "^0.1.9"  # LangChain MCP integration for tools
 mcp = "^1.0.0"  # Model Context Protocol library
 # ECS Deep Agent dependencies
@@ -32,12 +31,12 @@ grpcio = "^1.60.0"
 # protobuf version is already constrained by blintora-apis packages
 awslabs-aws-api-mcp-server = "^0.2.11"
 awslabs-ecs-mcp-server = "^0.1.2"
+deepagents = "0.1.4"
 
 [tool.poetry.extras]
 mcp = ["langchain-mcp-adapters"]
 
 [tool.poetry.scripts]
-planton_cloud_mcp = "planton_cloud_mcp.entry_point:main"
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
@@ -45,13 +44,12 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 packages = [
-  { include = "agents", from = "src" },
-  { include = "planton_cloud_mcp", from = "src" }
+  { include = "agents", from = "src" }
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["agents*", "planton_cloud_mcp*"]
+include = ["agents*"]
 
 [tool.setuptools.package-dir]
 "" = "src"

@@ -28,6 +28,11 @@ def store_requirement(field_name: str, value: Any) -> str:
         store_requirement('instance_class', 'db.t3.micro')
         store_requirement('multi_az', True)
     """
+    if not field_name:
+        return "✗ Error: field_name cannot be empty"
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return f"✗ Error: value for '{field_name}' cannot be empty"
+    
     _requirements_store[field_name] = value
     return f"✓ Stored {field_name} = {value}"
 
