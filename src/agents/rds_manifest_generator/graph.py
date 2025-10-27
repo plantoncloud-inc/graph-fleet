@@ -6,6 +6,9 @@ ready before any user requests are processed.
 """
 
 import logging
+import time
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
@@ -13,12 +16,112 @@ from langchain_core.messages import RemoveMessage
 from langgraph.runtime import Runtime
 
 from .agent import create_rds_agent
+from .config import CACHE_DIR, FILESYSTEM_PROTO_DIR, PROTO_REPO_URL
 from .schema.fetcher import ProtoFetchError, fetch_proto_files
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Global storage for proto file paths from startup initialization
+_cached_proto_paths: list[Path] = []
+
+
+class FirstRequestProtoLoader(AgentMiddleware):
+    """Copy proto files to virtual filesystem on first user request.
+    
+    This middleware runs before the agent processes the first message and:
+    1. Reads proto files from the local cache (cloned at startup)
+    2. Copies them to DeepAgent's virtual filesystem at /schema/protos/
+    3. Initializes the schema loader to read from virtual filesystem
+    4. Logs detailed information about source/destination paths and timing
+    
+    After the first request, this middleware becomes a no-op.
+    """
+    
+    def __init__(self):
+        """Initialize the middleware with uninitialized state."""
+        self._initialized = False
+    
+    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
+        """Copy proto files to virtual filesystem on first request.
+        
+        Args:
+            state: The current agent state
+            runtime: The LangGraph runtime
+            
+        Returns:
+            State update with proto files added to virtual filesystem, or None if already initialized
+        """
+        if self._initialized:
+            return None
+        
+        start_time = time.time()
+        
+        logger.info("=" * 60)
+        logger.info("FIRST REQUEST: Copying proto files to virtual filesystem...")
+        logger.info(f"Source: Local cache ({CACHE_DIR / 'project-planton'})")
+        logger.info(f"Destination: Virtual filesystem ({FILESYSTEM_PROTO_DIR})")
+        logger.info("=" * 60)
+        
+        # Copy files from cache to virtual filesystem
+        files_to_add = {}
+        for proto_path in _cached_proto_paths:
+            content = proto_path.read_text(encoding='utf-8')
+            vfs_path = f"{FILESYSTEM_PROTO_DIR}/{proto_path.name}"
+            
+            logger.info(f"  {proto_path} -> {vfs_path}")
+            
+            files_to_add[vfs_path] = {
+                "content": content.split("\n"),
+                "created_at": datetime.now(UTC).isoformat(),
+                "modified_at": datetime.now(UTC).isoformat(),
+            }
+        
+        # Create a file reader that reads from the virtual filesystem
+        def read_from_vfs(file_path: str) -> str:
+            """Read proto files from virtual filesystem.
+            
+            Args:
+                file_path: Name of the proto file (not full path)
+            
+            Returns:
+                File contents as string
+                
+            Raises:
+                ValueError: If file not found in virtual filesystem
+            """
+            # Extract just the filename from the path
+            filename = file_path.split('/')[-1]
+            vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
+            
+            if vfs_path in files_to_add:
+                return "\n".join(files_to_add[vfs_path]["content"])
+            
+            raise ValueError(f"Proto file not found in virtual filesystem: {filename}")
+        
+        # Initialize the global schema loader with virtual filesystem reader
+        loader = ProtoSchemaLoader(read_file_func=read_from_vfs)
+        set_schema_loader(loader)
+        
+        # Verify schema can be loaded
+        try:
+            fields = loader.load_spec_schema()
+            if not fields:
+                logger.warning("Proto schema loaded but no fields found. Schema may be invalid.")
+            else:
+                logger.info(f"Schema loader initialized with {len(fields)} fields")
+        except Exception as e:
+            logger.error(f"Failed to verify schema after loading: {e}")
+        
+        elapsed = time.time() - start_time
+        logger.info("=" * 60)
+        logger.info(f"FIRST REQUEST: Copied {len(files_to_add)} files in {elapsed:.2f}s")
+        logger.info("=" * 60)
+        
+        self._initialized = True
+        return {"files": files_to_add}
 
 
 class FilterRemoveMessagesMiddleware(AgentMiddleware):
@@ -30,18 +133,21 @@ class FilterRemoveMessagesMiddleware(AgentMiddleware):
     cause errors since the UI only supports human, AI, system, developer, and tool
     message types.
     
+    This middleware implements both before_agent and after_agent hooks to ensure
+    RemoveMessages are filtered regardless of when they're created in the middleware chain.
+    
     This is a defensive measure that protects against:
     1. Bugs in other middleware that might create RemoveMessages
     2. Future changes in deepagents library behavior
     3. Any other code that might accidentally expose RemoveMessages
     """
     
-    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
-        """Filter out any RemoveMessage instances from the message list.
+    def _filter_remove_messages(self, state: AgentState, hook_name: str) -> dict[str, Any] | None:
+        """Filter out RemoveMessage instances from the message list.
         
         Args:
             state: The current agent state containing messages
-            runtime: The LangGraph runtime
+            hook_name: Name of the hook calling this method (for logging)
             
         Returns:
             State update with RemoveMessages filtered out, or None if no filtering needed
@@ -56,85 +162,112 @@ class FilterRemoveMessagesMiddleware(AgentMiddleware):
         if has_remove_messages:
             # Filter out RemoveMessage instances
             filtered_messages = [msg for msg in messages if not isinstance(msg, RemoveMessage)]
+            removed_count = len(messages) - len(filtered_messages)
             logger.warning(
-                f"Filtered out {len(messages) - len(filtered_messages)} RemoveMessage instances "
-                f"to prevent streaming errors. This should not happen in normal operation."
+                f"[{hook_name}] Filtered out {removed_count} RemoveMessage instance(s) "
+                f"to prevent streaming errors. This indicates another middleware created RemoveMessages."
             )
             return {"messages": filtered_messages}
         
         return None
+    
+    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
+        """Filter RemoveMessages before the agent runs.
+        
+        This catches RemoveMessages that may already exist in the state before
+        any middleware has run.
+        
+        Args:
+            state: The current agent state containing messages
+            runtime: The LangGraph runtime
+            
+        Returns:
+            State update with RemoveMessages filtered out, or None if no filtering needed
+        """
+        return self._filter_remove_messages(state, "before_agent")
+    
+    def after_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
+        """Filter RemoveMessages after the agent runs.
+        
+        This is the critical hook that catches RemoveMessages created by other middleware
+        (like PatchToolCallsMiddleware) that run before this middleware in the chain.
+        Since this middleware is added last via the custom middleware parameter, its
+        after_agent hook runs AFTER all other middleware's before_agent hooks.
+        
+        Args:
+            state: The current agent state containing messages
+            runtime: The LangGraph runtime
+            
+        Returns:
+            State update with RemoveMessages filtered out, or None if no filtering needed
+        """
+        return self._filter_remove_messages(state, "after_agent")
 
 
 def _initialize_proto_schema_at_startup() -> None:
-    """Initialize proto schema files at application startup.
+    """Clone/pull proto repository at application startup.
+    
+    This function runs at module import time and only handles the git clone/pull
+    operation. It does NOT copy files to the virtual filesystem or initialize the
+    schema loader - that happens on the first user request via middleware.
     
     This function:
-    1. Fetches proto files from Git repository (clones or pulls)
-    2. Caches them locally in ~/.cache/graph-fleet/repos
-    3. Initializes the schema loader to read from cached files
+    1. Clones or pulls the proto repository to local cache
+    2. Stores the proto file paths globally for later use
+    3. Logs detailed timing and path information
     
-    This runs once when the LangGraph server imports this module, ensuring
-    proto files are ready before any user requests.
+    The actual copying to virtual filesystem happens in FirstRequestProtoLoader middleware.
     
     Raises:
-        ProtoFetchError: If proto files cannot be fetched or loaded.
+        ProtoFetchError: If git clone/pull fails.
     """
-    logger.info("Starting proto schema initialization at application startup...")
+    global _cached_proto_paths
+    
+    start_time = time.time()
+    
+    logger.info("=" * 60)
+    logger.info("STARTUP: Cloning/pulling proto repository...")
+    logger.info(f"Repository: {PROTO_REPO_URL}")
+    logger.info(f"Cache location: {CACHE_DIR / 'project-planton'}")
+    logger.info("=" * 60)
     
     try:
-        # Fetch proto files from Git repository (clones to cache if needed)
+        # Fetch proto files from Git repository (clones or pulls to cache)
         proto_paths = fetch_proto_files()
-        logger.info(f"Successfully fetched {len(proto_paths)} proto files from repository")
         
-        # Create a file reader that reads from the cached local files
-        def read_cached_proto(file_path: str) -> str:
-            """Read proto files from local cache.
-            
-            Args:
-                file_path: Name of the proto file (not full path)
-            
-            Returns:
-                File contents as string
-                
-            Raises:
-                ValueError: If file not found in cache
-            """
-            # Extract just the filename from the path
-            filename = file_path.split('/')[-1]
-            
-            # Find the matching proto file in our cached paths
-            for proto_path in proto_paths:
-                if proto_path.name == filename:
-                    return proto_path.read_text(encoding='utf-8')
-            
-            raise ValueError(f"Proto file not found in cache: {filename}")
+        # Store paths globally for first-request initialization
+        _cached_proto_paths = proto_paths
         
-        # Initialize the global schema loader with cached files
-        loader = ProtoSchemaLoader(read_file_func=read_cached_proto)
-        set_schema_loader(loader)
-        
-        # Verify schema can be loaded
-        fields = loader.load_spec_schema()
-        if not fields:
-            raise ProtoFetchError("Proto schema loaded but no fields found. Schema may be invalid.")
-        
-        logger.info(f"Proto schema initialized successfully with {len(fields)} fields")
+        elapsed = time.time() - start_time
+        logger.info("=" * 60)
+        logger.info(f"STARTUP: Clone/pull completed in {elapsed:.2f} seconds")
+        logger.info(f"Proto files ready: {[p.name for p in proto_paths]}")
+        logger.info(f"Files will be copied to virtual filesystem on first request")
+        logger.info("=" * 60)
         
     except ProtoFetchError as e:
-        logger.error(f"Failed to initialize proto schema: {e}")
+        logger.error("=" * 60)
+        logger.error(f"STARTUP: Failed to clone/pull proto repository: {e}")
+        logger.error("=" * 60)
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during proto schema initialization: {e}")
+        logger.error("=" * 60)
+        logger.error(f"STARTUP: Unexpected error during proto repository clone: {e}")
+        logger.error("=" * 60)
         raise ProtoFetchError(f"Unexpected error: {e}") from e
 
 
 # Initialize proto schema at module import time (application startup)
-# This ensures proto files are ready before any user requests
+# This clones/pulls the proto repository to local cache but does NOT
+# copy files to virtual filesystem - that happens on first request
 _initialize_proto_schema_at_startup()
 
-# Export the compiled graph for LangGraph with defensive middleware
-# The FilterRemoveMessagesMiddleware prevents RemoveMessage instances from being
-# streamed to the UI, which would cause errors
-graph = create_rds_agent(middleware=[FilterRemoveMessagesMiddleware()])
+# Export the compiled graph for LangGraph with middleware chain:
+# 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
+# 2. FilterRemoveMessagesMiddleware - Prevents RemoveMessage instances from being streamed to UI
+graph = create_rds_agent(middleware=[
+    FirstRequestProtoLoader(),
+    FilterRemoveMessagesMiddleware()
+])
 
 
