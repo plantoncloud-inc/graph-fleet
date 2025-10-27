@@ -81,7 +81,7 @@ def fetch_proto_files() -> list[Path]:
 
 
 def _git_clone(target_dir: Path) -> None:
-    """Clone the proto repository.
+    """Clone the proto repository using shallow clone for faster initialization.
 
     Args:
         target_dir: Directory where the repository should be cloned.
@@ -89,8 +89,10 @@ def _git_clone(target_dir: Path) -> None:
     Raises:
         subprocess.CalledProcessError: If git clone fails.
     """
+    # Use shallow clone (--depth 1) to only fetch the latest commit
+    # This significantly reduces clone time and disk space
     subprocess.run(
-        ["git", "clone", PROTO_REPO_URL, str(target_dir)],
+        ["git", "clone", "--depth", "1", PROTO_REPO_URL, str(target_dir)],
         check=True,
         capture_output=True,
         text=True,
