@@ -104,20 +104,11 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     
     # Write back to filesystem
     content = json.dumps(requirements, indent=2)
-    now = datetime.now(UTC).isoformat()
     
-    files = runtime.state.get("files", {})
-    existing_file = files.get(REQUIREMENTS_FILE)
-    
-    file_data = {
-        "content": content.split("\n"),
-        "created_at": existing_file["created_at"] if existing_file else now,
-        "modified_at": now,
-    }
-    
+    # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
     return Command(
         update={
-            "files": {REQUIREMENTS_FILE: file_data},
+            "files": {REQUIREMENTS_FILE: content},
             "messages": [ToolMessage(f"✓ Metadata stored: name={name}, labels={labels}", tool_call_id=runtime.tool_call_id)],
         }
     )
@@ -292,16 +283,6 @@ def generate_rds_manifest(
 
     # Write manifest to filesystem
     manifest_path = "/manifest.yaml"
-    now = datetime.now(UTC).isoformat()
-    
-    files = runtime.state.get("files", {})
-    existing_file = files.get(manifest_path)
-    
-    file_data = {
-        "content": yaml_str.split("\n"),
-        "created_at": existing_file["created_at"] if existing_file else now,
-        "modified_at": now,
-    }
     
     success_msg = (
         f"✓ Generated AWS RDS Instance manifest!\n"
@@ -310,9 +291,10 @@ def generate_rds_manifest(
         f"You can view the manifest by reading {manifest_path}"
     )
     
+    # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
     return Command(
         update={
-            "files": {manifest_path: file_data},
+            "files": {manifest_path: yaml_str},
             "messages": [ToolMessage(success_msg, tool_call_id=runtime.tool_call_id)],
         }
     )
