@@ -1,0 +1,33 @@
+apiVersion: aws.project-planton.org/v1
+kind: AwsRdsInstance
+metadata:
+  name: production-analytics-db
+  org: project-planton
+  env: production
+  labels:
+    environment: production
+    team: data-engineering
+    purpose: analytics
+    cost-center: engineering
+spec:
+  engine: mariadb
+  engineVersion: "10.11"
+  instanceClass: db.r6g.xlarge
+  allocatedStorageGb: 1000
+  username: mariadb_admin
+  password: REPLACE_WITH_SECURE_PASSWORD
+  port: 3306
+  publiclyAccessible: false
+  multiAz: true
+  storageEncrypted: true
+  kmsKeyId: arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+  subnetIds:
+    - subnet-prod-1a
+    - subnet-prod-1b
+    - subnet-prod-1c
+  securityGroupIds:
+    - sg-mariadb-prod
+    - sg-analytics-access
+  parameterGroupName: custom-mariadb-analytics
+  optionGroupName: mariadb-analytics-options
+
