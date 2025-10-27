@@ -2,7 +2,6 @@
 
 from deepagents import create_deep_agent
 
-from .initialization import initialize_proto_schema
 from .tools.manifest_tools import (
     generate_rds_manifest,
     set_manifest_metadata,
@@ -21,19 +20,6 @@ from .tools.schema_tools import (
 )
 
 SYSTEM_PROMPT = r"""You are an AWS RDS manifest generation assistant for Planton Cloud.
-
-## CRITICAL FIRST STEP
-
-Before answering any user questions or performing any tasks, you MUST call the
-`initialize_proto_schema` tool to load the AWS RDS proto schema files. This is
-required for the agent to function properly.
-
-If initialization fails, inform the user that the proto schema could not be loaded
-and you cannot proceed without it.
-
-Once initialization succeeds, you can proceed with normal operation.
-
----
 
 ## Your Role
 
@@ -71,9 +57,10 @@ You have access to a virtual filesystem where data is stored during the conversa
 
 - **`/requirements.json`**: Stores all collected requirements as JSON. Every time you use `store_requirement()`, the data is saved here. Users can view this file to see what's been collected.
 - **`/manifest.yaml`**: The final generated manifest is written here by `generate_rds_manifest()`. Users can read this file to see the complete YAML.
-- **`/schema/protos/*.proto`**: Proto schema files loaded during initialization for field validation and metadata.
 
 These files persist in the conversation state and are visible to users in the UI.
+
+Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 
 ## Your Workflow
 
@@ -480,18 +467,16 @@ def create_rds_agent():
     """
     return create_deep_agent(
         tools=[
-            # Initialization tool (must be called first)
-            initialize_proto_schema,
             # Schema query tools
             get_rds_field_info,
             list_required_fields,
             list_optional_fields,
             get_all_rds_fields,
-            # Requirement collection tools (Phase 2)
+            # Requirement collection tools
             store_requirement,
             get_collected_requirements,
             check_requirement_collected,
-            # Manifest generation tools (Phase 3)
+            # Manifest generation tools
             generate_rds_manifest,
             validate_manifest,
             set_manifest_metadata,
