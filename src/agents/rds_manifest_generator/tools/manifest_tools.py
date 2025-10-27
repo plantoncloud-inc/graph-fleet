@@ -66,7 +66,7 @@ def _get_pattern_example(field_name: str, pattern: str) -> str:
 
 
 @tool
-def set_manifest_metadata(name: str = None, labels: dict[str, str] = None) -> str:
+def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None = None) -> str:
     """Store metadata for the manifest (name, labels).
 
     Use this if the user mentions a specific name or labels for their RDS instance
@@ -85,6 +85,9 @@ def set_manifest_metadata(name: str = None, labels: dict[str, str] = None) -> st
     """
     from .requirement_tools import _requirements_store
 
+    if not name and not labels:
+        return "✓ No metadata changes (both name and labels were None)"
+    
     if name:
         _requirements_store["_metadata_name"] = name
     if labels:

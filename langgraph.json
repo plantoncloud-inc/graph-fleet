@@ -1,8 +1,6 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "aws_ecs_service": "src.agents.aws_ecs_service.graph:graph",
-    "aws_ecs_troubleshooter": "src.agents.aws_ecs_troubleshooter.graph:graph",
     "rds_manifest_generator": "src.agents.rds_manifest_generator.graph:graph"
   },
   "env": ".env",
