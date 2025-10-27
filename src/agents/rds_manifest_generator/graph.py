@@ -24,8 +24,9 @@ from .schema.loader import ProtoSchemaLoader, set_schema_loader
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global storage for proto file paths from startup initialization
-_cached_proto_paths: list[Path] = []
+# Global storage for proto file contents from startup initialization
+# Maps filename to file content
+_cached_proto_contents: dict[str, str] = {}
 
 
 class FirstRequestProtoLoader(AgentMiddleware):
@@ -61,17 +62,16 @@ class FirstRequestProtoLoader(AgentMiddleware):
         
         logger.info("=" * 60)
         logger.info("FIRST REQUEST: Copying proto files to virtual filesystem...")
-        logger.info(f"Source: Local cache ({CACHE_DIR / 'project-planton'})")
+        logger.info(f"Source: In-memory cache (loaded at startup)")
         logger.info(f"Destination: Virtual filesystem ({FILESYSTEM_PROTO_DIR})")
         logger.info("=" * 60)
         
-        # Copy files from cache to virtual filesystem
+        # Copy files from in-memory cache to virtual filesystem
         files_to_add = {}
-        for proto_path in _cached_proto_paths:
-            content = proto_path.read_text(encoding='utf-8')
-            vfs_path = f"{FILESYSTEM_PROTO_DIR}/{proto_path.name}"
+        for filename, content in _cached_proto_contents.items():
+            vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
             
-            logger.info(f"  {proto_path} -> {vfs_path}")
+            logger.info(f"  {filename} -> {vfs_path}")
             
             files_to_add[vfs_path] = {
                 "content": content.split("\n"),
@@ -205,23 +205,24 @@ class FilterRemoveMessagesMiddleware(AgentMiddleware):
 
 
 def _initialize_proto_schema_at_startup() -> None:
-    """Clone/pull proto repository at application startup.
+    """Clone/pull proto repository and cache file contents at application startup.
     
-    This function runs at module import time and only handles the git clone/pull
-    operation. It does NOT copy files to the virtual filesystem or initialize the
-    schema loader - that happens on the first user request via middleware.
+    This function runs at module import time and handles both the git clone/pull
+    operation and reading the proto file contents into memory. It does NOT copy
+    files to the virtual filesystem or initialize the schema loader - that happens
+    on the first user request via middleware.
     
     This function:
     1. Clones or pulls the proto repository to local cache
-    2. Stores the proto file paths globally for later use
+    2. Reads all proto file contents and caches them in memory
     3. Logs detailed timing and path information
     
     The actual copying to virtual filesystem happens in FirstRequestProtoLoader middleware.
     
     Raises:
-        ProtoFetchError: If git clone/pull fails.
+        ProtoFetchError: If git clone/pull fails or file reading fails.
     """
-    global _cached_proto_paths
+    global _cached_proto_contents
     
     start_time = time.time()
     
@@ -235,13 +236,17 @@ def _initialize_proto_schema_at_startup() -> None:
         # Fetch proto files from Git repository (clones or pulls to cache)
         proto_paths = fetch_proto_files()
         
-        # Store paths globally for first-request initialization
-        _cached_proto_paths = proto_paths
+        # Read and cache file contents in memory
+        logger.info("STARTUP: Reading proto files into memory...")
+        for proto_path in proto_paths:
+            content = proto_path.read_text(encoding='utf-8')
+            _cached_proto_contents[proto_path.name] = content
+            logger.info(f"  Cached: {proto_path.name} ({len(content)} bytes)")
         
         elapsed = time.time() - start_time
         logger.info("=" * 60)
-        logger.info(f"STARTUP: Clone/pull completed in {elapsed:.2f} seconds")
-        logger.info(f"Proto files ready: {[p.name for p in proto_paths]}")
+        logger.info(f"STARTUP: Clone/pull and caching completed in {elapsed:.2f} seconds")
+        logger.info(f"Proto files cached in memory: {list(_cached_proto_contents.keys())}")
         logger.info(f"Files will be copied to virtual filesystem on first request")
         logger.info("=" * 60)
         
@@ -252,14 +257,14 @@ def _initialize_proto_schema_at_startup() -> None:
         raise
     except Exception as e:
         logger.error("=" * 60)
-        logger.error(f"STARTUP: Unexpected error during proto repository clone: {e}")
+        logger.error(f"STARTUP: Unexpected error during proto repository clone/cache: {e}")
         logger.error("=" * 60)
         raise ProtoFetchError(f"Unexpected error: {e}") from e
 
 
 # Initialize proto schema at module import time (application startup)
-# This clones/pulls the proto repository to local cache but does NOT
-# copy files to virtual filesystem - that happens on first request
+# This clones/pulls the proto repository to local cache and reads file contents
+# into memory, but does NOT copy files to virtual filesystem - that happens on first request
 _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with middleware chain:
