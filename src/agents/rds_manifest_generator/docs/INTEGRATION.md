@@ -24,6 +24,7 @@ The AWS RDS Manifest Generator is currently a proof-of-concept agent running in 
 - **Context**: Hardcoded defaults (org="project-planton", env="aws")
 - **State**: In-memory for session duration
 - **Output**: YAML string returned to conversation
+- **Proto Schema**: Dynamically fetched from Git at startup
 
 ### Production Goals
 
@@ -32,6 +33,77 @@ The AWS RDS Manifest Generator is currently a proof-of-concept agent running in 
 - **Context**: Injected from user session
 - **State**: Persistent across sessions
 - **Output**: Direct integration with manifest storage/deployment
+- **Proto Schema**: Git access configured for production environment
+
+## Prerequisites
+
+### System Requirements
+
+The agent requires the following to be available in the runtime environment:
+
+1. **Git**: Must be installed and available in PATH
+   - Used to clone/update the `project-planton` repository
+   - Validates on first agent invocation
+   
+2. **Network Access**: Required for initial proto schema fetch
+   - Clone from `https://github.com/project-planton/project-planton.git`
+   - Subsequent runs use cached copy (with periodic updates)
+   
+3. **Filesystem Access**: Write access to cache directory
+   - Default: `~/.cache/graph-fleet/repos/`
+   - Configurable via `config.CACHE_DIR`
+
+### Git Access Configuration
+
+**For Development** (current):
+- Uses HTTPS (no authentication required, public repo)
+- No special configuration needed
+
+**For Production** (options):
+
+Option 1: **HTTPS with Personal Access Token** (recommended for cloud deployments)
+```bash
+# Set Git credential helper
+git config --global credential.helper store
+
+# Or use environment variable
+export GIT_ASKPASS=/path/to/git-askpass-helper.sh
+```
+
+Option 2: **SSH with Deploy Key** (for self-hosted)
+```bash
+# Ensure SSH key is available
+ssh-add ~/.ssh/id_rsa
+
+# Update config.py to use SSH URL
+PROTO_REPO_URL = "git@github.com:project-planton/project-planton.git"
+```
+
+Option 3: **Git Credential Manager** (for automated systems)
+```bash
+# Use GCM for cloud platforms
+export GCM_CREDENTIAL_STORE=cache
+export GCM_CREDENTIAL_CACHE_OPTIONS="--timeout 3600"
+```
+
+### Error Handling
+
+If Git access fails during agent initialization:
+1. Agent will return clear error message to user
+2. Will not proceed until proto schema is loaded
+3. Error message includes:
+   - Root cause (network, Git not installed, auth failure)
+   - Suggested remediation steps
+   - Repository URL for manual verification
+
+**Example Error Messages**:
+```
+Failed to initialize proto schema: Git clone failed.
+Error: fatal: unable to access 'https://github.com/...': Could not resolve host
+
+The agent cannot function without the proto schema.
+Please ensure you have network access and Git is installed.
+```
 
 ## Context Injection
 

@@ -79,3 +79,10 @@ cython_debug/
 
 # Cursor workspace files (auto-generated PR descriptions, etc.)
 .cursor/workspace/
+
+# Graph Fleet specific
+# Proto file cache directory
+.cache/
+
+# Local proto files (fetched from Git at runtime)
+src/agents/rds_manifest_generator/schema/protos/

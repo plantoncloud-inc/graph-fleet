@@ -9,6 +9,7 @@ This agent eliminates the friction of learning complex AWS RDS configuration by 
 ## Features
 
 ### Phase 1 (Complete)
+- ✅ Dynamic proto schema fetching - automatically fetches latest proto definitions from Git
 - ✅ Proto schema understanding - parses AWS RDS protobuf definitions
 - ✅ Schema query tools - agent can explore field requirements and validations
 - ✅ Conversational interface - natural language interaction
@@ -39,6 +40,15 @@ This agent eliminates the friction of learning complex AWS RDS configuration by 
 
 ## Usage
 
+### Prerequisites
+
+Before running the agent, ensure you have:
+- **Git** installed and available in PATH
+- **Network access** for initial proto schema fetch (clones from GitHub)
+- Python 3.11+ and Poetry installed
+
+The agent automatically fetches proto schema files from the `project-planton` repository on first run. These are cached locally in `~/.cache/graph-fleet/repos/` for subsequent runs.
+
 ### Starting the Agent
 
 ```bash
@@ -47,6 +57,8 @@ make run
 ```
 
 Then open http://localhost:8123 and select the `rds_manifest_generator` graph.
+
+**First Run**: The agent will automatically initialize by cloning the proto schema repository. This requires network access and may take a few seconds.
 
 ### Example Conversation (Phase 3)
 
