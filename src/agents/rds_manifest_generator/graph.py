@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
-from langchain_core.messages import RemoveMessage
 from langgraph.runtime import Runtime
 
 from .agent import create_rds_agent
@@ -124,86 +123,6 @@ class FirstRequestProtoLoader(AgentMiddleware):
         return {"files": files_to_add}
 
 
-class FilterRemoveMessagesMiddleware(AgentMiddleware):
-    """Defensive middleware to filter out RemoveMessage instances before streaming.
-    
-    RemoveMessage is an internal LangGraph state management construct that should
-    never be sent to external clients. This middleware acts as a safety net to
-    prevent RemoveMessage instances from being streamed to the UI, which would
-    cause errors since the UI only supports human, AI, system, developer, and tool
-    message types.
-    
-    This middleware implements both before_agent and after_agent hooks to ensure
-    RemoveMessages are filtered regardless of when they're created in the middleware chain.
-    
-    This is a defensive measure that protects against:
-    1. Bugs in other middleware that might create RemoveMessages
-    2. Future changes in deepagents library behavior
-    3. Any other code that might accidentally expose RemoveMessages
-    """
-    
-    def _filter_remove_messages(self, state: AgentState, hook_name: str) -> dict[str, Any] | None:
-        """Filter out RemoveMessage instances from the message list.
-        
-        Args:
-            state: The current agent state containing messages
-            hook_name: Name of the hook calling this method (for logging)
-            
-        Returns:
-            State update with RemoveMessages filtered out, or None if no filtering needed
-        """
-        messages = state.get("messages", [])
-        if not messages:
-            return None
-        
-        # Check if there are any RemoveMessage instances
-        has_remove_messages = any(isinstance(msg, RemoveMessage) for msg in messages)
-        
-        if has_remove_messages:
-            # Filter out RemoveMessage instances
-            filtered_messages = [msg for msg in messages if not isinstance(msg, RemoveMessage)]
-            removed_count = len(messages) - len(filtered_messages)
-            logger.warning(
-                f"[{hook_name}] Filtered out {removed_count} RemoveMessage instance(s) "
-                f"to prevent streaming errors. This indicates another middleware created RemoveMessages."
-            )
-            return {"messages": filtered_messages}
-        
-        return None
-    
-    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
-        """Filter RemoveMessages before the agent runs.
-        
-        This catches RemoveMessages that may already exist in the state before
-        any middleware has run.
-        
-        Args:
-            state: The current agent state containing messages
-            runtime: The LangGraph runtime
-            
-        Returns:
-            State update with RemoveMessages filtered out, or None if no filtering needed
-        """
-        return self._filter_remove_messages(state, "before_agent")
-    
-    def after_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
-        """Filter RemoveMessages after the agent runs.
-        
-        This is the critical hook that catches RemoveMessages created by other middleware
-        (like PatchToolCallsMiddleware) that run before this middleware in the chain.
-        Since this middleware is added last via the custom middleware parameter, its
-        after_agent hook runs AFTER all other middleware's before_agent hooks.
-        
-        Args:
-            state: The current agent state containing messages
-            runtime: The LangGraph runtime
-            
-        Returns:
-            State update with RemoveMessages filtered out, or None if no filtering needed
-        """
-        return self._filter_remove_messages(state, "after_agent")
-
-
 def _initialize_proto_schema_at_startup() -> None:
     """Clone/pull proto repository and cache file contents at application startup.
     
@@ -267,13 +186,14 @@ def _initialize_proto_schema_at_startup() -> None:
 # into memory, but does NOT copy files to virtual filesystem - that happens on first request
 _initialize_proto_schema_at_startup()
 
-# Export the compiled graph for LangGraph with middleware chain:
+# Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. FilterRemoveMessagesMiddleware - Prevents RemoveMessage instances from being streamed to UI
-# Note: Files are stored as plain strings (not FileData) for UI compatibility
+#
+# Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
+# that causes RemoveMessage streaming errors. We only include the middleware we actually need:
+# TodoListMiddleware and FilesystemMiddleware.
 graph = create_rds_agent(middleware=[
     FirstRequestProtoLoader(),
-    FilterRemoveMessagesMiddleware(),
 ])
 
 
