@@ -13,6 +13,7 @@ from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
 from langgraph.runtime import Runtime
+from deepagents.middleware.filesystem import _create_file_data
 
 from .agent import create_rds_agent
 from .config import CACHE_DIR, FILESYSTEM_PROTO_DIR, PROTO_REPO_URL
@@ -66,16 +67,17 @@ class FirstRequestProtoLoader(AgentMiddleware):
         logger.info("=" * 60)
         
         # Copy files from in-memory cache to virtual filesystem
-        # Store as plain strings for UI compatibility - DeepAgents will convert
-        # to FileData format internally when filesystem tools are used
+        # Store as FileData objects for read_file tool compatibility
+        # (Pydantic warnings about serialization are expected and harmless)
         files_to_add = {}
         for filename, content in _cached_proto_contents.items():
             vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
             
             logger.info(f"  {filename} -> {vfs_path}")
             
-            # Store as plain string - not FileData object
-            files_to_add[vfs_path] = content
+            # Store as FileData for read_file tool compatibility
+            # (Pydantic warnings are expected and harmless)
+            files_to_add[vfs_path] = _create_file_data(content)
         
         # Create a file reader that reads from the virtual filesystem
         def read_from_vfs(file_path: str) -> str:
@@ -95,8 +97,9 @@ class FirstRequestProtoLoader(AgentMiddleware):
             vfs_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
             
             if vfs_path in files_to_add:
-                # Files are stored as plain strings now
-                return files_to_add[vfs_path]
+                file_data = files_to_add[vfs_path]
+                # FileData has content as list of lines, join them
+                return "\n".join(file_data["content"])
             
             raise ValueError(f"Proto file not found in virtual filesystem: {filename}")
         
