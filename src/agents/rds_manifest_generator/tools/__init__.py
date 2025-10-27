@@ -3,7 +3,6 @@
 from .manifest_tools import generate_rds_manifest, set_manifest_metadata, validate_manifest
 from .requirement_tools import (
     check_requirement_collected,
-    clear_requirements,
     get_collected_requirements,
     store_requirement,
 )
@@ -22,7 +21,6 @@ __all__ = [
     "list_required_fields",
     # Requirement tools
     "check_requirement_collected",
-    "clear_requirements",
     "get_collected_requirements",
     "store_requirement",
     # Manifest tools

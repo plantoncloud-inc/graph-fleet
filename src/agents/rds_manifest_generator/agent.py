@@ -496,6 +496,6 @@ def create_rds_agent():
             validate_manifest,
             set_manifest_metadata,
         ],
-        instructions=SYSTEM_PROMPT,
+        system_prompt=SYSTEM_PROMPT,
     )
 
