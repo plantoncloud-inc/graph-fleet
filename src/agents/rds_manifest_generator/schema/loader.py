@@ -6,8 +6,10 @@ and other metadata needed for intelligent manifest generation.
 
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -27,17 +29,38 @@ class ProtoField:
 class ProtoSchemaLoader:
     """Loads and parses AWS RDS proto schema files."""
 
-    def __init__(self):
-        """Initialize the schema loader."""
+    def __init__(self, read_file_func: Callable[[str], str] | None = None):
+        """Initialize the schema loader.
+
+        Args:
+            read_file_func: Optional function to read files from filesystem.
+                If None, reads from local filesystem (backwards compatibility).
+                Should accept file_path (str) and return file contents (str).
+        """
+        self.read_file_func = read_file_func
         self.schema_dir = Path(__file__).parent / "protos"
         self._spec_fields = None
 
     def _parse_proto_file(self, filename: str) -> str:
         """Read a proto file and return its contents."""
-        filepath = self.schema_dir / filename
-        if not filepath.exists():
-            raise FileNotFoundError(f"Proto file not found: {filepath}")
-        return filepath.read_text()
+        if self.read_file_func:
+            # Use DeepAgent filesystem
+            from ..config import FILESYSTEM_PROTO_DIR
+
+            filesystem_path = f"{FILESYSTEM_PROTO_DIR}/{filename}"
+            try:
+                return self.read_file_func(filesystem_path)
+            except Exception as e:
+                raise FileNotFoundError(
+                    f"Proto file not found in filesystem: {filesystem_path}. "
+                    f"Error: {e}"
+                ) from e
+        else:
+            # Fallback to local filesystem (for backwards compatibility)
+            filepath = self.schema_dir / filename
+            if not filepath.exists():
+                raise FileNotFoundError(f"Proto file not found: {filepath}")
+            return filepath.read_text()
 
     def _extract_field_description(self, lines: list[str], field_index: int) -> str:
         """Extract field description from comments above the field."""
@@ -247,10 +270,29 @@ class ProtoSchemaLoader:
 _loader = None
 
 
-def get_schema_loader() -> ProtoSchemaLoader:
-    """Get the global schema loader instance."""
+def get_schema_loader(read_file_func: Callable[[str], str] | None = None) -> ProtoSchemaLoader:
+    """Get the global schema loader instance.
+
+    Args:
+        read_file_func: Optional function to read files from filesystem.
+            If None and loader not yet initialized, creates loader with local filesystem.
+            If provided, creates new loader with this function.
+
+    Returns:
+        ProtoSchemaLoader instance.
+    """
     global _loader
-    if _loader is None:
-        _loader = ProtoSchemaLoader()
+    if _loader is None or read_file_func is not None:
+        _loader = ProtoSchemaLoader(read_file_func)
     return _loader
+
+
+def set_schema_loader(loader: ProtoSchemaLoader) -> None:
+    """Set the global schema loader instance.
+
+    Args:
+        loader: ProtoSchemaLoader instance to set as global.
+    """
+    global _loader
+    _loader = loader
 
