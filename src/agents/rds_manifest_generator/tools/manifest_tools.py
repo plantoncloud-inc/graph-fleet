@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import yaml
+from deepagents.middleware.filesystem import _create_file_data
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
@@ -105,10 +106,12 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     # Write back to filesystem
     content = json.dumps(requirements, indent=2)
     
-    # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
+    # Convert to FileData - matching DeepAgents' write_file pattern
+    file_data = _create_file_data(content)
+    
     return Command(
         update={
-            "files": {REQUIREMENTS_FILE: content},
+            "files": {REQUIREMENTS_FILE: file_data},
             "messages": [ToolMessage(f"✓ Metadata stored: name={name}, labels={labels}", tool_call_id=runtime.tool_call_id)],
         }
     )
@@ -291,10 +294,12 @@ def generate_rds_manifest(
         f"You can view the manifest by reading {manifest_path}"
     )
     
-    # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
+    # Convert to FileData - matching DeepAgents' write_file pattern
+    file_data = _create_file_data(yaml_str)
+    
     return Command(
         update={
-            "files": {manifest_path: yaml_str},
+            "files": {manifest_path: file_data},
             "messages": [ToolMessage(success_msg, tool_call_id=runtime.tool_call_id)],
         }
     )
