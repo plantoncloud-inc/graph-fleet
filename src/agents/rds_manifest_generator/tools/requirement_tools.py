@@ -28,7 +28,11 @@ def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
         return {}
     
     file_data = files[REQUIREMENTS_FILE]
-    content = "\n".join(file_data["content"])
+    # Handle both plain string (new format) and FileData object (old format)
+    if isinstance(file_data, str):
+        content = file_data
+    else:
+        content = "\n".join(file_data["content"])
     
     if not content.strip():
         return {}
@@ -51,21 +55,11 @@ def _write_requirements(runtime: ToolRuntime, requirements: dict[str, Any], mess
         Command to update filesystem state
     """
     content = json.dumps(requirements, indent=2)
-    now = datetime.now(UTC).isoformat()
     
-    # Check if file exists to preserve created_at timestamp
-    files = runtime.state.get("files", {})
-    existing_file = files.get(REQUIREMENTS_FILE)
-    
-    file_data = {
-        "content": content.split("\n"),
-        "created_at": existing_file["created_at"] if existing_file else now,
-        "modified_at": now,
-    }
-    
+    # Store as plain string for UI compatibility - DeepAgents converts to FileData internally
     return Command(
         update={
-            "files": {REQUIREMENTS_FILE: file_data},
+            "files": {REQUIREMENTS_FILE: content},
             "messages": [ToolMessage(message, tool_call_id=runtime.tool_call_id)],
         }
     )
