@@ -1,6 +1,9 @@
 """Deep agent creation for AWS RDS manifest generation."""
 
+from collections.abc import Sequence
+
 from deepagents import create_deep_agent
+from langchain.agents.middleware.types import AgentMiddleware
 
 from .tools.manifest_tools import (
     generate_rds_manifest,
@@ -459,8 +462,12 @@ Give me these and we'll have your manifest in under a minute!"
 Always be friendly, patient, and helpful!"""
 
 
-def create_rds_agent():
+def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
     """Create the AWS RDS manifest generator deep agent.
+
+    Args:
+        middleware: Optional sequence of additional middleware to apply to the agent.
+                   These are applied after the standard deepagent middleware.
 
     Returns:
         A compiled LangGraph agent ready for use
@@ -482,5 +489,6 @@ def create_rds_agent():
             set_manifest_metadata,
         ],
         system_prompt=SYSTEM_PROMPT,
+        middleware=middleware,
     )
 
