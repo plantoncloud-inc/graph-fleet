@@ -8,7 +8,8 @@
   "pip_config_file": "./pip.conf",
   "pip_installer": "pip",
   "dockerfile_lines": [
+    "RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*",
     "ENV HOME=/root NETRC=/root/.netrc PIP_NO_INPUT=1",
-    "RUN mkdir -p /root && chmod 700 /root && printf \"machine buf.build\\nlogin %s\\npassword %s\\n\" \"$BUF_USER\" \"$BUF_API_TOKEN\" > /root/.netrc && chmod 600 /root/.netrc"
+    "RUN mkdir -p /root && chmod 700 /root && printf \"machine github.com\\nlogin git\\npassword %s\\n\" \"$GITHUB_TOKEN\" > /root/.netrc && chmod 600 /root/.netrc"
   ]
 }

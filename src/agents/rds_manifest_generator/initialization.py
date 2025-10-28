@@ -12,15 +12,22 @@ delays as users would experience a "hang" while waiting for:
 NEW APPROACH (implemented in graph.py):
 Proto schema initialization now happens at APPLICATION STARTUP (module import time)
 when the LangGraph server loads the agent graph. The initialization:
-1. Runs once when graph.py is imported (before any user requests)
-2. Caches proto files locally in ~/.cache/graph-fleet/repos
-3. Initializes a global schema loader that reads from the cache
-4. Makes schema available immediately for all conversations
+1. Uses shared repository infrastructure from src/common/repos/
+2. Runs once when graph.py is imported (before any user requests)
+3. Caches proto files locally in ~/.cache/graph-fleet/repos (shared across all agents)
+4. Initializes a global schema loader that reads from the cache
+5. Makes schema available immediately for all conversations
 
 This module is kept for reference but should not be imported or used.
 The initialize_proto_schema tool has been removed from the agent's tools list.
 
-See graph.py for the current implementation.
+CURRENT IMPLEMENTATION:
+- Shared fetcher: src/common/repos/fetcher.py
+- Shared middleware: src/common/repos/middleware.py
+- Agent startup: src/agents/rds_manifest_generator/graph.py
+
+See graph.py for the current agent-specific implementation, and src/common/repos/
+for the shared repository infrastructure that all agents can use.
 """
 
 from datetime import UTC, datetime
@@ -30,7 +37,8 @@ from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langgraph.types import Command
 
-from .schema.fetcher import ProtoFetchError, fetch_proto_files
+# Note: These imports are kept for backward compatibility reference only
+# The actual implementation has moved to src/common/repos/
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 

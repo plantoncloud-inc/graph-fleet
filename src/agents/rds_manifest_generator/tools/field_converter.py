@@ -44,3 +44,7 @@ def proto_to_yaml_field_name(proto_field: str) -> str:
     return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
 
+
+
+
+
