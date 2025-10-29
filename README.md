@@ -1,81 +1,80 @@
 # Graph Fleet
 
-Planton Cloud Agent Fleet - A sophisticated multi-agent AWS ECS Service system built with LangGraph.
+Planton Cloud Graph Fleet - A repository of LangGraph agent implementations for the Planton Cloud AI agent marketplace.
 
 > **📍 Development Location**: This is the primary development location for graph-fleet within the planton-cloud monorepo. Changes made here are automatically synced to the [standalone graph-fleet repository](https://github.com/plantoncloud-inc/graph-fleet) for LangGraph Cloud deployment.
 
 ## Overview
 
-Graph Fleet provides a conversational AWS ECS Service Agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
+Graph Fleet is the home for all LangGraph-based AI agents in the Planton Cloud ecosystem. These agents power Planton Cloud's AI agent marketplace, where users can discover and interact with specialized agents for cloud resource management and operations.
 
-## AWS ECS Service Agent
+Each agent in Graph Fleet is built using the [LangGraph](https://langchain-ai.github.io/langgraph/) framework and the [Deep Agents](https://github.com/langchain-ai/deepagents) pattern, providing sophisticated multi-step reasoning, planning, and tool usage capabilities.
 
-The AWS ECS Service Agent is a conversational AI agent that specializes in AWS ECS troubleshooting and repair operations. It features:
+## Current Agents
 
-- **🗣️ Natural Language Interface**: Interact using plain English instead of technical commands
-- **🔍 Intelligent Diagnosis**: Automated triage and root cause analysis
-- **🛠️ Safe Repair Operations**: Human-approved write operations with comprehensive safety checks
-- **🔗 Planton Cloud Integration**: Seamless context establishment and credential management
-- **📊 Comprehensive Reporting**: Detailed audit trails and conversational context
+### RDS Manifest Generator
 
-### Quick Start
+An AI agent that helps users create valid AWS RDS Instance YAML manifests through natural language conversation.
 
+**Features:**
+- 🗣️ Natural language interface - describe your database needs in plain English
+- 🔍 Schema-aware - understands Planton Cloud proto definitions
+- 🎯 Interactive clarification - asks intelligent follow-up questions
+- ✅ Validation - ensures manifests meet all requirements
+- 📝 YAML generation - produces properly formatted manifests
+
+**Quick Start:**
 ```bash
-# Install dependencies
-make venvs
-
-# Start LangGraph Studio
-make run
-
-# Open http://localhost:8123 and interact with the AWS ECS Service Agent
-# Example: "My API service is slow and users are complaining about timeouts"
+cd backend/services/graph-fleet
+poetry install
+poetry run langgraph dev
+# Open http://localhost:8123 and select 'rds_manifest_generator'
 ```
 
-📚 **[Complete Documentation →](src/agents/aws_ecs_service/README.md)**
+📚 **[Complete Documentation →](src/agents/rds_manifest_generator/docs/README.md)**
 
-## Development in Monorepo
+## Adding New Agents
 
-Graph-fleet is developed in the planton-cloud monorepo at `backend/services/graph-fleet/` to leverage local protobuf dependencies from `apis/stubs/python/`. This allows seamless integration with Planton Cloud APIs without depending on external package registries.
+Graph Fleet welcomes new agent implementations. Each agent should:
+- Be built with LangGraph and follow the Deep Agents pattern
+- Have its own directory under `src/agents/`
+- Include comprehensive documentation
+- Be registered in `langgraph.json`
+- Provide clear user-facing descriptions and examples
 
-### Local Development Workflow
+## Development
+
+Graph Fleet is developed in the planton-cloud monorepo to leverage local protobuf dependencies. For detailed monorepo setup and sync workflow, see [MONOREPO-SETUP.md](MONOREPO-SETUP.md).
+
+### Local Development
 
 ```bash
-# Navigate to graph-fleet directory
+# Navigate to graph-fleet
 cd backend/services/graph-fleet
 
-# Install dependencies (Poetry will use local path dependencies)
+# Install dependencies
 poetry install
 
-# Start LangGraph Studio for local development
+# Start LangGraph Studio
 poetry run langgraph dev
 
 # Open http://localhost:8123
 ```
 
-### Deployment Workflow
+### Adding a New Agent
 
-Changes pushed to the planton-cloud monorepo's `main` branch automatically trigger a Tekton pipeline that:
-
-1. Syncs `backend/services/graph-fleet/` to the standalone graph-fleet repository
-2. Copies `apis/stubs/python/` to provide proto dependencies
-3. Transforms `pyproject.toml` paths to match the standalone repository structure
-4. Commits and pushes to the standalone repository
-
-The pipeline is defined in `.planton/pipeline.yaml` and managed by ServiceHub. LangGraph Cloud deploys from the standalone repository, which contains only the graph-fleet code and its proto dependencies.
-
-### Proto Dependencies
-
-The monorepo uses local path dependencies in `pyproject.toml`:
-
-```toml
-[tool.poetry.dependencies]
-planton-cloud-stubs = { path = "../../../apis/stubs/python/planton_cloud", develop = true }
-project-planton-stubs = { path = "../../../apis/stubs/python/project_planton", develop = true }
-```
-
-These paths are automatically transformed during sync to `apis/stubs/python/planton_cloud` and `apis/stubs/python/project_planton` for the standalone repository.
-
-## Development
+1. Create agent directory: `src/agents/your_agent_name/`
+2. Implement agent using LangGraph and Deep Agents patterns
+3. Add documentation: `src/agents/your_agent_name/docs/README.md`
+4. Register in `langgraph.json`:
+   ```json
+   {
+     "graphs": {
+       "your_agent_name": "src.agents.your_agent_name.graph:graph"
+     }
+   }
+   ```
+5. Test locally with LangGraph Studio
 
 ### Project Structure
 
@@ -83,12 +82,13 @@ These paths are automatically transformed during sync to `apis/stubs/python/plan
 graph-fleet/
 ├── src/
 │   ├── agents/
-│   │   └── aws_ecs_service/    # AWS ECS Service Agent implementation
+│   │   ├── rds_manifest_generator/    # RDS manifest generation agent
+│   │   └── [future agents]/           # Additional agents go here
 │   └── mcp/
-│       └── planton_cloud/      # Planton Cloud MCP server
-├── langgraph.json              # LangGraph configuration
-├── pyproject.toml              # Dependencies and project config
-└── Makefile                    # Development commands
+│       └── planton_cloud/             # Planton Cloud MCP server
+├── langgraph.json                     # LangGraph configuration
+├── pyproject.toml                     # Dependencies (Poetry)
+└── Makefile                           # Development commands
 ```
 
 ### Available Commands
@@ -98,7 +98,7 @@ graph-fleet/
 ```bash
 make help          # Show all available commands
 make venvs         # Create virtual environment and install dependencies
-make run           # Start LangGraph Studio for AWS ECS Service Agent
+make run           # Start LangGraph Studio
 make build         # Run lints and type checks
 make clean         # Clean up cache files
 ```
@@ -117,19 +117,17 @@ bazel test //...                               # Run tests (if any)
 
 ### Environment Variables
 
+Required for most agents:
+
 ```bash
-# LLM API Keys (required)
+# LLM API Keys (at least one required)
 export OPENAI_API_KEY="your-key"
-export ANTHROPIC_API_KEY="your-key"  # Optional
+export ANTHROPIC_API_KEY="your-key"
 
-# AWS Configuration (required)
-export AWS_REGION="us-east-1"
-export AWS_PROFILE="default"
+# GitHub Access (for proto schema fetching)
+export GITHUB_TOKEN="your-github-token"
 
-# GitHub Access (required for private repositories)
-export GITHUB_TOKEN="your-github-token"  # Personal access token with repo scope
-
-# Planton Cloud (optional)
+# Planton Cloud (optional, for platform integration)
 export PLANTON_TOKEN="your-token"
 export PLANTON_ORG_ID="your-org-id"
 export PLANTON_ENV_NAME="your-env-name"
@@ -138,13 +136,15 @@ export PLANTON_ENV_NAME="your-env-name"
 export DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 ```
 
+Agent-specific environment variables may be required - see individual agent documentation.
+
 ## Architecture
 
 ### MCP (Model Context Protocol) Integration
 
 The Graph Fleet uses MCP servers to provide tools to agents:
 
-- **AWS Tools**: Uses the `awslabs.aws-api-mcp-server` for AWS ECS operations
+- **AWS Tools**: Uses the `awslabs.aws-api-mcp-server` for AWS operations
 - **Planton Cloud Tools**: Uses the local `planton-cloud-mcp-server` for context establishment
 
 Both follow the same pattern:
@@ -217,30 +217,6 @@ bazel build //...
 **Limitations:** Bazel builds exclude Buf.build protobuf packages due to unstable version hashes. Use Poetry for running the agent locally.
 
 📚 **[Full Bazel Documentation →](docs/bazel-setup.md)**
-
-## Deployment Options
-
-### Option 1: LangGraph Cloud (Current)
-
-Deploy directly from GitHub repository - zero infrastructure management.
-
-**Deployment:**
-- Push code to GitHub
-- Deploy via LangGraph Cloud dashboard
-- Specify repository and branch
-
-**Monorepo Support:** Yes! Can deploy from a monorepo subdirectory.
-
-### Option 2: Self-Hosted (Future)
-
-Deploy to your own Kubernetes cluster like other Planton Cloud services.
-
-**Deployment:**
-- Build Docker image with Bazel
-- Deploy to Kubernetes using Kustomize
-- Full infrastructure control
-
-📚 **[Deployment Details in Plan](../.cursor/plans/bazel-integration-graph-d9c848b3.plan.md)**
 
 ## License
 
