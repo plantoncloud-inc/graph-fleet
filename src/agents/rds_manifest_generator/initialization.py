@@ -30,7 +30,9 @@ See graph.py for the current agent-specific implementation, and src/common/repos
 for the shared repository infrastructure that all agents can use.
 """
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
@@ -42,7 +44,18 @@ from langgraph.types import Command
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 
-def create_filesystem_reader(runtime: ToolRuntime) -> callable:
+# Stub definitions for deprecated code - not actually used
+class ProtoFetchError(Exception):
+    """Error fetching proto files from repository."""
+    pass
+
+
+def fetch_proto_files() -> list[Path]:
+    """Stub function - deprecated, not actually used."""
+    raise NotImplementedError("This function is deprecated. Use src/common/repos/fetcher.py instead.")
+
+
+def create_filesystem_reader(runtime: ToolRuntime) -> Callable[[str], str]:
     """Create a function to read files from DeepAgent filesystem.
 
     Args:
