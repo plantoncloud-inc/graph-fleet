@@ -1,0 +1,37 @@
+"""
+BUILD file for RDS Manifest Generator Agent
+
+This agent helps users create valid AWS RDS Instance YAML manifests through
+conversational interaction using LangGraph and the DeepAgents framework.
+"""
+
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "rds_manifest_generator",
+    srcs = glob(
+        ["**/*.py"],
+        exclude = ["docs/**"],
+    ),
+    imports = ["../../.."],  # Allow imports like "from src.agents.rds_manifest_generator import ..."
+    visibility = ["//visibility:public"],
+    deps = [
+        "//src:common",
+        # LangChain and LangGraph dependencies
+        "@graph_fleet_poetry//:langchain",
+        "@graph_fleet_poetry//:langchain-core",
+        "@graph_fleet_poetry//:langgraph",
+        "@graph_fleet_poetry//:langchain-anthropic",
+        "@graph_fleet_poetry//:langchain-openai",
+        # DeepAgents framework
+        "@graph_fleet_poetry//:deepagents",
+        # Utility dependencies
+        "@graph_fleet_poetry//:pyyaml",
+        "@graph_fleet_poetry//:pydantic",
+        # NOTE: Planton Cloud API stubs from Buf.build are NOT included in Bazel deps
+        # because they have unstable version hashes. For Bazel builds, these must be
+        # installed separately via Poetry. This is a known limitation for now.
+        # Use Poetry for full dependency resolution including Buf.build packages.
+    ],
+)
+

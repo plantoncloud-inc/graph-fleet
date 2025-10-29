@@ -49,6 +49,8 @@ graph-fleet/
 
 ### Available Commands
 
+#### Poetry (Recommended for Local Development)
+
 ```bash
 make help          # Show all available commands
 make venvs         # Create virtual environment and install dependencies
@@ -56,6 +58,16 @@ make run           # Start LangGraph Studio for AWS ECS Service Agent
 make build         # Run lints and type checks
 make clean         # Clean up cache files
 ```
+
+#### Bazel (For Integration and CI)
+
+```bash
+bazel build //...                              # Build all targets
+bazel build //src/agents/rds_manifest_generator  # Build specific target
+bazel test //...                               # Run tests (if any)
+```
+
+**Note:** Bazel builds are faster for incremental changes but cannot run the agent locally (missing Buf.build protobuf stubs). Use Poetry for running the agent. See [`docs/bazel-setup.md`](docs/bazel-setup.md) for details.
 
 ## Configuration
 
@@ -129,6 +141,62 @@ Failed to create Contextualizer Agent: object CompiledStateGraph can't be used i
 This indicates incorrect usage of the `async_create_deep_agent` function from the deepagents library.
 
 **Solution Applied**: The `async_create_deep_agent` function is not actually async despite its name - it returns a `CompiledStateGraph` directly, not a coroutine. We've removed the `await` keyword from all calls to this function in both the Contextualizer and Operations agents.
+
+## Build Systems
+
+Graph Fleet supports two build systems:
+
+### Poetry (Primary)
+
+**Use for:**
+- LangGraph Cloud deployments (required)
+- Local agent development and testing
+- Managing dependencies
+
+```bash
+poetry install
+poetry run langgraph dev
+```
+
+### Bazel (Secondary)
+
+**Use for:**
+- CI/CD pipelines
+- Integration with planton-cloud monorepo
+- Fast incremental builds
+- Code sharing with other Bazel projects
+
+```bash
+bazel build //...
+```
+
+**Limitations:** Bazel builds exclude Buf.build protobuf packages due to unstable version hashes. Use Poetry for running the agent locally.
+
+📚 **[Full Bazel Documentation →](docs/bazel-setup.md)**
+
+## Deployment Options
+
+### Option 1: LangGraph Cloud (Current)
+
+Deploy directly from GitHub repository - zero infrastructure management.
+
+**Deployment:**
+- Push code to GitHub
+- Deploy via LangGraph Cloud dashboard
+- Specify repository and branch
+
+**Monorepo Support:** Yes! Can deploy from a monorepo subdirectory.
+
+### Option 2: Self-Hosted (Future)
+
+Deploy to your own Kubernetes cluster like other Planton Cloud services.
+
+**Deployment:**
+- Build Docker image with Bazel
+- Deploy to Kubernetes using Kustomize
+- Full infrastructure control
+
+📚 **[Deployment Details in Plan](../.cursor/plans/bazel-integration-graph-d9c848b3.plan.md)**
 
 ## License
 

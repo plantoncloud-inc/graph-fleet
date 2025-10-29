@@ -80,6 +80,7 @@ cython_debug/
 
 # Cursor workspace files (auto-generated PR descriptions, etc.)
 .cursor/workspace/
+_cursor
 
 # Graph Fleet specific
 # Proto file cache directory
@@ -87,3 +88,8 @@ cython_debug/
 
 # Local proto files (fetched from Git at runtime)
 src/agents/rds_manifest_generator/schema/protos/
+
+# Bazel build outputs
+bazel-*
+.bazel-cache/
+
