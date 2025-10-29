@@ -5,37 +5,28 @@ description = "Resolve cloud resource identities (IDs, ARNs, names) from natural
 authors = [{ name = "Planton Cloud" }]
 license = { text = "MIT" }
 requires-python = ">=3.11,<4.0"
-
-[tool.poetry.dependencies]
-langgraph = "^1.0.0"
-langgraph-cli = { version = "0.4.0", extras = ["inmem"] }
-langchain = "^1.0.0"
-langchain-openai = "^1.0.0"
-langchain-anthropic = "^1.0.0"
-python-dotenv = "1.0.1"
-pyyaml = "6.0.2"
-langchain-mcp-adapters = "^0.1.9"  # LangChain MCP integration for tools
-mcp = "^1.0.0"  # Model Context Protocol library
-# ECS Deep Agent dependencies
-aiofiles = "^24.0.0"  # Async file operations
-pydantic = "^2.0.0"  # Data validation and settings management
-psycopg = { version = "^3.0.0", extras = ["binary", "pool"] }  # PostgreSQL adapter
-langgraph-checkpoint-postgres = "^2.0.0"  # LangGraph PostgreSQL checkpointer
-# Packages from requirements_buf.txt with custom source
-# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/python?version=v32.0
-blintora-apis-protocolbuffers-python = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
-# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:protocolbuffers/pyi?version=v32.0
-blintora-apis-protocolbuffers-pyi = { version = "==32.0.0.1.dev+6f15602dc75b", source = "buf-build" }
-# https://buf.build/blintora/apis/sdks/v0.2.313-2-beta:grpc/python?version=v1.74.1
-blintora-apis-grpc-python = { version = "==1.74.1.1.dev+6f15602dc75b", source = "buf-build" }
-grpcio = "^1.60.0"
-# protobuf version is already constrained by blintora-apis packages
-awslabs-aws-api-mcp-server = "^0.2.11"
-awslabs-ecs-mcp-server = "^0.1.2"
-deepagents = "0.1.4"
-
-[tool.poetry.extras]
-mcp = ["langchain-mcp-adapters"]
+dependencies = [
+    "langgraph>=1.0.0,<2.0.0",
+    "langgraph-cli[inmem]==0.4.0",
+    "langchain>=1.0.0,<2.0.0",
+    "langchain-openai>=1.0.0,<2.0.0",
+    "langchain-anthropic>=1.0.0,<2.0.0",
+    "python-dotenv==1.0.1",
+    "pyyaml==6.0.2",
+    "langchain-mcp-adapters>=0.1.9,<0.2.0",
+    "mcp>=1.0.0,<2.0.0",
+    "aiofiles>=24.0.0,<25.0.0",
+    "pydantic>=2.0.0,<3.0.0",
+    "psycopg[binary,pool]>=3.0.0,<4.0.0",
+    "langgraph-checkpoint-postgres>=2.0.0,<3.0.0",
+    "grpcio>=1.60.0,<2.0.0",
+    "awslabs-aws-api-mcp-server>=0.2.11,<0.3.0",
+    "awslabs-ecs-mcp-server>=0.1.2,<0.2.0",
+    "deepagents==0.1.4",
+    "blintora-apis-protocolbuffers-python==32.0.0.1.dev+6f15602dc75b",
+    "blintora-apis-protocolbuffers-pyi==32.0.0.1.dev+6f15602dc75b",
+    "blintora-apis-grpc-python==1.74.1.1.dev+6f15602dc75b",
+]
 
 [tool.poetry.scripts]
 
