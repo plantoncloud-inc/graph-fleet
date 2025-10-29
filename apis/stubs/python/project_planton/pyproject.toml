@@ -9,7 +9,7 @@ packages = [
 include = ["**/*.pyi"]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.11"
 protobuf = "6.32.0"
 grpcio = "1.74.0"
 typing-extensions = "4.14.1"
