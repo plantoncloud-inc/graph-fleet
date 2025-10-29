@@ -2,6 +2,8 @@
 
 Planton Cloud Agent Fleet - A sophisticated multi-agent AWS ECS Service system built with LangGraph.
 
+> **📍 Development Location**: This is the primary development location for graph-fleet within the planton-cloud monorepo. Changes made here are automatically synced to the [standalone graph-fleet repository](https://github.com/plantoncloud-inc/graph-fleet) for LangGraph Cloud deployment.
+
 ## Overview
 
 Graph Fleet provides a conversational AWS ECS Service Agent for diagnosing and repairing AWS ECS services using natural language interactions and the LangGraph Deep Agents framework.
@@ -30,6 +32,48 @@ make run
 ```
 
 📚 **[Complete Documentation →](src/agents/aws_ecs_service/README.md)**
+
+## Development in Monorepo
+
+Graph-fleet is developed in the planton-cloud monorepo at `backend/services/graph-fleet/` to leverage local protobuf dependencies from `apis/stubs/python/`. This allows seamless integration with Planton Cloud APIs without depending on external package registries.
+
+### Local Development Workflow
+
+```bash
+# Navigate to graph-fleet directory
+cd backend/services/graph-fleet
+
+# Install dependencies (Poetry will use local path dependencies)
+poetry install
+
+# Start LangGraph Studio for local development
+poetry run langgraph dev
+
+# Open http://localhost:8123
+```
+
+### Deployment Workflow
+
+Changes pushed to the planton-cloud monorepo's `main` branch automatically trigger a Tekton pipeline that:
+
+1. Syncs `backend/services/graph-fleet/` to the standalone graph-fleet repository
+2. Copies `apis/stubs/python/` to provide proto dependencies
+3. Transforms `pyproject.toml` paths to match the standalone repository structure
+4. Commits and pushes to the standalone repository
+
+The pipeline is defined in `.planton/pipeline.yaml` and managed by ServiceHub. LangGraph Cloud deploys from the standalone repository, which contains only the graph-fleet code and its proto dependencies.
+
+### Proto Dependencies
+
+The monorepo uses local path dependencies in `pyproject.toml`:
+
+```toml
+[tool.poetry.dependencies]
+planton-cloud-stubs = { path = "../../../apis/stubs/python/planton_cloud", develop = true }
+project-planton-stubs = { path = "../../../apis/stubs/python/project_planton", develop = true }
+```
+
+These paths are automatically transformed during sync to `apis/stubs/python/planton_cloud` and `apis/stubs/python/project_planton` for the standalone repository.
 
 ## Development
 

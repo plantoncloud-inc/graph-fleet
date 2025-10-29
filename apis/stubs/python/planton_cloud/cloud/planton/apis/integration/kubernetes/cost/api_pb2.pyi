@@ -1,0 +1,101 @@
+from cloud.planton.apis.commons.apiresource import status_pb2 as _status_pb2
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from collections.abc import Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+
+DESCRIPTOR: _descriptor.FileDescriptor
+
+class CostAllocation(_message.Message):
+    __slots__ = ("audit", "org", "kube_cluster_id", "env", "resource_kind", "resource_id", "name", "start_ts", "end_ts", "minutes", "cpu_cores", "cpu_core_request_average", "cpu_core_usage_average", "cpu_core_hours", "cpu_cost", "cpu_cost_adjustment", "cpu_efficiency", "gpu_count", "gpu_hours", "gpu_cost", "gpu_cost_adjustment", "network_transfer_bytes", "network_receive_bytes", "network_cost", "network_cross_zone_cost", "network_cross_region_cost", "network_internet_cost", "network_cost_adjustment", "load_balancer_cost", "load_balancer_cost_adjustment", "pv_bytes", "pv_byte_hours", "pv_cost", "pv_cost_adjustment", "ram_bytes", "ram_byte_request_average", "ram_byte_usage_average", "ram_byte_hours", "ram_cost", "ram_cost_adjustment", "ram_efficiency", "external_cost", "shared_cost", "total_cost", "total_efficiency")
+    AUDIT_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    KUBE_CLUSTER_ID_FIELD_NUMBER: _ClassVar[int]
+    ENV_FIELD_NUMBER: _ClassVar[int]
+    RESOURCE_KIND_FIELD_NUMBER: _ClassVar[int]
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    START_TS_FIELD_NUMBER: _ClassVar[int]
+    END_TS_FIELD_NUMBER: _ClassVar[int]
+    MINUTES_FIELD_NUMBER: _ClassVar[int]
+    CPU_CORES_FIELD_NUMBER: _ClassVar[int]
+    CPU_CORE_REQUEST_AVERAGE_FIELD_NUMBER: _ClassVar[int]
+    CPU_CORE_USAGE_AVERAGE_FIELD_NUMBER: _ClassVar[int]
+    CPU_CORE_HOURS_FIELD_NUMBER: _ClassVar[int]
+    CPU_COST_FIELD_NUMBER: _ClassVar[int]
+    CPU_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    CPU_EFFICIENCY_FIELD_NUMBER: _ClassVar[int]
+    GPU_COUNT_FIELD_NUMBER: _ClassVar[int]
+    GPU_HOURS_FIELD_NUMBER: _ClassVar[int]
+    GPU_COST_FIELD_NUMBER: _ClassVar[int]
+    GPU_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_TRANSFER_BYTES_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_RECEIVE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_COST_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_CROSS_ZONE_COST_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_CROSS_REGION_COST_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_INTERNET_COST_FIELD_NUMBER: _ClassVar[int]
+    NETWORK_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    LOAD_BALANCER_COST_FIELD_NUMBER: _ClassVar[int]
+    LOAD_BALANCER_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    PV_BYTES_FIELD_NUMBER: _ClassVar[int]
+    PV_BYTE_HOURS_FIELD_NUMBER: _ClassVar[int]
+    PV_COST_FIELD_NUMBER: _ClassVar[int]
+    PV_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    RAM_BYTES_FIELD_NUMBER: _ClassVar[int]
+    RAM_BYTE_REQUEST_AVERAGE_FIELD_NUMBER: _ClassVar[int]
+    RAM_BYTE_USAGE_AVERAGE_FIELD_NUMBER: _ClassVar[int]
+    RAM_BYTE_HOURS_FIELD_NUMBER: _ClassVar[int]
+    RAM_COST_FIELD_NUMBER: _ClassVar[int]
+    RAM_COST_ADJUSTMENT_FIELD_NUMBER: _ClassVar[int]
+    RAM_EFFICIENCY_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_COST_FIELD_NUMBER: _ClassVar[int]
+    SHARED_COST_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_COST_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_EFFICIENCY_FIELD_NUMBER: _ClassVar[int]
+    audit: _status_pb2.ApiResourceAuditInfo
+    org: str
+    kube_cluster_id: str
+    env: str
+    resource_kind: str
+    resource_id: str
+    name: str
+    start_ts: str
+    end_ts: str
+    minutes: float
+    cpu_cores: float
+    cpu_core_request_average: float
+    cpu_core_usage_average: float
+    cpu_core_hours: float
+    cpu_cost: float
+    cpu_cost_adjustment: float
+    cpu_efficiency: float
+    gpu_count: float
+    gpu_hours: float
+    gpu_cost: float
+    gpu_cost_adjustment: float
+    network_transfer_bytes: float
+    network_receive_bytes: float
+    network_cost: float
+    network_cross_zone_cost: float
+    network_cross_region_cost: float
+    network_internet_cost: float
+    network_cost_adjustment: float
+    load_balancer_cost: float
+    load_balancer_cost_adjustment: float
+    pv_bytes: float
+    pv_byte_hours: float
+    pv_cost: float
+    pv_cost_adjustment: float
+    ram_bytes: float
+    ram_byte_request_average: float
+    ram_byte_usage_average: float
+    ram_byte_hours: float
+    ram_cost: float
+    ram_cost_adjustment: float
+    ram_efficiency: float
+    external_cost: float
+    shared_cost: float
+    total_cost: float
+    total_efficiency: float
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAuditInfo, _Mapping]] = ..., org: _Optional[str] = ..., kube_cluster_id: _Optional[str] = ..., env: _Optional[str] = ..., resource_kind: _Optional[str] = ..., resource_id: _Optional[str] = ..., name: _Optional[str] = ..., start_ts: _Optional[str] = ..., end_ts: _Optional[str] = ..., minutes: _Optional[float] = ..., cpu_cores: _Optional[float] = ..., cpu_core_request_average: _Optional[float] = ..., cpu_core_usage_average: _Optional[float] = ..., cpu_core_hours: _Optional[float] = ..., cpu_cost: _Optional[float] = ..., cpu_cost_adjustment: _Optional[float] = ..., cpu_efficiency: _Optional[float] = ..., gpu_count: _Optional[float] = ..., gpu_hours: _Optional[float] = ..., gpu_cost: _Optional[float] = ..., gpu_cost_adjustment: _Optional[float] = ..., network_transfer_bytes: _Optional[float] = ..., network_receive_bytes: _Optional[float] = ..., network_cost: _Optional[float] = ..., network_cross_zone_cost: _Optional[float] = ..., network_cross_region_cost: _Optional[float] = ..., network_internet_cost: _Optional[float] = ..., network_cost_adjustment: _Optional[float] = ..., load_balancer_cost: _Optional[float] = ..., load_balancer_cost_adjustment: _Optional[float] = ..., pv_bytes: _Optional[float] = ..., pv_byte_hours: _Optional[float] = ..., pv_cost: _Optional[float] = ..., pv_cost_adjustment: _Optional[float] = ..., ram_bytes: _Optional[float] = ..., ram_byte_request_average: _Optional[float] = ..., ram_byte_usage_average: _Optional[float] = ..., ram_byte_hours: _Optional[float] = ..., ram_cost: _Optional[float] = ..., ram_cost_adjustment: _Optional[float] = ..., ram_efficiency: _Optional[float] = ..., external_cost: _Optional[float] = ..., shared_cost: _Optional[float] = ..., total_cost: _Optional[float] = ..., total_efficiency: _Optional[float] = ...) -> None: ...
