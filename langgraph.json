@@ -4,16 +4,5 @@
     "rds_manifest_generator": "src.agents.rds_manifest_generator.graph:graph"
   },
   "env": ".env",
-  "python_version": "3.11",
-  "pip_config_file": "./pip.conf",
-  "pip_installer": "pip",
-  "dockerfile_lines": [
-    "RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*",
-    "ENV HOME=/root",
-    "ENV NETRC=/root/.netrc",
-    "ENV PIP_NO_INPUT=1",
-    "RUN mkdir -p /root && chmod 700 /root",
-    "RUN --mount=type=secret,id=BUF_USER --mount=type=secret,id=BUF_API_TOKEN printf \"machine buf.build\\nlogin %s\\npassword %s\\n\" \"$(cat /run/secrets/BUF_USER)\" \"$(cat /run/secrets/BUF_API_TOKEN)\" > /root/.netrc",
-    "RUN chmod 600 /root/.netrc"
-  ]
+  "python_version": "3.11"
 }
