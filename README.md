@@ -70,6 +70,9 @@ export ANTHROPIC_API_KEY="your-key"  # Optional
 export AWS_REGION="us-east-1"
 export AWS_PROFILE="default"
 
+# GitHub Access (required for private repositories)
+export GITHUB_TOKEN="your-github-token"  # Personal access token with repo scope
+
 # Planton Cloud (optional)
 export PLANTON_TOKEN="your-token"
 export PLANTON_ORG_ID="your-org-id"
