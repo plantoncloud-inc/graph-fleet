@@ -4,6 +4,8 @@
 
 Graph-fleet is fully integrated into the planton-cloud monorepo at `backend/services/graph-fleet/` with automatic sync configured to the standalone repository for LangGraph Cloud deployment.
 
+**Dependencies:** All proto dependencies are local path references within the monorepo - no external package registries or authentication required.
+
 **Bazel Integration:** Graph-fleet uses minimal Bazel integration aligned with other Python services (copilot-agent, agent-fleet-worker). All Bazel configuration is managed at the monorepo root level.
 
 ## What Was Completed
@@ -17,13 +19,14 @@ Graph-fleet is fully integrated into the planton-cloud monorepo at `backend/serv
 - Aligned with copilot-agent and agent-fleet-worker patterns
 
 ### 2. ✅ Proto Dependencies
-- Changed from buf.build registry to local path dependencies:
+- Uses local path dependencies within the monorepo:
   ```toml
   planton-cloud-stubs = { path = "../../../apis/stubs/python/planton_cloud", develop = true, python = ">=3.11" }
   project-planton-stubs = { path = "../../../apis/stubs/python/project_planton", develop = true, python = ">=3.11" }
   ```
 - Updated stub `pyproject.toml` files to support Python 3.11+ (was 3.13+ only)
 - Stubs install successfully via Poetry
+- No external registries or authentication required
 
 ### 3. ✅ Tekton Pipeline Sync Workflow
 - Created `.planton/pipeline.yaml` (Tekton pipeline definition)
@@ -57,6 +60,8 @@ You need to configure ServiceHub to recognize and trigger the graph-fleet pipeli
 4. Set up path-based triggering for:
    - `backend/services/graph-fleet/**`
    - `apis/stubs/python/**`
+
+**Note:** No Buf.build or external registry credentials needed - all dependencies are local.
 
 ### 2. ⏳ Test the Tekton Pipeline
 After configuring ServiceHub:
@@ -156,14 +161,14 @@ If `poetry lock` fails with Python version conflicts:
 - Ensure ServiceHub is configured to trigger on correct paths
 
 ### Proto Imports Fail
-- Note: Graph-fleet doesn't currently use proto imports directly
-- Stubs are installed and ready for future use
-- If needed, proto imports will be from `cloud.planton.apis.*`
+- Verify local stub paths are correct in `pyproject.toml`
+- Ensure `poetry install` has been run successfully
+- Check that stub packages are properly installed: `poetry show planton-cloud-stubs project-planton-stubs`
 
 ## Next Steps
 
 1. Complete manual steps above (ServiceHub configuration and testing)
 2. Consider adding branch protection on standalone repo
 3. Monitor first few pipeline runs to ensure smooth operation
-4. Update graph-fleet code to use proto stubs when needed
+4. Update graph-fleet code to use proto stubs as needed (all dependencies are local)
 

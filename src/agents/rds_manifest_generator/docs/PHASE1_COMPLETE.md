@@ -33,7 +33,7 @@ Capabilities:
 - Parses AWS RDS proto files (`spec.proto`, `api.proto`, `stack_outputs.proto`)
 - Extracts 16 total fields (4 required, 12 optional)
 - Identifies field types, validation rules, and descriptions
-- Parses buf.validate annotations (min_len, pattern, gt, lte, etc.)
+- Parses validation annotations from local proto files (min_len, pattern, gt, lte, etc.)
 - Extracts foreign key relationships
 - Handles repeated fields
 
@@ -212,8 +212,8 @@ Let's start with instance sizing...
 
 ### 1. Proto File Copying
 **Decision**: Copy proto files locally rather than dynamic loading  
-**Rationale**: Simpler for MVP, faster parsing, no external dependencies  
-**Future**: Can enhance to pull from buf.build or project-planton directly
+**Rationale**: Simpler for MVP, faster parsing, works with local monorepo structure  
+**Future**: Can enhance to dynamically load from monorepo proto directories
 
 ### 2. Regex-Based Proto Parsing
 **Decision**: Use regex to parse proto files instead of protoc compiler  
