@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from deepagents.middleware.filesystem import _create_file_data
+from deepagents.backends.utils import create_file_data
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
@@ -58,7 +58,7 @@ def _write_requirements(runtime: ToolRuntime, requirements: dict[str, Any], mess
     content = json.dumps(requirements, indent=2)
     
     # Convert to FileData - matching DeepAgents' write_file pattern
-    file_data = _create_file_data(content)
+    file_data = create_file_data(content)
     
     return Command(
         update={

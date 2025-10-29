@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any
 
-from deepagents.middleware.filesystem import _create_file_data
+from deepagents.backends.utils import create_file_data
 from langchain.agents.middleware import AgentMiddleware, AgentState
 from langgraph.runtime import Runtime
 
@@ -83,7 +83,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
             logger.info(f"  {filename} -> {vfs_path}")
             
             # Store as FileData for read_file tool compatibility
-            files_to_add[vfs_path] = _create_file_data(content)
+            files_to_add[vfs_path] = create_file_data(content)
         
         elapsed = time.time() - start_time
         logger.info("=" * 60)
