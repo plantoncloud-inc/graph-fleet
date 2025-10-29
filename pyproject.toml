@@ -1,65 +1,41 @@
-[project]
+[tool.poetry]
 name = "graph-fleet"
 version = "0.0.1"
 description = "Resolve cloud resource identities (IDs, ARNs, names) from natural language."
-authors = [{ name = "Planton Cloud" }]
-license = { text = "MIT" }
-requires-python = ">=3.11,<4.0"
-dependencies = [
-    "langgraph>=1.0.0,<2.0.0",
-    "langgraph-cli[inmem]==0.4.0",
-    "langchain>=1.0.0,<2.0.0",
-    "langchain-openai>=1.0.0,<2.0.0",
-    "langchain-anthropic>=1.0.0,<2.0.0",
-    "python-dotenv==1.0.1",
-    "pyyaml==6.0.2",
-    "langchain-mcp-adapters>=0.1.9,<0.2.0",
-    "mcp>=1.0.0,<2.0.0",
-    "aiofiles>=24.0.0,<25.0.0",
-    "pydantic>=2.0.0,<3.0.0",
-    "psycopg[binary,pool]>=3.0.0,<4.0.0",
-    "langgraph-checkpoint-postgres>=2.0.0,<3.0.0",
-    "grpcio>=1.60.0,<2.0.0",
-    "awslabs-aws-api-mcp-server>=0.2.11,<0.3.0",
-    "awslabs-ecs-mcp-server>=0.1.2,<0.2.0",
-    "deepagents==0.2.0",
-    "blintora-apis-protocolbuffers-python==32.0.0.1.dev+6f15602dc75b",
-    "blintora-apis-protocolbuffers-pyi==32.0.0.1.dev+6f15602dc75b",
-    "blintora-apis-grpc-python==1.74.1.1.dev+6f15602dc75b",
-]
+authors = ["Planton Cloud <engineering@planton.cloud>"]
+license = "MIT"
+package-mode = false
 
-[tool.poetry.scripts]
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+langgraph = ">=1.0.0,<2.0.0"
+langgraph-cli = {extras = ["inmem"], version = "0.4.0"}
+langchain = ">=1.0.0,<2.0.0"
+langchain-openai = ">=1.0.0,<2.0.0"
+langchain-anthropic = ">=1.0.0,<2.0.0"
+python-dotenv = "1.0.1"
+pyyaml = "6.0.2"
+langchain-mcp-adapters = ">=0.1.9,<0.2.0"
+mcp = ">=1.0.0,<2.0.0"
+aiofiles = ">=24.0.0,<25.0.0"
+pydantic = ">=2.0.0,<3.0.0"
+psycopg = {extras = ["binary", "pool"], version = ">=3.0.0,<4.0.0"}
+langgraph-checkpoint-postgres = ">=2.0.0,<3.0.0"
+grpcio = ">=1.60.0,<2.0.0"
+awslabs-aws-api-mcp-server = ">=0.2.11,<0.3.0"
+awslabs-ecs-mcp-server = ">=0.1.2,<0.2.0"
+deepagents = "0.2.0"
+planton-cloud-stubs = { path = "apis/stubs/python/planton_cloud", develop = true, python = ">=3.11" }
+project-planton-stubs = { path = "apis/stubs/python/project_planton", develop = true, python = ">=3.11" }
 
-[build-system]
-requires = ["setuptools>=73.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.poetry]
-packages = [
-  { include = "agents", from = "src" }
-]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["agents*"]
-
-[tool.setuptools.package-dir]
-"" = "src"
-
-
-[[tool.poetry.source]]
-name = "buf-build"
-url = "https://buf.build/gen/python"
-priority = "supplemental"
-
-# Poetry dev group: these will NOT be installed in your LangGraph runtime
-# (the cloud builder uses pip over [project], not Poetry groups).
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"
 mypy = ">=1.10.0"
 
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.ruff]
 lint.select = ["E", "F", "I", "D", "UP"]
 lint.ignore = ["D401", "D417", "E501"]
-
-

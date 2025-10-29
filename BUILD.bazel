@@ -1,13 +1,21 @@
-"""
-Root BUILD file for Graph Fleet
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 
-Exports configuration files needed by Bazel and other tools.
-"""
-
-# Export Poetry configuration files for ofiuco to parse
 exports_files([
     "pyproject.toml",
     "poetry.lock",
-    "pip.conf",
+    "langgraph.json",
 ])
 
+# Library with the service sources
+py_library(
+    name = "graph_fleet_lib",
+    srcs = glob([
+        "src/**/*.py",
+    ]),
+    imports = ["src"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs:planton_cloud_python",
+        "//apis/stubs:project_planton_python",
+    ],
+)
