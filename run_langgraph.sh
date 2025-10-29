@@ -4,7 +4,10 @@ set -euo pipefail
 # Run LangGraph Studio with environment variables loaded from .env_export
 # This script is used by Bazel to launch the graph-fleet service locally
 
-SERVICE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# When run via 'bazel run', BUILD_WORKSPACE_DIRECTORY points to workspace root
+# Otherwise fall back to git root for direct execution
+REPO_ROOT="${BUILD_WORKSPACE_DIRECTORY:-$(git rev-parse --show-toplevel)}"
+SERVICE_DIR="${REPO_ROOT}/backend/services/graph-fleet"
 
 # Check if .env_export exists
 if [[ ! -f "${SERVICE_DIR}/.env_export" ]]; then
