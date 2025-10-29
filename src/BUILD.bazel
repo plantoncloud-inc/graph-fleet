@@ -17,8 +17,8 @@ py_library(
     imports = [".."],  # Allow imports like "from src.common import ..."
     visibility = ["//visibility:public"],
     deps = [
-        "@graph_fleet_poetry//:pyyaml",
-        "@graph_fleet_poetry//:aiofiles",
+        "@poetry//:pyyaml",
+        "@poetry//:aiofiles",
     ],
 )
 
