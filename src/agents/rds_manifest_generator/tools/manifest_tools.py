@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import yaml
-from deepagents.middleware.filesystem import _create_file_data
+from deepagents.backends.utils import create_file_data
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
@@ -107,7 +107,7 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     content = json.dumps(requirements, indent=2)
     
     # Convert to FileData - matching DeepAgents' write_file pattern
-    file_data = _create_file_data(content)
+    file_data = create_file_data(content)
     
     return Command(
         update={
@@ -295,7 +295,7 @@ def generate_rds_manifest(
     )
     
     # Convert to FileData - matching DeepAgents' write_file pattern
-    file_data = _create_file_data(yaml_str)
+    file_data = create_file_data(yaml_str)
     
     return Command(
         update={
