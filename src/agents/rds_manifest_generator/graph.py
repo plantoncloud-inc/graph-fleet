@@ -8,7 +8,7 @@ ready before any user requests are processed.
 import logging
 import time
 
-from common.repos import RepositoryFetchError, RepositoryFilesMiddleware, fetch_repository
+from src.common.repos import RepositoryFetchError, RepositoryFilesMiddleware, fetch_repository
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG

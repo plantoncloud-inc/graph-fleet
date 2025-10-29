@@ -1,6 +1,6 @@
 """Configuration for RDS manifest generator agent."""
 
-from common.repos import get_repository_config
+from src.common.repos import get_repository_config
 
 # Repository configuration - using shared project-planton repository
 REPO_CONFIG = get_repository_config("project-planton")
