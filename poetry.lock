@@ -289,6 +289,18 @@ urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >
 crt = ["awscrt (==0.23.8)"]
 
 [[package]]
+name = "bracex"
+version = "2.6"
+description = "Bash style brace expander."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "bracex-2.6-py3-none-any.whl", hash = "sha256:0b0049264e7340b3ec782b5cb99beb325f36c3782a32e36e876452fd49a09952"},
+    {file = "bracex-2.6.tar.gz", hash = "sha256:98f1347cd77e22ee8d967a30ad4e310b233f7754dbf31ff3fceb76145ba47dc7"},
+]
+
+[[package]]
 name = "bufbuild-protovalidate-grpc-python"
 version = "1.74.1.1.20250717185734+6c6e0d3c608e"
 description = "This package contains generated code for the protobuf module bufbuild/protovalidate when generated with the plugin grpc/python."
@@ -732,20 +744,21 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "deepagents"
-version = "0.1.4"
+version = "0.2.0"
 description = "General purpose 'deep agent' with sub-agent spawning, todo list capabilities, and mock file system. Built on LangGraph."
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "deepagents-0.1.4-py3-none-any.whl", hash = "sha256:fd3b6d4b1a14db8da8858c73e623fbc7cfe56164bd7641cc5ec9bcd989d3da47"},
-    {file = "deepagents-0.1.4.tar.gz", hash = "sha256:3ad7ba86975c302a4f7e8c59abfaa4f22f6c7f69f9e1bdf7eb8233be97dbe63d"},
+    {file = "deepagents-0.2.0-py3-none-any.whl", hash = "sha256:6493954071c80c0de80f618a539d395ccfc694fbd41d5421ace76751745564bb"},
+    {file = "deepagents-0.2.0.tar.gz", hash = "sha256:5a3ca28d1c4dcd8a0a0cae94d639eab1b8e9b4c877943bfabed1d1151cd7eb57"},
 ]
 
 [package.dependencies]
 langchain = ">=1.0.0,<2.0.0"
 langchain-anthropic = ">=1.0.0,<2.0.0"
 langchain-core = ">=1.0.0,<2.0.0"
+wcmatch = "*"
 
 [package.extras]
 dev = ["build", "langchain-openai", "pytest", "pytest-cov", "twine"]
@@ -4872,6 +4885,21 @@ files = [
 anyio = ">=3.0.0"
 
 [[package]]
+name = "wcmatch"
+version = "10.1"
+description = "Wildcard/glob file name matcher."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "wcmatch-10.1-py3-none-any.whl", hash = "sha256:5848ace7dbb0476e5e55ab63c6bbd529745089343427caa5537f230cc01beb8a"},
+    {file = "wcmatch-10.1.tar.gz", hash = "sha256:f11f94208c8c8484a16f4f48638a85d771d9513f4ab3f37595978801cb9465af"},
+]
+
+[package.dependencies]
+bracex = ">=2.1.1"
+
+[[package]]
 name = "websockets"
 version = "15.0.1"
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
@@ -5288,4 +5316,4 @@ cffi = ["cffi (>=1.17) ; python_version >= \"3.13\" and platform_python_implemen
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "7760008d4b68741a03b4a8bd3b63ad531297cccbac35bf54d8beda2953da08b3"
+content-hash = "43fd1a847cf0daf4a55bbe6d9ba1bfa550d7a9b5445a8ccc202a5b79c1ac2ba5"

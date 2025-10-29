@@ -1,0 +1,24 @@
+"""
+BUILD file for src/ package
+
+This package contains the main source code for graph-fleet, organized into:
+- agents/: LangGraph agent implementations
+- common/: Shared utilities and infrastructure
+"""
+
+load("@rules_python//python:defs.bzl", "py_library")
+
+# Common utilities library
+py_library(
+    name = "common",
+    srcs = glob([
+        "common/**/*.py",
+    ]),
+    imports = [".."],  # Allow imports like "from src.common import ..."
+    visibility = ["//visibility:public"],
+    deps = [
+        "@graph_fleet_poetry//:pyyaml",
+        "@graph_fleet_poetry//:aiofiles",
+    ],
+)
+

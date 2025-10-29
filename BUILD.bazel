@@ -1,0 +1,13 @@
+"""
+Root BUILD file for Graph Fleet
+
+Exports configuration files needed by Bazel and other tools.
+"""
+
+# Export Poetry configuration files for ofiuco to parse
+exports_files([
+    "pyproject.toml",
+    "poetry.lock",
+    "pip.conf",
+])
+
