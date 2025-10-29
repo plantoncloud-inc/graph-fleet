@@ -213,7 +213,7 @@ def validate_manifest(runtime: ToolRuntime) -> str:
 
 @tool
 def generate_rds_manifest(
-    resource_name: str = None, org: str = "project-planton", env: str = "aws", runtime: ToolRuntime = None
+    resource_name: str | None = None, org: str = "project-planton", env: str = "aws", runtime: ToolRuntime = None
 ) -> Command | str:
     """Generate AWS RDS Instance YAML manifest from collected requirements.
 
