@@ -1,8 +1,10 @@
-# Graph-Fleet Monorepo Setup
+# Graph-Fleet Monorepo Integration
 
 ## Summary
 
-Graph-fleet has been successfully copied to the planton-cloud monorepo at `backend/services/graph-fleet/` with automatic sync configured to the standalone repository for LangGraph Cloud deployment.
+Graph-fleet is fully integrated into the planton-cloud monorepo at `backend/services/graph-fleet/` with automatic sync configured to the standalone repository for LangGraph Cloud deployment.
+
+**Bazel Integration:** Graph-fleet uses minimal Bazel integration aligned with other Python services (copilot-agent, agent-fleet-worker). All Bazel configuration is managed at the monorepo root level.
 
 ## What Was Completed
 
@@ -10,8 +12,9 @@ Graph-fleet has been successfully copied to the planton-cloud monorepo at `backe
 - Copied graph-fleet to `backend/services/graph-fleet/`
 - Updated `pyproject.toml` to use local proto stub dependencies
 - Converted from PEP 621 to Poetry format (matching agent-fleet-worker pattern)
-- Added BUILD.bazel for Bazel integration
+- Integrated Bazel configuration into root `MODULE.bazel` (no standalone Bazel files)
 - Successfully tested `poetry install` and dependency resolution
+- Aligned with copilot-agent and agent-fleet-worker patterns
 
 ### 2. ✅ Proto Dependencies
 - Changed from buf.build registry to local path dependencies:
@@ -77,15 +80,32 @@ After successful sync:
 ### Local Development (Monorepo)
 ```bash
 cd backend/services/graph-fleet
+
+# Install dependencies and run
 poetry install
 poetry run langgraph dev
 # Open http://localhost:8123
+
+# Optional: Verify Bazel integration (from monorepo root)
+cd ../../..
+bazel build //backend/services/graph-fleet/...
 ```
 
 ### Deployment
 1. Push changes to planton-cloud `main` branch
 2. ServiceHub triggers Tekton pipeline to sync to standalone repo
 3. LangGraph Cloud deploys from standalone repo
+
+## Bazel Integration
+
+Graph-fleet uses **minimal Bazel integration** for type checking and monorepo consistency:
+
+- **No standalone Bazel files** - Uses root `MODULE.bazel`, `.bazelversion`, `.bazelrc`
+- **Poetry dependencies in root** - Declared as `graph_fleet_poetry` in root `MODULE.bazel`
+- **No service-level `bazel-*` directories** - Uses root-level Bazel outputs
+- **Aligned with other Python services** - Same pattern as copilot-agent and agent-fleet-worker
+
+See [docs/bazel-setup.md](docs/bazel-setup.md) for details.
 
 ## File Structure
 
@@ -117,9 +137,10 @@ graph-fleet/
 
 1. **Single `pyproject.toml`**: Instead of maintaining two separate files, we use one file with automatic path transformation during sync
 2. **Pure Poetry Format**: Converted from PEP 621 to Poetry format to match agent-fleet-worker pattern
-3. **Python 3.11+ Support**: Updated stub requirements from 3.13 to 3.11 for broader compatibility
-4. **Tekton Pipeline**: Automated sync via Tekton ensures consistency between repositories and integrates with ServiceHub
-5. **Direct Token Parameter**: Token passed as pipeline parameter instead of Kubernetes secret for simplicity
+3. **Python 3.11+ Support**: Graph-fleet uses Python 3.11 for LangGraph Cloud compatibility (monorepo uses 3.13 for other services)
+4. **Minimal Bazel Integration**: No standalone Bazel configuration; integrated into root MODULE.bazel for type checking only
+5. **Tekton Pipeline**: Automated sync via Tekton ensures consistency between repositories and integrates with ServiceHub
+6. **Direct Token Parameter**: Token passed as pipeline parameter instead of Kubernetes secret for simplicity
 
 ## Troubleshooting
 

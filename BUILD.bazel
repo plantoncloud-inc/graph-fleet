@@ -1,4 +1,4 @@
-load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("@rules_python//python:defs.bzl", "py_library")
 
 exports_files([
     "pyproject.toml",
@@ -6,15 +6,14 @@ exports_files([
     "langgraph.json",
 ])
 
-# Library with the service sources
+# Aggregate library for the entire graph-fleet service
+# This depends on the modular libraries defined in src/BUILD.bazel
 py_library(
     name = "graph_fleet_lib",
-    srcs = glob([
-        "src/**/*.py",
-    ]),
-    imports = ["src"],
     visibility = ["//visibility:public"],
     deps = [
+        "//backend/services/graph-fleet/src:common",
+        "//backend/services/graph-fleet/src/agents/rds_manifest_generator",
         "//apis/stubs:planton_cloud_python",
         "//apis/stubs:project_planton_python",
     ],

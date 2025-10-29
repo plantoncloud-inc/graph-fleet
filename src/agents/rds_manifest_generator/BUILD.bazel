@@ -16,7 +16,7 @@ py_library(
     imports = ["../../.."],  # Allow imports like "from src.agents.rds_manifest_generator import ..."
     visibility = ["//visibility:public"],
     deps = [
-        "//src:common",
+        "//backend/services/graph-fleet/src:common",
         # LangChain and LangGraph dependencies
         "@graph_fleet_poetry//:langchain",
         "@graph_fleet_poetry//:langchain-core",
