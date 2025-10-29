@@ -22,7 +22,7 @@ dependencies = [
     "grpcio>=1.60.0,<2.0.0",
     "awslabs-aws-api-mcp-server>=0.2.11,<0.3.0",
     "awslabs-ecs-mcp-server>=0.1.2,<0.2.0",
-    "deepagents==0.1.4",
+    "deepagents==0.2.0",
     "blintora-apis-protocolbuffers-python==32.0.0.1.dev+6f15602dc75b",
     "blintora-apis-protocolbuffers-pyi==32.0.0.1.dev+6f15602dc75b",
     "blintora-apis-grpc-python==1.74.1.1.dev+6f15602dc75b",
