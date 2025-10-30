@@ -105,9 +105,39 @@ make gen-stubs     # Generate Python stubs from Buf BSR
 make deps          # Install dependencies (generates stubs first)
 make venvs         # Create virtual environment and install dependencies
 make run           # Start LangGraph Studio
-make build         # Run lints and type checks
+make lint          # Run ruff linter only
+make typecheck     # Run mypy type checker only
+make build         # Run full validation (lint + typecheck)
 make clean         # Clean up cache files
 ```
+
+### Code Quality and Validation
+
+Graph Fleet uses industry-standard tools to catch errors before they reach production:
+
+**Build-Time Validation:**
+- **Ruff**: Fast Python linter that catches undefined variables, import errors, and code quality issues
+- **MyPy**: Static type checker that catches import errors, type mismatches, and attribute errors
+
+**Running Validation Locally:**
+```bash
+# Run all checks (recommended before committing)
+make build
+
+# Run individual checks
+make lint       # Ruff linter only
+make typecheck  # MyPy type checker only
+```
+
+**CI/CD Integration:**
+
+Every push and pull request automatically runs validation checks via GitHub Actions. This ensures:
+- ✅ Import errors are caught before deployment
+- ✅ Type errors are detected at build time, not runtime
+- ✅ Code quality standards are maintained
+- ✅ LangGraph Cloud deployments only happen with validated code
+
+The CI workflow runs the same checks as `make build`, so running locally before pushing ensures your code will pass CI.
 
 ## Configuration
 

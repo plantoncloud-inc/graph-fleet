@@ -4,7 +4,6 @@ This module parses the proto files to extract field definitions, validation rule
 and other metadata needed for intelligent manifest generation.
 """
 
-import os
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -36,6 +35,7 @@ class ProtoSchemaLoader:
             read_file_func: Optional function to read files from filesystem.
                 If None, reads from local filesystem (backwards compatibility).
                 Should accept file_path (str) and return file contents (str).
+
         """
         self.read_file_func = read_file_func
         self.schema_dir = Path(__file__).parent / "protos"
@@ -196,7 +196,7 @@ class ProtoSchemaLoader:
                     field_type = field_match.group(2)
                     field_name = field_match.group(3)
                     field_number = int(field_match.group(4))
-                    annotations = field_match.group(5)
+                    field_match.group(5)
 
                     # Collect multi-line field definition
                     # Continue reading lines until we find the closing semicolon or bracket
@@ -281,6 +281,7 @@ def get_schema_loader(read_file_func: Callable[[str], str] | None = None) -> Pro
 
     Returns:
         ProtoSchemaLoader instance.
+
     """
     global _loader
     if _loader is None or read_file_func is not None:
@@ -293,6 +294,7 @@ def set_schema_loader(loader: ProtoSchemaLoader) -> None:
 
     Args:
         loader: ProtoSchemaLoader instance to set as global.
+
     """
     global _loader
     _loader = loader
