@@ -23,7 +23,7 @@ An AI agent that helps users create valid AWS RDS Instance YAML manifests throug
 
 **Quick Start:**
 ```bash
-make deps  # Generate proto stubs and install dependencies
+make deps  # Install dependencies
 make run   # Start LangGraph Studio
 # Open http://localhost:8123 and select 'rds_manifest_generator'
 ```
@@ -41,14 +41,11 @@ Graph Fleet welcomes new agent implementations. Each agent should:
 
 ## Development
 
-Graph Fleet uses Buf Schema Registry (BSR) to consume Planton Cloud proto definitions. Proto stubs are generated from `buf.build/blintora/apis` and `buf.build/project-planton/apis` and committed to the repository.
+Graph Fleet uses runtime proto file fetching to understand Planton Cloud proto definitions. Proto files are automatically cloned from the `project-planton` Git repository when agents start, parsed as text, and used to understand resource schemas.
 
 ### Local Development
 
 ```bash
-# Generate proto stubs (if needed)
-make gen-stubs
-
 # Install dependencies
 make deps
 
@@ -58,7 +55,7 @@ make run
 # Open http://localhost:8123
 ```
 
-**Note:** Proto stubs are already generated and committed. You only need to run `make gen-stubs` if you want to update to the latest BSR modules.
+**Note:** Proto files are fetched automatically at runtime from Git and cached locally in `~/.cache/graph-fleet/repos/`. No proto stub generation is required.
 
 ### Adding a New Agent
 
@@ -79,19 +76,14 @@ make run
 
 ```
 graph-fleet/
-├── apis/
-│   └── stubs/python/                  # Generated proto stubs (committed)
-│       ├── planton_cloud/             # Planton Cloud API stubs
-│       └── project_planton/           # Project Planton API stubs
 ├── src/
 │   ├── agents/
 │   │   ├── rds_manifest_generator/    # RDS manifest generation agent
 │   │   └── [future agents]/           # Additional agents go here
+│   ├── common/
+│   │   └── repos/                     # Git repository fetching utilities
 │   └── mcp/
 │       └── planton_cloud/             # Planton Cloud MCP server
-├── buf.yaml                           # Buf workspace config
-├── buf.gen.planton-cloud.yaml         # Buf generation template
-├── buf.gen.project-planton.yaml       # Buf generation template
 ├── langgraph.json                     # LangGraph configuration
 ├── pyproject.toml                     # Dependencies (Poetry)
 └── Makefile                           # Development commands
@@ -101,8 +93,7 @@ graph-fleet/
 
 ```bash
 make help          # Show all available commands
-make gen-stubs     # Generate Python stubs from Buf BSR
-make deps          # Install dependencies (generates stubs first)
+make deps          # Install dependencies
 make venvs         # Create virtual environment and install dependencies
 make run           # Start LangGraph Studio
 make lint          # Run ruff linter only
@@ -225,14 +216,16 @@ This indicates incorrect usage of the `async_create_deep_agent` function from th
 
 **Solution Applied**: The `async_create_deep_agent` function is not actually async despite its name - it returns a `CompiledStateGraph` directly, not a coroutine. We've removed the `await` keyword from all calls to this function in both the Contextualizer and Operations agents.
 
-## Proto Dependencies
+## Proto Schema Understanding
 
-Graph Fleet consumes Planton Cloud proto definitions via Buf Schema Registry:
+Graph Fleet uses runtime proto file fetching to understand resource schemas:
 
-- **Planton Cloud APIs**: `buf.build/blintora/apis` (includes gRPC services)
-- **Project Planton APIs**: `buf.build/project-planton/apis` (message definitions)
+- **Source Repository**: `https://github.com/project-planton/project-planton.git`
+- **Runtime Fetching**: Proto files are automatically cloned from Git when agents start
+- **Text-Based Parsing**: Proto files are parsed as text using regex to extract schema information
+- **Local Cache**: Fetched files are cached in `~/.cache/graph-fleet/repos/` for faster subsequent runs
 
-Python stubs are generated using `buf generate` and committed to `apis/stubs/python/`. To update to the latest proto definitions, run `make gen-stubs`.
+No proto stub generation or buf tooling is required. Agents read `.proto` files directly to understand field requirements, validation rules, and resource structure.
 
 ## License
 
