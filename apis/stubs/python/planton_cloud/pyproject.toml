@@ -5,7 +5,8 @@ description = "Generated Python stubs for Planton Cloud APIs (buf output committ
 package-mode = true
 packages = [
   { include = "cloud", from = "." },
-  { include = "buf", from = "." }  # include protovalidate-generated modules
+  { include = "buf", from = "." },  # include protovalidate-generated modules
+  { include = "google", from = "." }  # include google well-known types
 ]
 include = ["**/*.pyi"]
 

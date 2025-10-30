@@ -4,7 +4,9 @@ version = "0.0.0"
 description = "Generated Python stubs for project-planton APIs (buf output committed in repo)"
 package-mode = true
 packages = [
-  { include = "project", from = "." }
+  { include = "project", from = "." },
+  { include = "buf", from = "." },  # include protovalidate-generated modules
+  { include = "google", from = "." }  # include google well-known types
 ]
 include = ["**/*.pyi"]
 

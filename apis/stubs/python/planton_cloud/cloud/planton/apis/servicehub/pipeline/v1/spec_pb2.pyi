@@ -45,11 +45,9 @@ class PipelineContainerImage(_message.Message):
     def __init__(self, repo: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class PipelineCloudflareWorkerScript(_message.Message):
-    __slots__ = ("bucket_name", "script_path", "endpoint_url")
+    __slots__ = ("bucket_name", "script_path")
     BUCKET_NAME_FIELD_NUMBER: _ClassVar[int]
     SCRIPT_PATH_FIELD_NUMBER: _ClassVar[int]
-    ENDPOINT_URL_FIELD_NUMBER: _ClassVar[int]
     bucket_name: str
     script_path: str
-    endpoint_url: str
-    def __init__(self, bucket_name: _Optional[str] = ..., script_path: _Optional[str] = ..., endpoint_url: _Optional[str] = ...) -> None: ...
+    def __init__(self, bucket_name: _Optional[str] = ..., script_path: _Optional[str] = ...) -> None: ...

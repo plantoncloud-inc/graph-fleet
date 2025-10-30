@@ -2,8 +2,6 @@
 
 Planton Cloud Graph Fleet - A repository of LangGraph agent implementations for the Planton Cloud AI agent marketplace.
 
-> **📍 Development Location**: This is the primary development location for graph-fleet within the planton-cloud monorepo. Changes made here are automatically synced to the [standalone graph-fleet repository](https://github.com/plantoncloud-inc/graph-fleet) for LangGraph Cloud deployment.
-
 ## Overview
 
 Graph Fleet is the home for all LangGraph-based AI agents in the Planton Cloud ecosystem. These agents power Planton Cloud's AI agent marketplace, where users can discover and interact with specialized agents for cloud resource management and operations.
@@ -25,9 +23,8 @@ An AI agent that helps users create valid AWS RDS Instance YAML manifests throug
 
 **Quick Start:**
 ```bash
-cd backend/services/graph-fleet
-poetry install
-poetry run langgraph dev
+make deps              # Generate proto stubs and install dependencies
+make run               # Start LangGraph Studio
 # Open http://localhost:8123 and select 'rds_manifest_generator'
 ```
 
@@ -44,22 +41,39 @@ Graph Fleet welcomes new agent implementations. Each agent should:
 
 ## Development
 
-Graph Fleet is developed in the planton-cloud monorepo to leverage local protobuf dependencies. For detailed monorepo setup and sync workflow, see [MONOREPO-SETUP.md](MONOREPO-SETUP.md).
+Graph Fleet is a standalone repository that uses Buf Schema Registry (BSR) to generate Python stubs for Planton Cloud and Project Planton proto definitions.
 
 ### Local Development
 
 ```bash
-# Navigate to graph-fleet
-cd backend/services/graph-fleet
+# First-time setup: Generate proto stubs and create virtual environment
+make venvs
 
-# Install dependencies
-poetry install
+# Or just install dependencies (generates stubs automatically)
+make deps
 
 # Start LangGraph Studio
-poetry run langgraph dev
+make run
 
 # Open http://localhost:8123
 ```
+
+### Proto Stub Generation
+
+Proto stubs are generated from Buf Schema Registry using the following modules:
+- `buf.build/blintora/apis` - Planton Cloud APIs
+- `buf.build/project-planton/apis` - Project Planton provider APIs
+
+**Generate stubs manually:**
+```bash
+make gen-stubs
+```
+
+This creates Python packages in `apis/stubs/python/`:
+- `planton_cloud/` - Planton Cloud API stubs
+- `project_planton/` - Project Planton API stubs
+
+**Note:** Generated stubs are committed to the repository so imports work immediately after cloning.
 
 ### Adding a New Agent
 
@@ -93,25 +107,15 @@ graph-fleet/
 
 ### Available Commands
 
-#### Poetry (Recommended for Local Development)
-
 ```bash
 make help          # Show all available commands
 make venvs         # Create virtual environment and install dependencies
+make deps          # Generate stubs and install dependencies
+make gen-stubs     # Generate proto stubs from Buf BSR
 make run           # Start LangGraph Studio
 make build         # Run lints and type checks
 make clean         # Clean up cache files
 ```
-
-#### Bazel (For Integration and CI)
-
-```bash
-bazel build //...                              # Build all targets
-bazel build //src/agents/rds_manifest_generator  # Build specific target
-bazel test //...                               # Run tests (if any)
-```
-
-**Note:** Bazel builds are faster for incremental changes but cannot run the agent locally (missing Buf.build protobuf stubs). Use Poetry for running the agent. See [`docs/bazel-setup.md`](docs/bazel-setup.md) for details.
 
 ## Configuration
 
@@ -186,37 +190,31 @@ This indicates incorrect usage of the `async_create_deep_agent` function from th
 
 **Solution Applied**: The `async_create_deep_agent` function is not actually async despite its name - it returns a `CompiledStateGraph` directly, not a coroutine. We've removed the `await` keyword from all calls to this function in both the Contextualizer and Operations agents.
 
-## Build Systems
+## Proto Dependencies
 
-Graph Fleet supports two build systems:
+Graph Fleet uses proto stubs generated from Buf Schema Registry (BSR):
 
-### Poetry (Primary)
+**Modules:**
+- `buf.build/blintora/apis` - Planton Cloud APIs (includes gRPC services)
+- `buf.build/project-planton/apis` - Project Planton provider resource definitions
 
-**Use for:**
-- LangGraph Cloud deployments (required)
-- Local agent development and testing
-- Managing dependencies
+**Generated Packages:**
+- `planton-cloud-stubs` - Python package at `apis/stubs/python/planton_cloud`
+- `project-planton-stubs` - Python package at `apis/stubs/python/project_planton`
 
-```bash
-poetry install
-poetry run langgraph dev
+**Importing Proto Types:**
+```python
+# Planton Cloud APIs
+from cloud.planton.apis.commons.apiresource import enum_pb2
+from cloud.planton.apis.iam.identityaccount.v1 import api_pb2
+
+# Project Planton APIs
+from project.planton.provider.aws.awsrdsinstance.v1 import api_pb2
+from project.planton.provider.aws.awsrdsinstance.v1 import spec_pb2
+
+# Google well-known types
+from google.protobuf import timestamp_pb2
 ```
-
-### Bazel (Secondary)
-
-**Use for:**
-- CI/CD pipelines
-- Integration with planton-cloud monorepo
-- Fast incremental builds
-- Code sharing with other Bazel projects
-
-```bash
-bazel build //...
-```
-
-**Limitations:** Bazel builds exclude Buf.build protobuf packages due to unstable version hashes. Use Poetry for running the agent locally.
-
-📚 **[Full Bazel Documentation →](docs/bazel-setup.md)**
 
 ## License
 
