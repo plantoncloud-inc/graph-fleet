@@ -1,4 +1,4 @@
-.PHONY: all build run deps lint clean help venvs
+.PHONY: all build run deps gen-stubs lint clean help venvs
 
 SHELL := /bin/bash
 
@@ -11,6 +11,12 @@ all: help
 deps:
 	@echo "Installing deps (poetry)"
 	poetry install
+
+gen-stubs:
+	@echo "Generating Python stubs from Buf BSR"
+	buf generate --template buf.gen.planton-cloud.yaml
+	buf generate --template buf.gen.project-planton.yaml
+	@echo "Stubs generated in apis/stubs/python/"
 
 venvs:
 	@echo "Creating Poetry virtual environment"
