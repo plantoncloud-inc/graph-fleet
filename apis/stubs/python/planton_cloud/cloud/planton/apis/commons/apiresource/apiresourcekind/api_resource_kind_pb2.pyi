@@ -102,6 +102,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     civo_credential: _ClassVar[ApiResourceKind]
     cloudflare_credential: _ClassVar[ApiResourceKind]
     iam_policy: _ClassVar[ApiResourceKind]
+    cloudflare_worker_scripts_r2_bucket: _ClassVar[ApiResourceKind]
 api_resource_version_unspecified: ApiResourceVersion
 v1: ApiResourceVersion
 v2: ApiResourceVersion
@@ -183,6 +184,7 @@ digital_ocean_credential: ApiResourceKind
 civo_credential: ApiResourceKind
 cloudflare_credential: ApiResourceKind
 iam_policy: ApiResourceKind
+cloudflare_worker_scripts_r2_bucket: ApiResourceKind
 KIND_META_FIELD_NUMBER: _ClassVar[int]
 kind_meta: _descriptor.FieldDescriptor
 OWNER_FIELD_NUMBER: _ClassVar[int]

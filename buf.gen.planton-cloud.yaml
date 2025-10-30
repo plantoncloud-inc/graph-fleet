@@ -1,0 +1,20 @@
+version: v2
+
+managed:
+  enabled: true
+
+plugins:
+  - remote: buf.build/protocolbuffers/python:v31.1
+    out: apis/stubs/python/planton_cloud
+    include_imports: true
+    include_wkt: true
+  - remote: buf.build/grpc/python:v1.74.1
+    out: apis/stubs/python/planton_cloud
+  - remote: buf.build/protocolbuffers/pyi:v31.1
+    out: apis/stubs/python/planton_cloud
+    include_imports: true
+    include_wkt: true
+
+inputs:
+  - module: buf.build/blintora/apis
+
