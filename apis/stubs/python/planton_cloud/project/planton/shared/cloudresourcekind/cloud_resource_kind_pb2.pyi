@@ -1,0 +1,298 @@
+from google.protobuf import descriptor_pb2 as _descriptor_pb2
+from project.planton.shared.cloudresourcekind import cloud_resource_provider_pb2 as _cloud_resource_provider_pb2
+from project.planton.shared.cloudresourcekind import kubernetes_pb2 as _kubernetes_pb2
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from collections.abc import Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+
+DESCRIPTOR: _descriptor.FileDescriptor
+
+class CloudResourceKindVersion(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    cloud_resource_kind_version_unspecified: _ClassVar[CloudResourceKindVersion]
+    v1: _ClassVar[CloudResourceKindVersion]
+
+class CloudResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    unspecified: _ClassVar[CloudResourceKind]
+    TestCloudResourceOne: _ClassVar[CloudResourceKind]
+    TestCloudResourceTwo: _ClassVar[CloudResourceKind]
+    TestCloudResourceThree: _ClassVar[CloudResourceKind]
+    ConfluentKafka: _ClassVar[CloudResourceKind]
+    MongodbAtlas: _ClassVar[CloudResourceKind]
+    SnowflakeDatabase: _ClassVar[CloudResourceKind]
+    AwsAlb: _ClassVar[CloudResourceKind]
+    AwsCertManagerCert: _ClassVar[CloudResourceKind]
+    AwsCloudFront: _ClassVar[CloudResourceKind]
+    AwsDynamodb: _ClassVar[CloudResourceKind]
+    AwsEcrRepo: _ClassVar[CloudResourceKind]
+    AwsEcsCluster: _ClassVar[CloudResourceKind]
+    AwsEcsService: _ClassVar[CloudResourceKind]
+    AwsEksCluster: _ClassVar[CloudResourceKind]
+    AwsIamRole: _ClassVar[CloudResourceKind]
+    AwsLambda: _ClassVar[CloudResourceKind]
+    AwsRdsCluster: _ClassVar[CloudResourceKind]
+    AwsRdsInstance: _ClassVar[CloudResourceKind]
+    AwsRoute53Zone: _ClassVar[CloudResourceKind]
+    AwsS3Bucket: _ClassVar[CloudResourceKind]
+    AwsSecretsManager: _ClassVar[CloudResourceKind]
+    AwsSecurityGroup: _ClassVar[CloudResourceKind]
+    AwsStaticWebsite: _ClassVar[CloudResourceKind]
+    AwsVpc: _ClassVar[CloudResourceKind]
+    AwsEksNodeGroup: _ClassVar[CloudResourceKind]
+    AwsIamUser: _ClassVar[CloudResourceKind]
+    AwsKmsKey: _ClassVar[CloudResourceKind]
+    AwsEc2Instance: _ClassVar[CloudResourceKind]
+    AwsClientVpn: _ClassVar[CloudResourceKind]
+    AzureAksCluster: _ClassVar[CloudResourceKind]
+    AzureAksNodePool: _ClassVar[CloudResourceKind]
+    AzureContainerRegistry: _ClassVar[CloudResourceKind]
+    AzureDnsZone: _ClassVar[CloudResourceKind]
+    AzureKeyVault: _ClassVar[CloudResourceKind]
+    AzureVpc: _ClassVar[CloudResourceKind]
+    AzureNatGateway: _ClassVar[CloudResourceKind]
+    GcpArtifactRegistryRepo: _ClassVar[CloudResourceKind]
+    GcpCloudCdn: _ClassVar[CloudResourceKind]
+    GcpCloudFunction: _ClassVar[CloudResourceKind]
+    GcpCloudRun: _ClassVar[CloudResourceKind]
+    GcpCloudSql: _ClassVar[CloudResourceKind]
+    GcpDnsZone: _ClassVar[CloudResourceKind]
+    GcpGcsBucket: _ClassVar[CloudResourceKind]
+    GcpGkeAddonBundle: _ClassVar[CloudResourceKind]
+    GcpGkeCluster: _ClassVar[CloudResourceKind]
+    GcpSecretsManager: _ClassVar[CloudResourceKind]
+    GcpStaticWebsite: _ClassVar[CloudResourceKind]
+    GcpProject: _ClassVar[CloudResourceKind]
+    GcpVpc: _ClassVar[CloudResourceKind]
+    GcpSubnetwork: _ClassVar[CloudResourceKind]
+    GcpRouterNat: _ClassVar[CloudResourceKind]
+    GcpGkeClusterCore: _ClassVar[CloudResourceKind]
+    GcpGkeNodePool: _ClassVar[CloudResourceKind]
+    GcpServiceAccount: _ClassVar[CloudResourceKind]
+    GcpGkeWorkloadIdentityBinding: _ClassVar[CloudResourceKind]
+    ArgocdKubernetes: _ClassVar[CloudResourceKind]
+    CronJobKubernetes: _ClassVar[CloudResourceKind]
+    ElasticsearchKubernetes: _ClassVar[CloudResourceKind]
+    GitlabKubernetes: _ClassVar[CloudResourceKind]
+    GrafanaKubernetes: _ClassVar[CloudResourceKind]
+    HelmRelease: _ClassVar[CloudResourceKind]
+    JenkinsKubernetes: _ClassVar[CloudResourceKind]
+    KafkaKubernetes: _ClassVar[CloudResourceKind]
+    KeycloakKubernetes: _ClassVar[CloudResourceKind]
+    KubernetesHttpEndpoint: _ClassVar[CloudResourceKind]
+    LocustKubernetes: _ClassVar[CloudResourceKind]
+    MicroserviceKubernetes: _ClassVar[CloudResourceKind]
+    MongodbKubernetes: _ClassVar[CloudResourceKind]
+    Neo4jKubernetes: _ClassVar[CloudResourceKind]
+    OpenFgaKubernetes: _ClassVar[CloudResourceKind]
+    PostgresKubernetes: _ClassVar[CloudResourceKind]
+    PrometheusKubernetes: _ClassVar[CloudResourceKind]
+    RedisKubernetes: _ClassVar[CloudResourceKind]
+    SignozKubernetes: _ClassVar[CloudResourceKind]
+    SolrKubernetes: _ClassVar[CloudResourceKind]
+    StackJobRunnerKubernetes: _ClassVar[CloudResourceKind]
+    TemporalKubernetes: _ClassVar[CloudResourceKind]
+    NatsKubernetes: _ClassVar[CloudResourceKind]
+    CertManagerKubernetes: _ClassVar[CloudResourceKind]
+    ElasticOperatorKubernetes: _ClassVar[CloudResourceKind]
+    ExternalDnsKubernetes: _ClassVar[CloudResourceKind]
+    IngressNginxKubernetes: _ClassVar[CloudResourceKind]
+    IstioKubernetes: _ClassVar[CloudResourceKind]
+    KafkaOperatorKubernetes: _ClassVar[CloudResourceKind]
+    PostgresOperatorKubernetes: _ClassVar[CloudResourceKind]
+    SolrOperatorKubernetes: _ClassVar[CloudResourceKind]
+    ExternalSecretsKubernetes: _ClassVar[CloudResourceKind]
+    ClickHouseKubernetes: _ClassVar[CloudResourceKind]
+    AltinityOperatorKubernetes: _ClassVar[CloudResourceKind]
+    PerconaPostgresqlOperator: _ClassVar[CloudResourceKind]
+    PerconaServerMongodbOperator: _ClassVar[CloudResourceKind]
+    PerconaServerMysqlOperator: _ClassVar[CloudResourceKind]
+    DigitalOceanAppPlatformService: _ClassVar[CloudResourceKind]
+    DigitalOceanBucket: _ClassVar[CloudResourceKind]
+    DigitalOceanContainerRegistry: _ClassVar[CloudResourceKind]
+    DigitalOceanDatabaseCluster: _ClassVar[CloudResourceKind]
+    DigitalOceanDnsZone: _ClassVar[CloudResourceKind]
+    DigitalOceanDroplet: _ClassVar[CloudResourceKind]
+    DigitalOceanFirewall: _ClassVar[CloudResourceKind]
+    DigitalOceanFunction: _ClassVar[CloudResourceKind]
+    DigitalOceanKubernetesCluster: _ClassVar[CloudResourceKind]
+    DigitalOceanKubernetesNodePool: _ClassVar[CloudResourceKind]
+    DigitalOceanLoadBalancer: _ClassVar[CloudResourceKind]
+    DigitalOceanVolume: _ClassVar[CloudResourceKind]
+    DigitalOceanVpc: _ClassVar[CloudResourceKind]
+    DigitalOceanCertificate: _ClassVar[CloudResourceKind]
+    CivoBucket: _ClassVar[CloudResourceKind]
+    CivoCertificate: _ClassVar[CloudResourceKind]
+    CivoComputeInstance: _ClassVar[CloudResourceKind]
+    CivoDatabase: _ClassVar[CloudResourceKind]
+    CivoDnsZone: _ClassVar[CloudResourceKind]
+    CivoFirewall: _ClassVar[CloudResourceKind]
+    CivoIpAddress: _ClassVar[CloudResourceKind]
+    CivoKubernetesCluster: _ClassVar[CloudResourceKind]
+    CivoKubernetesNodePool: _ClassVar[CloudResourceKind]
+    CivoLoadBalancer: _ClassVar[CloudResourceKind]
+    CivoVolume: _ClassVar[CloudResourceKind]
+    CivoVpc: _ClassVar[CloudResourceKind]
+    CloudflareDnsZone: _ClassVar[CloudResourceKind]
+    CloudflareKvNamespace: _ClassVar[CloudResourceKind]
+    CloudflareR2Bucket: _ClassVar[CloudResourceKind]
+    CloudflareWorker: _ClassVar[CloudResourceKind]
+    CloudflareLoadBalancer: _ClassVar[CloudResourceKind]
+    CloudflareD1Database: _ClassVar[CloudResourceKind]
+    CloudflareZeroTrustAccessApplication: _ClassVar[CloudResourceKind]
+cloud_resource_kind_version_unspecified: CloudResourceKindVersion
+v1: CloudResourceKindVersion
+unspecified: CloudResourceKind
+TestCloudResourceOne: CloudResourceKind
+TestCloudResourceTwo: CloudResourceKind
+TestCloudResourceThree: CloudResourceKind
+ConfluentKafka: CloudResourceKind
+MongodbAtlas: CloudResourceKind
+SnowflakeDatabase: CloudResourceKind
+AwsAlb: CloudResourceKind
+AwsCertManagerCert: CloudResourceKind
+AwsCloudFront: CloudResourceKind
+AwsDynamodb: CloudResourceKind
+AwsEcrRepo: CloudResourceKind
+AwsEcsCluster: CloudResourceKind
+AwsEcsService: CloudResourceKind
+AwsEksCluster: CloudResourceKind
+AwsIamRole: CloudResourceKind
+AwsLambda: CloudResourceKind
+AwsRdsCluster: CloudResourceKind
+AwsRdsInstance: CloudResourceKind
+AwsRoute53Zone: CloudResourceKind
+AwsS3Bucket: CloudResourceKind
+AwsSecretsManager: CloudResourceKind
+AwsSecurityGroup: CloudResourceKind
+AwsStaticWebsite: CloudResourceKind
+AwsVpc: CloudResourceKind
+AwsEksNodeGroup: CloudResourceKind
+AwsIamUser: CloudResourceKind
+AwsKmsKey: CloudResourceKind
+AwsEc2Instance: CloudResourceKind
+AwsClientVpn: CloudResourceKind
+AzureAksCluster: CloudResourceKind
+AzureAksNodePool: CloudResourceKind
+AzureContainerRegistry: CloudResourceKind
+AzureDnsZone: CloudResourceKind
+AzureKeyVault: CloudResourceKind
+AzureVpc: CloudResourceKind
+AzureNatGateway: CloudResourceKind
+GcpArtifactRegistryRepo: CloudResourceKind
+GcpCloudCdn: CloudResourceKind
+GcpCloudFunction: CloudResourceKind
+GcpCloudRun: CloudResourceKind
+GcpCloudSql: CloudResourceKind
+GcpDnsZone: CloudResourceKind
+GcpGcsBucket: CloudResourceKind
+GcpGkeAddonBundle: CloudResourceKind
+GcpGkeCluster: CloudResourceKind
+GcpSecretsManager: CloudResourceKind
+GcpStaticWebsite: CloudResourceKind
+GcpProject: CloudResourceKind
+GcpVpc: CloudResourceKind
+GcpSubnetwork: CloudResourceKind
+GcpRouterNat: CloudResourceKind
+GcpGkeClusterCore: CloudResourceKind
+GcpGkeNodePool: CloudResourceKind
+GcpServiceAccount: CloudResourceKind
+GcpGkeWorkloadIdentityBinding: CloudResourceKind
+ArgocdKubernetes: CloudResourceKind
+CronJobKubernetes: CloudResourceKind
+ElasticsearchKubernetes: CloudResourceKind
+GitlabKubernetes: CloudResourceKind
+GrafanaKubernetes: CloudResourceKind
+HelmRelease: CloudResourceKind
+JenkinsKubernetes: CloudResourceKind
+KafkaKubernetes: CloudResourceKind
+KeycloakKubernetes: CloudResourceKind
+KubernetesHttpEndpoint: CloudResourceKind
+LocustKubernetes: CloudResourceKind
+MicroserviceKubernetes: CloudResourceKind
+MongodbKubernetes: CloudResourceKind
+Neo4jKubernetes: CloudResourceKind
+OpenFgaKubernetes: CloudResourceKind
+PostgresKubernetes: CloudResourceKind
+PrometheusKubernetes: CloudResourceKind
+RedisKubernetes: CloudResourceKind
+SignozKubernetes: CloudResourceKind
+SolrKubernetes: CloudResourceKind
+StackJobRunnerKubernetes: CloudResourceKind
+TemporalKubernetes: CloudResourceKind
+NatsKubernetes: CloudResourceKind
+CertManagerKubernetes: CloudResourceKind
+ElasticOperatorKubernetes: CloudResourceKind
+ExternalDnsKubernetes: CloudResourceKind
+IngressNginxKubernetes: CloudResourceKind
+IstioKubernetes: CloudResourceKind
+KafkaOperatorKubernetes: CloudResourceKind
+PostgresOperatorKubernetes: CloudResourceKind
+SolrOperatorKubernetes: CloudResourceKind
+ExternalSecretsKubernetes: CloudResourceKind
+ClickHouseKubernetes: CloudResourceKind
+AltinityOperatorKubernetes: CloudResourceKind
+PerconaPostgresqlOperator: CloudResourceKind
+PerconaServerMongodbOperator: CloudResourceKind
+PerconaServerMysqlOperator: CloudResourceKind
+DigitalOceanAppPlatformService: CloudResourceKind
+DigitalOceanBucket: CloudResourceKind
+DigitalOceanContainerRegistry: CloudResourceKind
+DigitalOceanDatabaseCluster: CloudResourceKind
+DigitalOceanDnsZone: CloudResourceKind
+DigitalOceanDroplet: CloudResourceKind
+DigitalOceanFirewall: CloudResourceKind
+DigitalOceanFunction: CloudResourceKind
+DigitalOceanKubernetesCluster: CloudResourceKind
+DigitalOceanKubernetesNodePool: CloudResourceKind
+DigitalOceanLoadBalancer: CloudResourceKind
+DigitalOceanVolume: CloudResourceKind
+DigitalOceanVpc: CloudResourceKind
+DigitalOceanCertificate: CloudResourceKind
+CivoBucket: CloudResourceKind
+CivoCertificate: CloudResourceKind
+CivoComputeInstance: CloudResourceKind
+CivoDatabase: CloudResourceKind
+CivoDnsZone: CloudResourceKind
+CivoFirewall: CloudResourceKind
+CivoIpAddress: CloudResourceKind
+CivoKubernetesCluster: CloudResourceKind
+CivoKubernetesNodePool: CloudResourceKind
+CivoLoadBalancer: CloudResourceKind
+CivoVolume: CloudResourceKind
+CivoVpc: CloudResourceKind
+CloudflareDnsZone: CloudResourceKind
+CloudflareKvNamespace: CloudResourceKind
+CloudflareR2Bucket: CloudResourceKind
+CloudflareWorker: CloudResourceKind
+CloudflareLoadBalancer: CloudResourceKind
+CloudflareD1Database: CloudResourceKind
+CloudflareZeroTrustAccessApplication: CloudResourceKind
+KIND_META_FIELD_NUMBER: _ClassVar[int]
+kind_meta: _descriptor.FieldDescriptor
+
+class CloudResourceKindMeta(_message.Message):
+    __slots__ = ("provider", "version", "name", "id_prefix", "is_service_kind", "kubernetes_meta")
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    ID_PREFIX_FIELD_NUMBER: _ClassVar[int]
+    IS_SERVICE_KIND_FIELD_NUMBER: _ClassVar[int]
+    KUBERNETES_META_FIELD_NUMBER: _ClassVar[int]
+    provider: _cloud_resource_provider_pb2.CloudResourceProvider
+    version: CloudResourceKindVersion
+    name: str
+    id_prefix: str
+    is_service_kind: bool
+    kubernetes_meta: KubernetesCloudResourceKindMeta
+    def __init__(self, provider: _Optional[_Union[_cloud_resource_provider_pb2.CloudResourceProvider, str]] = ..., version: _Optional[_Union[CloudResourceKindVersion, str]] = ..., name: _Optional[str] = ..., id_prefix: _Optional[str] = ..., is_service_kind: bool = ..., kubernetes_meta: _Optional[_Union[KubernetesCloudResourceKindMeta, _Mapping]] = ...) -> None: ...
+
+class KubernetesCloudResourceKindMeta(_message.Message):
+    __slots__ = ("namespace_prefix", "category")
+    NAMESPACE_PREFIX_FIELD_NUMBER: _ClassVar[int]
+    CATEGORY_FIELD_NUMBER: _ClassVar[int]
+    namespace_prefix: str
+    category: _kubernetes_pb2.KubernetesCloudResourceCategory
+    def __init__(self, namespace_prefix: _Optional[str] = ..., category: _Optional[_Union[_kubernetes_pb2.KubernetesCloudResourceCategory, str]] = ...) -> None: ...
