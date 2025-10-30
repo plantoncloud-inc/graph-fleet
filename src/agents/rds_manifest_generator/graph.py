@@ -8,7 +8,11 @@ ready before any user requests are processed.
 import logging
 import time
 
-from src.common.repos import RepositoryFetchError, RepositoryFilesMiddleware, fetch_repository
+from src.common.repos import (
+    RepositoryFetchError,
+    RepositoryFilesMiddleware,
+    fetch_repository,
+)
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
@@ -48,6 +52,7 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
             
         Returns:
             State update with proto files, or None if already initialized
+
         """
         # Call parent to copy files to virtual filesystem
         result = super().before_agent(state, runtime)
@@ -66,6 +71,7 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
                     
                 Raises:
                     ValueError: If file not found in cache
+
                 """
                 # Extract just the filename from the path
                 filename = file_path.split('/')[-1]
@@ -111,6 +117,7 @@ def _initialize_proto_schema_at_startup() -> None:
     
     Raises:
         RepositoryFetchError: If git clone/pull fails or file reading fails.
+
     """
     global _cached_proto_contents
     
@@ -137,7 +144,7 @@ def _initialize_proto_schema_at_startup() -> None:
         logger.info("=" * 60)
         logger.info(f"STARTUP: Clone/pull and caching completed in {elapsed:.2f} seconds")
         logger.info(f"Proto files cached in memory: {list(_cached_proto_contents.keys())}")
-        logger.info(f"Files will be copied to virtual filesystem on first request")
+        logger.info("Files will be copied to virtual filesystem on first request")
         logger.info("=" * 60)
         
     except RepositoryFetchError as e:

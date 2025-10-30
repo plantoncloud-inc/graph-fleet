@@ -1,0 +1,44 @@
+name: Validate Python Code
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+          poetry --version
+      
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+      
+      - name: Run Ruff linter
+        run: poetry run ruff check . --output-format=github
+      
+      - name: Run MyPy type checker
+        run: poetry run mypy --config-file mypy.ini src/
+      
+      - name: Validation summary
+        if: success()
+        run: |
+          echo "✅ All validation checks passed!"
+          echo "Safe to deploy to LangGraph Cloud"
+

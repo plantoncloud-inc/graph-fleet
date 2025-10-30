@@ -1,7 +1,6 @@
 """Tools for collecting and managing RDS manifest requirements."""
 
 import json
-from datetime import UTC, datetime
 from typing import Any
 
 from deepagents.backends.utils import create_file_data
@@ -22,6 +21,7 @@ def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
         
     Returns:
         Dictionary of collected requirements, empty dict if file doesn't exist
+
     """
     files = runtime.state.get("files", {})
     
@@ -54,6 +54,7 @@ def _write_requirements(runtime: ToolRuntime, requirements: dict[str, Any], mess
         
     Returns:
         Command to update filesystem state
+
     """
     content = json.dumps(requirements, indent=2)
     
@@ -87,6 +88,7 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
         store_requirement('engine', 'postgres')
         store_requirement('instance_class', 'db.t3.micro')
         store_requirement('multi_az', True)
+
     """
     if not field_name:
         return "✗ Error: field_name cannot be empty"
@@ -122,6 +124,7 @@ def get_collected_requirements(runtime: ToolRuntime) -> str:
           - engine_version: 15.5
           - instance_class: db.t3.micro
           - username: admin
+
     """
     requirements = _read_requirements(runtime)
     
@@ -152,6 +155,7 @@ def check_requirement_collected(field_name: str, runtime: ToolRuntime) -> str:
         check_requirement_collected('engine')
         # Returns: "Yes, engine = postgres"
         # Or: "No, engine has not been collected yet"
+
     """
     requirements = _read_requirements(runtime)
     
