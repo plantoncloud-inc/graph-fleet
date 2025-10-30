@@ -1,30 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run LangGraph Studio with environment variables loaded from .env_export
-# This script is used by Bazel to launch the graph-fleet service locally
+# Run LangGraph Studio with environment variables
+# Standalone repository version (no monorepo dependencies)
 
-# When run via 'bazel run', BUILD_WORKSPACE_DIRECTORY points to workspace root
-# Otherwise fall back to git root for direct execution
-REPO_ROOT="${BUILD_WORKSPACE_DIRECTORY:-$(git rev-parse --show-toplevel)}"
-SERVICE_DIR="${REPO_ROOT}/backend/services/graph-fleet"
-
-# Check if .env_export exists
-if [[ ! -f "${SERVICE_DIR}/.env_export" ]]; then
-  echo "Error: .env_export file not found in ${SERVICE_DIR}"
-  echo "Please run 'bazel run //backend/services/graph-fleet:dot_env_local' first"
-  exit 1
+# Detect repository root
+if [[ -f "langgraph.json" ]]; then
+  # Already in repository root
+  REPO_ROOT="$(pwd)"
+elif [[ -f "../langgraph.json" ]]; then
+  # One level up
+  REPO_ROOT="$(cd .. && pwd)"
+else
+  # Use git root as fallback
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")"
 fi
 
-# Source the environment variables
-set -a
-source "${SERVICE_DIR}/.env_export"
-set +a
+# Navigate to repository root
+cd "${REPO_ROOT}"
 
-# Navigate to the service directory (where langgraph.json lives)
-cd "${SERVICE_DIR}"
+# Check if .env file exists for environment variables
+if [[ -f ".env" ]]; then
+  echo "Loading environment variables from .env"
+  set -a
+  source ".env"
+  set +a
+else
+  echo "Warning: .env file not found. Copy .env.example to .env and configure."
+  echo "Continuing with existing environment variables..."
+fi
 
 # Run LangGraph Studio
 echo "Starting LangGraph Studio for graph-fleet..."
 exec poetry run langgraph dev
-

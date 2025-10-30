@@ -111,26 +111,30 @@ make clean         # Clean up cache files
 
 ## Configuration
 
-### Environment Variables
+### Environment Setup
 
-Required for most agents:
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
 
-```bash
-# LLM API Keys (at least one required)
-export OPENAI_API_KEY="your-key"
-export ANTHROPIC_API_KEY="your-key"
+2. Edit `.env` and add your API keys:
+   ```bash
+   # Required for LLM functionality
+   OPENAI_API_KEY=sk-...
+   ANTHROPIC_API_KEY=sk-ant-...
+   
+   # Required for LangSmith tracing
+   LANGSMITH_API_KEY=lsv2_...
+   
+   # Required for proto schema fetching
+   GITHUB_TOKEN=ghp_...
+   ```
 
-# GitHub Access (for proto schema fetching)
-export GITHUB_TOKEN="your-github-token"
-
-# Planton Cloud (optional, for platform integration)
-export PLANTON_TOKEN="your-token"
-export PLANTON_ORG_ID="your-org-id"
-export PLANTON_ENV_NAME="your-env-name"
-
-# PostgreSQL for persistent memory (optional)
-export DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
-```
+3. Optional configurations (see `.env.example` for full list):
+   - `TAVILY_API_KEY` - Search functionality
+   - `DATABASE_URL` - Persistent memory
+   - `PLANTON_TOKEN` - Planton Cloud integration
 
 Agent-specific environment variables may be required - see individual agent documentation.
 
