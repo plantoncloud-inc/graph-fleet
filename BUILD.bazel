@@ -13,10 +13,10 @@ py_library(
     name = "graph_fleet_lib",
     visibility = ["//visibility:public"],
     deps = [
-        "//backend/services/graph-fleet/src:common",
-        "//backend/services/graph-fleet/src/agents/rds_manifest_generator",
         "//apis/stubs:planton_cloud_python",
         "//apis/stubs:project_planton_python",
+        "//backend/services/graph-fleet/src:common",
+        "//backend/services/graph-fleet/src/agents/rds_manifest_generator",
     ],
 )
 
@@ -36,8 +36,8 @@ sh_binary(
         allow_empty = True,
     ) + [
         "langgraph.json",
-        "pyproject.toml",
         "poetry.lock",
+        "pyproject.toml",
     ],
     visibility = ["//visibility:public"],
 )
