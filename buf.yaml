@@ -1,6 +1,0 @@
-version: v2
-deps:
-  - buf.build/bufbuild/protovalidate
-  - buf.build/project-planton/apis
-  - buf.build/blintora/apis
-
