@@ -53,7 +53,8 @@ The agent automatically fetches proto schema files from the `project-planton` re
 
 ```bash
 cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
-make run
+make deps  # Install dependencies
+make run   # Start LangGraph Studio
 ```
 
 Then open http://localhost:8123 and select the `rds_manifest_generator` graph.
