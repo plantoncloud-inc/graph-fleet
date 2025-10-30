@@ -19,6 +19,7 @@ class RepositoryConfig(NamedTuple):
         url: Git repository URL (HTTPS)
         repo_path: Path within the repository to the files we need
         files: List of file names to fetch from repo_path
+
     """
     
     name: str
@@ -57,6 +58,7 @@ def get_repository_config(name: str) -> RepositoryConfig:
         
     Raises:
         ValueError: If repository name is not registered
+
     """
     if name not in _REPOSITORY_REGISTRY:
         available = ", ".join(_REPOSITORY_REGISTRY.keys())

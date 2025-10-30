@@ -28,6 +28,7 @@ deepagents = "0.2.0"
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"
 mypy = ">=1.10.0"
+types-pyyaml = "^6.0.12.20250915"
 
 [build-system]
 requires = ["poetry-core"]

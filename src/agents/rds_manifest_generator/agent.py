@@ -482,6 +482,7 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
 
     Returns:
         A compiled LangGraph agent ready for use
+
     """
     # Build middleware list with only what we need
     rds_middleware = [

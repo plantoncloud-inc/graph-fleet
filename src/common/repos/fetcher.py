@@ -30,6 +30,7 @@ def fetch_repository(config: RepositoryConfig) -> list[Path]:
         
     Raises:
         RepositoryFetchError: If Git operations fail or files are not found
+
     """
     # Ensure cache directory exists
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -92,6 +93,7 @@ def _git_clone(repo_url: str, target_dir: Path) -> None:
         
     Raises:
         subprocess.CalledProcessError: If git clone fails
+
     """
     # Use shallow clone (--depth 1) to only fetch the latest commit
     # This significantly reduces clone time and disk space
@@ -111,6 +113,7 @@ def _git_pull(repo_dir: Path) -> None:
         
     Raises:
         subprocess.CalledProcessError: If git pull fails
+
     """
     subprocess.run(
         ["git", "-C", str(repo_dir), "pull", "origin", "main"],

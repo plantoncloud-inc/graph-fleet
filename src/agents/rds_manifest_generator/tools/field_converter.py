@@ -28,6 +28,7 @@ def proto_to_yaml_field_name(proto_field: str) -> str:
         'kmsKeyId'
         >>> proto_to_yaml_field_name('db_subnet_group_name')
         'dbSubnetGroupName'
+
     """
     # Skip metadata fields (these are internal markers)
     if proto_field.startswith("_metadata_"):
@@ -42,6 +43,7 @@ def proto_to_yaml_field_name(proto_field: str) -> str:
 
     # First part stays lowercase, capitalize rest
     return parts[0] + "".join(word.capitalize() for word in parts[1:])
+
 
 
 
