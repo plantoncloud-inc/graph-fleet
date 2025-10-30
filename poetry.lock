@@ -3019,13 +3019,13 @@ develop = true
 
 [package.dependencies]
 googleapis-common-protos = "1.70.0"
-grpcio = "1.74.0"
-protobuf = "6.32.0"
+grpcio = ">=1.74.0,<2.0.0"
+protobuf = ">=6.32.0,<7.0.0"
 typing-extensions = "4.14.1"
 
 [package.source]
 type = "directory"
-url = "../../../apis/stubs/python/planton_cloud"
+url = "apis/stubs/python/planton_cloud"
 
 [[package]]
 name = "pluggy"
@@ -3055,13 +3055,13 @@ develop = true
 
 [package.dependencies]
 googleapis-common-protos = "1.70.0"
-grpcio = "1.74.0"
-protobuf = "6.32.0"
+grpcio = ">=1.74.0,<2.0.0"
+protobuf = ">=6.32.0,<7.0.0"
 typing-extensions = "4.14.1"
 
 [package.source]
 type = "directory"
-url = "../../../apis/stubs/python/project_planton"
+url = "apis/stubs/python/project_planton"
 
 [[package]]
 name = "protobuf"
@@ -5365,4 +5365,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "433cfe740213cea4508b3e0e7b2c9516764c4b0b3e86d62be9181eeb3015ed5d"
+content-hash = "1c4cb55c8a4149e5c6f63ba8e7ca6f2b1b14ad370ebba128cf6273c117dad822"
