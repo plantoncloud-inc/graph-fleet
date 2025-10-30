@@ -139,6 +139,15 @@ Every push and pull request automatically runs validation checks via GitHub Acti
 
 The CI workflow runs the same checks as `make build`, so running locally before pushing ensures your code will pass CI.
 
+**Branch Protection:**
+
+The `main` branch is protected and requires the "Validate Python Code" workflow to pass before pull requests can be merged. This means:
+- ❌ PRs cannot be merged if linting or type checking fails
+- ✅ All merged code is guaranteed to meet quality standards
+- 🔒 Direct pushes to `main` are prevented
+
+For details on branch protection setup and troubleshooting, see [`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md).
+
 ## Configuration
 
 ### Environment Setup
