@@ -1,25 +1,18 @@
-.PHONY: all build run deps gen-stubs lint clean help venvs
+.PHONY: all build run deps lint clean help venvs
 
 help:
 	@echo "Available targets:"
-	@echo "  make gen-stubs  - Generate Python stubs from Buf BSR"
-	@echo "  make deps       - Install dependencies (generates stubs first)"
+	@echo "  make deps       - Install dependencies"
 	@echo "  make venvs      - Create virtual environment and install dependencies"
 	@echo "  make run        - Start LangGraph Studio"
 	@echo "  make build      - Run lints and type checks"
 	@echo "  make clean      - Clean up cache files"
 
-gen-stubs:
-	@echo "Generating Python stubs from Buf BSR"
-	buf generate --template buf.gen.planton-cloud.yaml
-	buf generate --template buf.gen.project-planton.yaml
-	@echo "Stubs generated in apis/stubs/python/"
-
-deps: gen-stubs
+deps:
 	@echo "Installing dependencies (poetry)"
 	poetry install
 
-venvs: gen-stubs
+venvs:
 	@echo "Creating Poetry virtual environment"
 	poetry install
 	@echo "Virtual environment created. Activate with: poetry shell"

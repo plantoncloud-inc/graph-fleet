@@ -21,12 +21,9 @@ aiofiles = ">=24.0.0,<25.0.0"
 pydantic = ">=2.0.0,<3.0.0"
 psycopg = {extras = ["binary", "pool"], version = ">=3.0.0,<4.0.0"}
 langgraph-checkpoint-postgres = ">=2.0.0,<3.0.0"
-grpcio = ">=1.60.0,<2.0.0"
 awslabs-aws-api-mcp-server = ">=0.2.11,<0.3.0"
 awslabs-ecs-mcp-server = ">=0.1.2,<0.2.0"
 deepagents = "0.2.0"
-planton-cloud-stubs = { path = "apis/stubs/python/planton_cloud", develop = true, python = ">=3.11" }
-project-planton-stubs = { path = "apis/stubs/python/project_planton", develop = true, python = ">=3.11" }
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"

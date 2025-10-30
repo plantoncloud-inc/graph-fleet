@@ -65,9 +65,6 @@ celerybeat.pid
 .env_export
 .env.local
 
-# Generated proto stubs (now generated on-demand)
-apis/stubs/
-
 # Poetry/Python
 .venv
 env/
