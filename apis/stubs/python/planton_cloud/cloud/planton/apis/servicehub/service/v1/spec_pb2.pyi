@@ -4,6 +4,7 @@ from cloud.planton.apis.integration.vcs import github_pb2 as _github_pb2
 from cloud.planton.apis.integration.vcs import provider_pb2 as _provider_pb2
 from cloud.planton.apis.servicehub.service.v1 import enum_pb2 as _enum_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
@@ -12,20 +13,30 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ServiceSpec(_message.Message):
-    __slots__ = ("description", "git_repo", "webhook_id", "pipeline_configuration", "ingress", "deployment_environments")
+    __slots__ = ("description", "git_repo", "webhook_id", "pipeline_configuration", "ingress", "deployment_environments", "package_type")
+    class PackageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        package_type_unspecified: _ClassVar[ServiceSpec.PackageType]
+        container_image: _ClassVar[ServiceSpec.PackageType]
+        cloudflare_worker_script: _ClassVar[ServiceSpec.PackageType]
+    package_type_unspecified: ServiceSpec.PackageType
+    container_image: ServiceSpec.PackageType
+    cloudflare_worker_script: ServiceSpec.PackageType
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     GIT_REPO_FIELD_NUMBER: _ClassVar[int]
     WEBHOOK_ID_FIELD_NUMBER: _ClassVar[int]
     PIPELINE_CONFIGURATION_FIELD_NUMBER: _ClassVar[int]
     INGRESS_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_ENVIRONMENTS_FIELD_NUMBER: _ClassVar[int]
+    PACKAGE_TYPE_FIELD_NUMBER: _ClassVar[int]
     description: str
     git_repo: ServiceGitRepo
     webhook_id: str
     pipeline_configuration: ServicePipelineConfiguration
     ingress: ServiceIngressConfiguration
     deployment_environments: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, description: _Optional[str] = ..., git_repo: _Optional[_Union[ServiceGitRepo, _Mapping]] = ..., webhook_id: _Optional[str] = ..., pipeline_configuration: _Optional[_Union[ServicePipelineConfiguration, _Mapping]] = ..., ingress: _Optional[_Union[ServiceIngressConfiguration, _Mapping]] = ..., deployment_environments: _Optional[_Iterable[str]] = ...) -> None: ...
+    package_type: ServiceSpec.PackageType
+    def __init__(self, description: _Optional[str] = ..., git_repo: _Optional[_Union[ServiceGitRepo, _Mapping]] = ..., webhook_id: _Optional[str] = ..., pipeline_configuration: _Optional[_Union[ServicePipelineConfiguration, _Mapping]] = ..., ingress: _Optional[_Union[ServiceIngressConfiguration, _Mapping]] = ..., deployment_environments: _Optional[_Iterable[str]] = ..., package_type: _Optional[_Union[ServiceSpec.PackageType, str]] = ...) -> None: ...
 
 class ServiceGitRepo(_message.Message):
     __slots__ = ("owner_name", "name", "default_branch", "browser_url", "clone_url", "git_repo_provider", "github_repo", "project_root", "trigger_paths", "sparse_checkout_directories")

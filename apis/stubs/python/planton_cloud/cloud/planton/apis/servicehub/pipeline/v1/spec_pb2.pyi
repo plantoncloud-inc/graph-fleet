@@ -9,13 +9,14 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class PipelineSpec(_message.Message):
-    __slots__ = ("service_id", "service_slug", "git_commit", "git_repo_provider", "github", "container_image", "is_preview_pipeline")
+    __slots__ = ("service_id", "service_slug", "git_commit", "git_repo_provider", "github", "container_image", "cloudflare_worker_script", "is_preview_pipeline")
     SERVICE_ID_FIELD_NUMBER: _ClassVar[int]
     SERVICE_SLUG_FIELD_NUMBER: _ClassVar[int]
     GIT_COMMIT_FIELD_NUMBER: _ClassVar[int]
     GIT_REPO_PROVIDER_FIELD_NUMBER: _ClassVar[int]
     GITHUB_FIELD_NUMBER: _ClassVar[int]
     CONTAINER_IMAGE_FIELD_NUMBER: _ClassVar[int]
+    CLOUDFLARE_WORKER_SCRIPT_FIELD_NUMBER: _ClassVar[int]
     IS_PREVIEW_PIPELINE_FIELD_NUMBER: _ClassVar[int]
     service_id: str
     service_slug: str
@@ -23,8 +24,9 @@ class PipelineSpec(_message.Message):
     git_repo_provider: _provider_pb2.GitRepoProvider
     github: PipelineGitRepoGithub
     container_image: PipelineContainerImage
+    cloudflare_worker_script: PipelineCloudflareWorkerScript
     is_preview_pipeline: bool
-    def __init__(self, service_id: _Optional[str] = ..., service_slug: _Optional[str] = ..., git_commit: _Optional[_Union[_git_commit_pb2.GitCommit, _Mapping]] = ..., git_repo_provider: _Optional[_Union[_provider_pb2.GitRepoProvider, str]] = ..., github: _Optional[_Union[PipelineGitRepoGithub, _Mapping]] = ..., container_image: _Optional[_Union[PipelineContainerImage, _Mapping]] = ..., is_preview_pipeline: bool = ...) -> None: ...
+    def __init__(self, service_id: _Optional[str] = ..., service_slug: _Optional[str] = ..., git_commit: _Optional[_Union[_git_commit_pb2.GitCommit, _Mapping]] = ..., git_repo_provider: _Optional[_Union[_provider_pb2.GitRepoProvider, str]] = ..., github: _Optional[_Union[PipelineGitRepoGithub, _Mapping]] = ..., container_image: _Optional[_Union[PipelineContainerImage, _Mapping]] = ..., cloudflare_worker_script: _Optional[_Union[PipelineCloudflareWorkerScript, _Mapping]] = ..., is_preview_pipeline: bool = ...) -> None: ...
 
 class PipelineGitRepoGithub(_message.Message):
     __slots__ = ("app_install_info", "repo")
@@ -41,3 +43,11 @@ class PipelineContainerImage(_message.Message):
     repo: str
     tag: str
     def __init__(self, repo: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+
+class PipelineCloudflareWorkerScript(_message.Message):
+    __slots__ = ("bucket_name", "script_path")
+    BUCKET_NAME_FIELD_NUMBER: _ClassVar[int]
+    SCRIPT_PATH_FIELD_NUMBER: _ClassVar[int]
+    bucket_name: str
+    script_path: str
+    def __init__(self, bucket_name: _Optional[str] = ..., script_path: _Optional[str] = ...) -> None: ...
