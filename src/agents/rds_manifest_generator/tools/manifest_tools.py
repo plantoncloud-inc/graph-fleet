@@ -4,7 +4,6 @@ import json
 import random
 import re
 import string
-from datetime import UTC, datetime
 from typing import Any
 
 import yaml
@@ -33,12 +32,13 @@ def generate_random_suffix(length: int = 6) -> str:
         6
         >>> suffix.isalnum()
         True
+
     """
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 def _get_pattern_example(field_name: str, pattern: str) -> str:
-    """Get user-friendly example for pattern validation errors.
+    r"""Get user-friendly example for pattern validation errors.
 
     Args:
         field_name: Name of the field with pattern validation
@@ -50,6 +50,7 @@ def _get_pattern_example(field_name: str, pattern: str) -> str:
     Example:
         >>> _get_pattern_example('instance_class', '^db\\\\.')
         'must start with "db." (e.g., db.t3.micro, db.m6g.large)'
+
     """
     # Common patterns and their examples
     pattern_examples = {
@@ -90,6 +91,7 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     Example:
         set_manifest_metadata(name='production-db')
         set_manifest_metadata(name='staging-postgres', labels={'team': 'backend'})
+
     """
     if not name and not labels:
         return "✓ No metadata changes (both name and labels were None)"
@@ -119,7 +121,7 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
 
 @tool
 def validate_manifest(runtime: ToolRuntime) -> str:
-    """Validate collected requirements against proto validation rules.
+    r"""Validate collected requirements against proto validation rules.
 
     Checks that all required fields are present and all values meet
     validation constraints (pattern, min_len, gt, gte, lte, etc.).
@@ -137,6 +139,7 @@ def validate_manifest(runtime: ToolRuntime) -> str:
         validate_manifest()
         # Returns: "✓ All requirements are valid and complete"
         # Or: "Validation issues found:\n  - Missing required field: engine\n  - ..."
+
     """
     from ..schema.loader import get_schema_loader
 
@@ -238,6 +241,7 @@ def generate_rds_manifest(
     Example:
         generate_rds_manifest(resource_name='production-postgres')
         # Writes manifest to /manifest.yaml
+
     """
     # Read requirements from filesystem
     requirements = _read_requirements(runtime)

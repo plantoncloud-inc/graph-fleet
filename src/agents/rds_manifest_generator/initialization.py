@@ -31,7 +31,6 @@ for the shared repository infrastructure that all agents can use.
 """
 
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 
 from langchain.tools import ToolRuntime
@@ -47,6 +46,7 @@ from .schema.loader import ProtoSchemaLoader, set_schema_loader
 # Stub definitions for deprecated code - not actually used
 class ProtoFetchError(Exception):
     """Error fetching proto files from repository."""
+
     pass
 
 
@@ -63,6 +63,7 @@ def create_filesystem_reader(runtime: ToolRuntime) -> Callable[[str], str]:
 
     Returns:
         Function that reads file content from DeepAgent filesystem.
+
     """
 
     def read_file_from_filesystem(file_path: str) -> str:
@@ -76,6 +77,7 @@ def create_filesystem_reader(runtime: ToolRuntime) -> Callable[[str], str]:
 
         Raises:
             ValueError: If file not found in filesystem.
+
         """
         files = runtime.state.get("files", {})
         if file_path not in files:
@@ -103,6 +105,7 @@ def initialize_proto_schema(runtime: ToolRuntime) -> Command | str:
 
     Returns:
         Command to update state with proto files, or error message.
+
     """
     from .config import FILESYSTEM_PROTO_DIR
 

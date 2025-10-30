@@ -29,6 +29,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
         file_contents: Dictionary mapping filenames to file content strings
         vfs_directory: Virtual filesystem directory path where files should be placed
         description: Human-readable description of what files are being loaded
+
     """
     
     def __init__(
@@ -43,6 +44,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
             file_contents: Dictionary mapping filenames to their content
             vfs_directory: Virtual filesystem directory (e.g., "/schema/protos")
             description: Description for logging (e.g., "proto schema files")
+
         """
         self._initialized = False
         self._file_contents = file_contents
@@ -62,6 +64,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
             
         Returns:
             State update with files added to virtual filesystem, or None if already initialized
+
         """
         if self._initialized:
             return None
@@ -70,7 +73,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
         
         logger.info("=" * 60)
         logger.info(f"FIRST REQUEST: Copying {self._description} to virtual filesystem...")
-        logger.info(f"Source: In-memory cache (loaded at startup)")
+        logger.info("Source: In-memory cache (loaded at startup)")
         logger.info(f"Destination: Virtual filesystem ({self._vfs_directory})")
         logger.info("=" * 60)
         

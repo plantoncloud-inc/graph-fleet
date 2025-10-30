@@ -1,11 +1,13 @@
-.PHONY: all build run deps lint clean help venvs
+.PHONY: all build run deps lint typecheck clean help venvs
 
 help:
 	@echo "Available targets:"
 	@echo "  make deps       - Install dependencies"
 	@echo "  make venvs      - Create virtual environment and install dependencies"
 	@echo "  make run        - Start LangGraph Studio"
-	@echo "  make build      - Run lints and type checks"
+	@echo "  make lint       - Run ruff linter only"
+	@echo "  make typecheck  - Run mypy type checker only"
+	@echo "  make build      - Run full validation (lint + typecheck)"
 	@echo "  make clean      - Clean up cache files"
 
 deps:
@@ -21,10 +23,16 @@ run:
 	@echo "Starting LangGraph Studio"
 	poetry run langgraph dev
 
-build:
-	@echo "Running lints and type checks"
+lint:
+	@echo "Running ruff linter..."
 	poetry run ruff check .
-	poetry run mypy src/
+
+typecheck:
+	@echo "Running mypy type checker..."
+	poetry run mypy --config-file mypy.ini src/
+
+build: lint typecheck
+	@echo "✅ All checks passed!"
 
 clean:
 	@echo "Cleaning cache files"
