@@ -1,0 +1,12 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: MicroserviceKubernetes
+metadata:
+  name: graph-fleet
+spec:
+  container:
+    app:
+      env:
+        variables:
+          ENV: local
+          LANGSMITH_PROJECT: $variables-group/langchain/graph-fleet.project
+

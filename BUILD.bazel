@@ -1,4 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_library")
+load("//tools/bazel/macros:dot_env.bzl", "dot_env_binary")
 
 exports_files([
     "pyproject.toml",
@@ -12,9 +13,31 @@ py_library(
     name = "graph_fleet_lib",
     visibility = ["//visibility:public"],
     deps = [
-        "//backend/services/graph-fleet/src:common",
-        "//backend/services/graph-fleet/src/agents/rds_manifest_generator",
         "//apis/stubs:planton_cloud_python",
         "//apis/stubs:project_planton_python",
+        "//backend/services/graph-fleet/src:common",
+        "//backend/services/graph-fleet/src/agents/rds_manifest_generator",
     ],
+)
+
+# Helper binary to generate .env file for local development
+dot_env_binary(
+    name = "dot_env_local",
+    local_service_port = "8022",
+    service_name = "graph-fleet",
+)
+
+# Runnable target to launch LangGraph Studio locally
+sh_binary(
+    name = "graph_fleet_dev",
+    srcs = ["run_langgraph.sh"],
+    data = glob(
+        [".env_export"],
+        allow_empty = True,
+    ) + [
+        "langgraph.json",
+        "poetry.lock",
+        "pyproject.toml",
+    ],
+    visibility = ["//visibility:public"],
 )

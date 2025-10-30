@@ -17,21 +17,18 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/services/graph-fleet/src:common",
-        # LangChain and LangGraph dependencies
-        "@graph_fleet_poetry//:langchain",
-        "@graph_fleet_poetry//:langchain-core",
-        "@graph_fleet_poetry//:langgraph",
-        "@graph_fleet_poetry//:langchain-anthropic",
-        "@graph_fleet_poetry//:langchain-openai",
+        # LangChain and LangGraph dependencies from centralized poetry
+        "@poetry//:langchain",
+        "@poetry//:langchain-core",
+        "@poetry//:langgraph",
+        "@poetry//:langchain-anthropic",
+        "@poetry//:langchain-openai",
         # DeepAgents framework
-        "@graph_fleet_poetry//:deepagents",
+        "@poetry//:deepagents",
         # Utility dependencies
-        "@graph_fleet_poetry//:pyyaml",
-        "@graph_fleet_poetry//:pydantic",
-        # NOTE: Planton Cloud API stubs from Buf.build are NOT included in Bazel deps
-        # because they have unstable version hashes. For Bazel builds, these must be
-        # installed separately via Poetry. This is a known limitation for now.
-        # Use Poetry for full dependency resolution including Buf.build packages.
+        "@poetry//:pyyaml",
+        "@poetry//:pydantic",
+        # NOTE: Planton Cloud API stubs are included from local proto stub targets
+        # in the graph-fleet top-level BUILD.bazel file
     ],
 )
-

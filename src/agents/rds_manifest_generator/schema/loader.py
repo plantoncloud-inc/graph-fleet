@@ -21,8 +21,8 @@ class ProtoField:
     field_number: int
     required: bool
     description: str
-    validation_rules: dict
-    foreign_key_info: dict | None = None
+    validation_rules: dict[str, Any]
+    foreign_key_info: dict[str, Any] | None = None
     is_repeated: bool = False
 
 
@@ -39,7 +39,7 @@ class ProtoSchemaLoader:
         """
         self.read_file_func = read_file_func
         self.schema_dir = Path(__file__).parent / "protos"
-        self._spec_fields = None
+        self._spec_fields: list[ProtoField] | None = None
 
     def _parse_proto_file(self, filename: str) -> str:
         """Read a proto file and return its contents."""
@@ -64,7 +64,7 @@ class ProtoSchemaLoader:
 
     def _extract_field_description(self, lines: list[str], field_index: int) -> str:
         """Extract field description from comments above the field."""
-        description_lines = []
+        description_lines: list[str] = []
         # Look backwards from the field line to find comments
         i = field_index - 1
         comment_block_started = False
@@ -90,9 +90,9 @@ class ProtoSchemaLoader:
 
         return " ".join(description_lines)
 
-    def _parse_validation_rules(self, field_line: str) -> dict:
+    def _parse_validation_rules(self, field_line: str) -> dict[str, Any]:
         """Parse buf.validate rules from a field definition."""
-        rules = {}
+        rules: dict[str, Any] = {}
 
         # Extract all (buf.validate.field).xxx patterns
         # Handle both single and multiple validations in brackets
@@ -136,9 +136,9 @@ class ProtoSchemaLoader:
 
         return rules
 
-    def _parse_foreign_key_info(self, field_line: str) -> dict | None:
+    def _parse_foreign_key_info(self, field_line: str) -> dict[str, Any] | None:
         """Parse foreign key annotations from a field definition."""
-        fk_info = {}
+        fk_info: dict[str, Any] = {}
 
         # Look for default_kind annotation
         kind_pattern = r"\(project\.planton\.shared\.foreignkey\.v1\.default_kind\)\s*=\s*(\w+)"
@@ -244,7 +244,8 @@ class ProtoSchemaLoader:
     def load_spec_schema(self) -> list[ProtoField]:
         """Load and return all fields from the spec schema."""
         if self._spec_fields is None:
-            self._spec_fields = self._parse_spec_fields()
+            fields = self._parse_spec_fields()
+            self._spec_fields = fields
         return self._spec_fields
 
     def get_required_fields(self) -> list[ProtoField]:
