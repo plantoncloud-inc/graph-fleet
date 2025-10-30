@@ -98,7 +98,7 @@ _cursor
 # Local proto files (fetched from Git at runtime)
 src/agents/rds_manifest_generator/schema/protos/
 
-# Bazel build outputs (to be cleaned up in Phase 4)
+# Bazel build outputs (removed in Phase 4 - standalone migration)
 bazel-*
 .bazel-cache/
 
