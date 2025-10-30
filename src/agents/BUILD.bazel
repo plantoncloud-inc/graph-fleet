@@ -1,7 +1,0 @@
-"""
-BUILD file for agents/ package
-
-Contains LangGraph agent implementations.
-"""
-
-# This file intentionally left minimal - specific agents have their own BUILD files
