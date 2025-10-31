@@ -20,7 +20,7 @@ mcp = ">=1.0.0,<2.0.0"
 aiofiles = ">=24.0.0,<25.0.0"
 pydantic = ">=2.0.0,<3.0.0"
 psycopg = {extras = ["binary", "pool"], version = ">=3.0.0,<4.0.0"}
-langgraph-checkpoint-postgres = ">=2.0.0,<3.0.0"
+langgraph-checkpoint-postgres = ">=3.0.0,<4.0.0"
 awslabs-aws-api-mcp-server = ">=0.2.11,<0.3.0"
 awslabs-ecs-mcp-server = ">=0.1.2,<0.2.0"
 deepagents = "0.2.0"
