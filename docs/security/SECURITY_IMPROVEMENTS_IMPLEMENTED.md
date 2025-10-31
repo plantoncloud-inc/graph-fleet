@@ -221,7 +221,7 @@ Review `.github/SECURITY.md` to understand:
 2. `.github/SECURITY.md` - Security policy and reporting
 3. `.pre-commit-config.yaml` - Pre-commit hooks configuration
 4. `SECURITY_ASSESSMENT.md` - Detailed security analysis
-5. `SECURITY_IMPROVEMENTS_IMPLEMENTED.md` - This document
+5. `docs/security/SECURITY_IMPROVEMENTS_IMPLEMENTED.md` - This document
 
 ### Modified Settings (via GitHub API)
 1. Repository security settings
