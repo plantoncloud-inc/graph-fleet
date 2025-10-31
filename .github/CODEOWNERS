@@ -1,0 +1,41 @@
+# Code Owners for graph-fleet
+# 
+# These owners will be automatically requested for review when someone 
+# opens a pull request that modifies code in the specified paths.
+#
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# Unless a later match takes precedence, these owners will be requested 
+# for review when someone opens a pull request.
+* @sureshattaluri @swarupdonepudi
+
+# GitHub specific files and workflows
+/.github/ @sureshattaluri @swarupdonepudi
+
+# Configuration files
+*.yaml @sureshattaluri @swarupdonepudi
+*.yml @sureshattaluri @swarupdonepudi
+*.json @sureshattaluri @swarupdonepudi
+*.toml @sureshattaluri @swarupdonepudi
+pyproject.toml @sureshattaluri @swarupdonepudi
+uv.lock @sureshattaluri @swarupdonepudi
+
+# Source code - all agents
+/src/agents/ @sureshattaluri @swarupdonepudi
+
+# Infrastructure and deployment configurations
+/_kustomize/ @sureshattaluri @swarupdonepudi
+
+# Security-sensitive files
+.env* @sureshattaluri @swarupdonepudi
+*.pem @sureshattaluri @swarupdonepudi
+*.key @sureshattaluri @swarupdonepudi
+
+# Documentation
+*.md @sureshattaluri @swarupdonepudi
+/docs/ @sureshattaluri @swarupdonepudi
+
+# CI/CD
+.github/workflows/ @sureshattaluri @swarupdonepudi
+
