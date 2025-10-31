@@ -1,0 +1,115 @@
+# Pre-commit hooks for graph-fleet
+# 
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Usage:
+#   pre-commit run --all-files  # Run on all files
+#   pre-commit run              # Run on staged files only
+#
+# More info: https://pre-commit.com
+
+repos:
+  # Gitleaks - Detect hardcoded secrets
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: Detect secrets with Gitleaks
+        description: Scan for hardcoded secrets and credentials
+        entry: gitleaks protect --verbose --redact --staged
+        language: golang
+        pass_filenames: false
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent large files from being committed
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+        
+      # Check for files that would conflict in case-insensitive filesystems
+      - id: check-case-conflict
+      
+      # Ensure files end with a newline
+      - id: end-of-file-fixer
+        exclude: ^\.env_export$
+        
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        
+      # Check YAML files for syntax errors
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+        
+      # Check JSON files for syntax errors  
+      - id: check-json
+        
+      # Check TOML files for syntax errors
+      - id: check-toml
+        
+      # Detect private keys
+      - id: detect-private-key
+        
+      # Prevent commits to main branch
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']
+        stages: [commit]
+
+  # Python-specific checks
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        name: Format Python code with Black
+        language_version: python3.12
+        args: ['--line-length=100']
+
+  # Ruff - Fast Python linter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.2
+    hooks:
+      - id: ruff
+        name: Lint Python code with Ruff
+        args: ['--fix', '--exit-non-zero-on-fix']
+
+  # YAML formatting
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.14.0
+    hooks:
+      - id: pretty-format-yaml
+        args: ['--autofix', '--indent', '2']
+        exclude: ^\.github/workflows/
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+
+# Configuration for specific hooks
+default_language_version:
+  python: python3.12
+
+# Files to exclude from all hooks
+exclude: |
+  (?x)^(
+    \.git/.*|
+    \.venv/.*|
+    venv/.*|
+    __pycache__/.*|
+    \.pytest_cache/.*|
+    \.mypy_cache/.*|
+    \.ruff_cache/.*|
+    node_modules/.*|
+    \.env$|
+    \.env\..*|
+    uv\.lock$|
+    .*\.min\.js$|
+    .*\.min\.css$
+  )
+
