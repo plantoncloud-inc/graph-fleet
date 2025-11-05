@@ -19,21 +19,21 @@ The AWS RDS Manifest Generator is currently a proof-of-concept agent running in 
 
 ### Current State
 
-- **Deployment**: Local LangGraph Studio
+- **Deployment**: Local LangGraph Studio + Production (Planton Cloud)
 - **Authentication**: Environment variable (ANTHROPIC_API_KEY)
-- **Context**: Hardcoded defaults (org="project-planton", env="aws")
+- **Context**: ✅ Dynamic injection from execution metadata (org, env)
 - **State**: In-memory for session duration
 - **Output**: YAML string returned to conversation
 - **Proto Schema**: Dynamically fetched from Git at startup
 
-### Production Goals
+### Production Integration Status
 
-- **Deployment**: Cloud-hosted LangGraph deployment
-- **Authentication**: Platform-managed credentials
-- **Context**: Injected from user session
-- **State**: Persistent across sessions
-- **Output**: Direct integration with manifest storage/deployment
-- **Proto Schema**: Git access configured for production environment
+- ✅ **Context Injection**: Org and env automatically passed from execution metadata
+- ⏳ **Deployment**: Cloud-hosted LangGraph deployment (in progress)
+- ⏳ **Authentication**: Platform-managed credentials (planned)
+- ⏳ **State**: Persistent across sessions (planned)
+- ⏳ **Output**: Direct integration with manifest storage/deployment (planned)
+- ✅ **Proto Schema**: Git access configured for production environment
 
 ## Prerequisites
 
@@ -107,95 +107,77 @@ Please ensure you have network access and Git is installed.
 
 ## Context Injection
 
-### Current Implementation
-
-The agent uses hardcoded defaults in `tools/manifest_tools.py`:
-
-```python
-def generate_rds_manifest(
-    resource_name: str = None,
-    org: str = "project-planton",  # Hardcoded
-    env: str = "aws"                 # Hardcoded
-) -> str:
-    # ...
-```
-
 ### Production Implementation
 
-**Option 1: Pass Context via Tool Parameters**
+Organization and environment context is now automatically injected via LangGraph's configurable mechanism:
 
-Modify the tool to accept context from agent state:
+1. **Backend extracts context**: The agent-fleet-worker reads org and env from 
+   `execution.metadata.org` and `execution.metadata.env`
 
+2. **Passed via config**: These values are added to the LangGraph config's 
+   `configurable` dict when invoking the graph
+
+3. **Tools access via RunnableConfig**: Tools receive the config parameter and
+   extract org/env from `config["configurable"]`
+
+#### Implementation Example
+
+**Backend (agent-fleet-worker/execute_langgraph.py)**:
 ```python
+# Prepare config with thread_id, org, and env
+config = {
+    "configurable": {
+        "thread_id": thread_id,
+        "org": execution.metadata.org,      # ← From Execution
+        "env": execution.metadata.env,      # ← From Execution
+    }
+}
+
+# Stream execution using RemoteGraph
+async for chunk in remote_graph.astream(
+    langgraph_input,
+    config=config,
+    stream_mode=["messages", "updates"],
+):
+    # Process chunk...
+```
+
+**Agent Tool (manifest_tools.py)**:
+```python
+from langchain_core.runnables import RunnableConfig
+
+@tool
 def generate_rds_manifest(
-    resource_name: str = None,
-    org: str = None,
-    env: str = None
-) -> str:
-    # Get from state if not provided
-    from .context import get_user_context
+    resource_name: str | None = None,
+    runtime: ToolRuntime = None,
+    config: RunnableConfig = None,
+) -> Command | str:
+    """Generate AWS RDS Instance YAML manifest."""
     
-    context = get_user_context()
-    org = org or context.get("org")
-    env = env or context.get("env")
+    # Extract org and env from configurable, with fallback defaults
+    org = "project-planton"  # default fallback for local development
+    env = "aws"  # default fallback for local development
     
-    # ... rest of implementation
-```
-
-**Option 2: Global Context Provider**
-
-Create a context provider that tools can access:
-
-```python
-# tools/context.py
-class UserContext:
-    _instance = None
+    if config and "configurable" in config:
+        org = config["configurable"].get("org", org)    # ← Accessed in tool
+        env = config["configurable"].get("env", env)    # ← Accessed in tool
     
-    def __init__(self):
-        self.org = None
-        self.env = None
-        self.user_id = None
-        self.workspace_id = None
-    
-    @classmethod
-    def get(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-    
-    def set_from_session(self, session_data: dict):
-        self.org = session_data.get("org")
-        self.env = session_data.get("env")
-        self.user_id = session_data.get("user_id")
-        self.workspace_id = session_data.get("workspace_id")
-
-# In agent initialization:
-UserContext.get().set_from_session(request.session)
-```
-
-**Option 3: State-Based Context**
-
-Add context fields to the agent state:
-
-```python
-# state.py
-from typing import TypedDict
-
-class RdsAgentState(TypedDict):
-    messages: list
-    org: str
-    env: str
-    user_id: str
-    workspace_id: str
-
-# Tools access via state:
-def generate_rds_manifest(state: RdsAgentState) -> str:
-    org = state["org"]
-    env = state["env"]
+    # Build metadata section with actual org/env from execution context
+    metadata = {"name": final_name, "org": org, "env": env}
     # ...
 ```
 
-**Recommendation**: Option 3 (State-Based Context) is cleanest for LangGraph integration.
+#### Development vs Production
+
+**Local Development (LangGraph Studio)**:
+- Config may not include org/env
+- Fallback defaults ensure tool still works (`org="project-planton"`, `env="aws"`)
+- Developers can test without full backend integration
+
+**Production (Planton Cloud)**:
+- Execution always has `metadata.org` and `metadata.env` (validated by proto)
+- Values automatically flow through to manifest generation
+- No user action required - context is injected transparently
 
 ### Context Fields Needed
 
@@ -804,7 +786,7 @@ class AgentAnalytics:
 
 ## Production Deployment Checklist
 
-- [ ] Replace hardcoded org/env with platform context
+- [x] Replace hardcoded org/env with platform context
 - [ ] Implement proper authentication and authorization
 - [ ] Set up state persistence (LangGraph checkpointing + Redis)
 - [ ] Create REST/GraphQL APIs for agent interaction

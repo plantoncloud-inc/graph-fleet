@@ -257,15 +257,20 @@ You can save this to `rds-instance.yaml` and deploy using:
 - Reusable for other manifest types
 - Clear, simple implementation
 
-### 3. Hardcoded Org/Env Defaults
+### 3. Dynamic Org/Env from Execution Context
 
-**Decision**: Default to `org="project-planton"` and `env="aws"`
+**Decision**: Extract org and env from LangGraph's configurable runtime values
+
+**Implementation**:
+- Backend passes values via `config["configurable"]`
+- Tools access via `RunnableConfig` parameter
+- Fallback defaults for development/testing
 
 **Rationale**:
-- MVP approach for testing
-- Will be provided by platform context in production
-- Easy to change later
-- User can override via tool parameters
+- Each execution runs in a specific organization context
+- No hard-coding - values flow from Execution metadata
+- LangGraph's standard mechanism for runtime configuration
+- Backwards compatible (defaults for local testing)
 
 ### 4. In-Memory Metadata Storage
 

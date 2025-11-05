@@ -10,6 +10,7 @@ import yaml
 from deepagents.backends.utils import create_file_data
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import Command
 
@@ -216,7 +217,9 @@ def validate_manifest(runtime: ToolRuntime) -> str:
 
 @tool
 def generate_rds_manifest(
-    resource_name: str | None = None, org: str = "project-planton", env: str = "aws", runtime: ToolRuntime = None
+    resource_name: str | None = None,
+    runtime: ToolRuntime = None,
+    config: RunnableConfig = None,
 ) -> Command | str:
     """Generate AWS RDS Instance YAML manifest from collected requirements.
 
@@ -228,12 +231,14 @@ def generate_rds_manifest(
     The tool automatically converts proto field names (snake_case) to YAML
     field names (camelCase), formats the output as valid YAML, and writes
     it to /manifest.yaml in the virtual filesystem.
+    
+    Organization and environment values are automatically extracted from
+    the execution context (no longer hard-coded).
 
     Args:
         resource_name: Optional name for the resource. Auto-generated if not provided.
-        org: Organization name (default: "project-planton")
-        env: Environment name (default: "aws")
         runtime: Tool runtime with access to filesystem state
+        config: Runtime configuration containing org and env from execution context
 
     Returns:
         Command to update filesystem with manifest, or error message
@@ -243,6 +248,14 @@ def generate_rds_manifest(
         # Writes manifest to /manifest.yaml
 
     """
+    # Extract org and env from configurable, with fallback defaults for local development
+    org = "project-planton"  # default fallback
+    env = "aws"  # default fallback
+    
+    if config and "configurable" in config:
+        org = config["configurable"].get("org", org)
+        env = config["configurable"].get("env", env)
+    
     # Read requirements from filesystem
     requirements = _read_requirements(runtime)
 
