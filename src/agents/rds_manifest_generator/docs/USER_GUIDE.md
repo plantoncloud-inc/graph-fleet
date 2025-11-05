@@ -620,13 +620,15 @@ The agent will extract multiple requirements from a single message.
 
 **Solution**: Start a new conversation in LangGraph Studio. Each conversation is independent.
 
-### Issue: Generated manifest has placeholder org/env values
+### Manifest Organization and Environment Values
 
-**Expected**: Currently the agent uses hardcoded defaults:
-- `org: project-planton`
-- `env: aws`
+The manifest's `org` and `env` fields are automatically populated from your
+execution context:
+- In production: Values come from your Execution's organization and environment
+- In LangGraph Studio: Falls back to defaults (`org: project-planton`, `env: aws`)
 
-These will be provided by the platform context in production. For testing, you can manually edit the generated YAML.
+You don't need to specify these values - they're injected automatically based on
+the organization context where the agent is running.
 
 ### Issue: Password is showing in plain text
 
