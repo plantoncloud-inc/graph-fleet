@@ -84,10 +84,10 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     Args:
         name: Resource name (e.g., "production-api-db", "staging-postgres")
         labels: Optional key-value labels (e.g., {"team": "platform", "env": "prod"})
-        runtime: Tool runtime with access to filesystem state
+        runtime: Tool runtime with access to state
 
     Returns:
-        Command to update filesystem, or confirmation message
+        Command to update state, or confirmation message
 
     Example:
         set_manifest_metadata(name='production-db')
@@ -97,24 +97,17 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
     if not name and not labels:
         return "✓ No metadata changes (both name and labels were None)"
     
-    # Read current requirements
-    requirements = _read_requirements(runtime)
-    
-    # Update metadata fields
+    # Build update dict with metadata fields
+    metadata_update = {}
     if name:
-        requirements["_metadata_name"] = name
+        metadata_update["_metadata_name"] = name
     if labels:
-        requirements["_metadata_labels"] = labels
+        metadata_update["_metadata_labels"] = labels
     
-    # Write back to filesystem
-    content = json.dumps(requirements, indent=2)
-    
-    # Convert to FileData - matching DeepAgents' write_file pattern
-    file_data = create_file_data(content)
-    
+    # Return update - reducer will merge with existing requirements
     return Command(
         update={
-            "files": {REQUIREMENTS_FILE: file_data},
+            "requirements": metadata_update,
             "messages": [ToolMessage(f"✓ Metadata stored: name={name}, labels={labels}", tool_call_id=runtime.tool_call_id)],
         }
     )
@@ -237,11 +230,11 @@ def generate_rds_manifest(
 
     Args:
         resource_name: Optional name for the resource. Auto-generated if not provided.
-        runtime: Tool runtime with access to filesystem state
+        runtime: Tool runtime with access to state
         config: Runtime configuration containing org and env from execution context
 
     Returns:
-        Command to update filesystem with manifest, or error message
+        Command to update filesystem with manifest file, or error message
 
     Example:
         generate_rds_manifest(resource_name='production-postgres')
@@ -256,7 +249,7 @@ def generate_rds_manifest(
         org = config["configurable"].get("org", org)
         env = config["configurable"].get("env", env)
     
-    # Read requirements from filesystem
+    # Read requirements from state
     requirements = _read_requirements(runtime)
 
     # Check for user-provided metadata
