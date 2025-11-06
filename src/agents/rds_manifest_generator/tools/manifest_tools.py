@@ -1,6 +1,5 @@
 """Tools for generating and validating AWS RDS YAML manifests."""
 
-import json
 import random
 import re
 import string
@@ -15,7 +14,7 @@ from langchain_core.tools import tool
 from langgraph.types import Command
 
 from .field_converter import proto_to_yaml_field_name
-from .requirement_tools import REQUIREMENTS_FILE, _read_requirements
+from .requirement_tools import _read_requirements
 
 
 def generate_random_suffix(length: int = 6) -> str:
@@ -98,7 +97,7 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
         return "✓ No metadata changes (both name and labels were None)"
     
     # Build update dict with metadata fields
-    metadata_update = {}
+    metadata_update: dict[str, Any] = {}
     if name:
         metadata_update["_metadata_name"] = name
     if labels:

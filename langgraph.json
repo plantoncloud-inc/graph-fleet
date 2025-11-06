@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "rds_manifest_generator": "src.agents.rds_manifest_generator.graph:graph"
+    "rds_manifest_generator": "src.agents.rds_manifest_generator.graph:graph",
+    "session_subject_generator": "src.agents.session_subject_generator.graph:graph"
   },
   "env": ".env",
   "python_version": "3.11"
