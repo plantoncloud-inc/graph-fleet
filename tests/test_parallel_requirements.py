@@ -1,13 +1,12 @@
 """Tests for parallel requirement storage to verify race condition fix."""
 
-import pytest
-from typing import Any
 from unittest.mock import Mock
 
-from langgraph.types import Command
+import pytest
 from langchain.tools import ToolRuntime
+from langgraph.types import Command
 
-from src.agents.rds_manifest_generator.graph import requirements_reducer, RdsAgentState
+from src.agents.rds_manifest_generator.graph import RdsAgentState, requirements_reducer
 from src.agents.rds_manifest_generator.tools.requirement_tools import store_requirement
 
 

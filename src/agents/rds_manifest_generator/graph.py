@@ -7,7 +7,7 @@ ready before any user requests are processed.
 
 import logging
 import time
-from typing import Annotated, Any, NotRequired
+from typing import Annotated, Any
 
 from deepagents.middleware.filesystem import FilesystemState
 
@@ -67,7 +67,8 @@ class RdsAgentState(FilesystemState):
             Uses requirements_reducer to merge parallel updates field-by-field.
     
     """
-    requirements: Annotated[NotRequired[dict[str, Any]], requirements_reducer]
+
+    requirements: Annotated[dict[str, Any] | None, requirements_reducer]
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):
