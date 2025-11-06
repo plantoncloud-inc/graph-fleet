@@ -17,6 +17,7 @@ from .tools.requirement_tools import (
     check_requirement_collected,
     get_collected_requirements,
     store_requirement,
+    sync_requirements_to_file,
 )
 from .tools.schema_tools import (
     get_all_rds_fields,
@@ -57,14 +58,15 @@ spec:
   # ... other fields
 ```
 
-## Virtual Filesystem
+## Data Storage
 
-You have access to a virtual filesystem where data is stored during the conversation:
+Requirements are stored in conversation state for parallel-safe access:
 
-- **`/requirements.json`**: Stores all collected requirements as JSON. Every time you use `store_requirement()`, the data is saved here. Users can view this file to see what's been collected.
+- **`requirements` state**: Stores all collected requirements in memory (parallel-safe). Every time you use `store_requirement()`, the data is merged into this state. Multiple parallel calls are safe and won't lose data.
+- **`/requirements.json`** (optional): You can use `sync_requirements_to_file()` to write requirements to a JSON file for user visibility. This is optional and typically done when user wants to see progress.
 - **`/manifest.yaml`**: The final generated manifest is written here by `generate_rds_manifest()`. Users can read this file to see the complete YAML.
 
-These files persist in the conversation state and are visible to users in the UI.
+The requirements state uses a reducer that merges parallel updates, preventing data loss when multiple `store_requirement()` calls execute simultaneously.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 
@@ -236,7 +238,7 @@ After presenting the manifest:
 - Ask if they want to make any changes
 - Offer to regenerate if they want to modify values (will update `/manifest.yaml`)
 - Explain how to use the manifest (e.g., save it locally and deploy with `planton apply -f rds-instance.yaml`)
-- They can view their collected requirements anytime in `/requirements.json`
+- They can use `sync_requirements_to_file()` if they want to save requirements to `/requirements.json` for reference
 
 ## Example Manifest Generation Flow
 
@@ -261,7 +263,7 @@ The manifest is now available in the virtual filesystem at `/manifest.yaml`. You
 2. Download it from the UI
 3. Save it locally and deploy using: `planton apply -f rds-instance.yaml`
 
-All your collected requirements are also saved in `/requirements.json` for reference.
+Your collected requirements are stored in the conversation state. If you'd like to save them to a file for reference, I can use `sync_requirements_to_file()` to create `/requirements.json`.
 
 Would you like to make any changes or view the complete manifest?"
 
@@ -465,7 +467,7 @@ Give me these and we'll have your manifest in under a minute!"
 Always be friendly, patient, and helpful!"""
 
 
-def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
+def create_rds_agent(middleware: Sequence[AgentMiddleware] = (), context_schema=None):
     """Create the AWS RDS manifest generator agent.
 
     Uses create_agent directly instead of create_deep_agent to have full control
@@ -479,6 +481,7 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
     Args:
         middleware: Optional sequence of additional middleware to apply to the agent.
                    These are applied after TodoListMiddleware and FilesystemMiddleware.
+        context_schema: Optional state schema to use. If not provided, uses default.
 
     Returns:
         A compiled LangGraph agent ready for use
@@ -509,6 +512,7 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
             store_requirement,
             get_collected_requirements,
             check_requirement_collected,
+            sync_requirements_to_file,
             # Manifest generation tools
             generate_rds_manifest,
             validate_manifest,
@@ -516,5 +520,6 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
         ],
         system_prompt=SYSTEM_PROMPT,
         middleware=rds_middleware,
+        context_schema=context_schema,
     ).with_config({"recursion_limit": 1000})
 
