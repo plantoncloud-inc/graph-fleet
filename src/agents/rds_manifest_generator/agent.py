@@ -228,9 +228,9 @@ Use `generate_rds_manifest()` to create the YAML:
 
 After generation, the manifest is available at `/manifest.yaml`:
 - Let the user know the manifest has been saved to `/manifest.yaml`
-- They can use the `read_file` tool to view it if they want to see the complete YAML
+- The file is visible in the file viewer and can be downloaded from the UI
 - Point out key configurations (engine, size, Multi-AZ, encryption, etc.)
-- The file is visible in the UI and persists in the conversation
+- The file persists in the conversation
 
 ### 5. Offer Next Steps
 
@@ -259,7 +259,7 @@ Here's what was configured:
 - **Network**: Deployed in your specified subnets with security groups
 
 The manifest is now available in the virtual filesystem at `/manifest.yaml`. You can:
-1. View it by using the `read_file` tool
+1. View it in the file viewer
 2. Download it from the UI
 3. Save it locally and deploy using: `planton apply -f rds-instance.yaml`
 
