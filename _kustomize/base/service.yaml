@@ -37,18 +37,6 @@ spec:
           servicePort: 80
           containerPort: 8080
           isIngressPort: true
-      # Persistent volume for state management
-      volumes:
-        - name: langgraph-state
-          mountPath: /app/.langgraph
-          spec:
-            persistentVolumeClaim:
-              storageClassName: standard
-              accessModes:
-                - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 10Gi
   availability:
     minReplicas: 1
     horizontalPodAutoscaling:
