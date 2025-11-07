@@ -300,7 +300,7 @@ def generate_rds_manifest(
         f"✓ Generated AWS RDS Instance manifest!\n"
         f"The manifest has been saved to {manifest_path}\n"
         f"Resource name: {final_name}\n"
-        f"You can view the manifest by reading {manifest_path}"
+        f"The manifest is available in the file viewer and can be downloaded from the UI"
     )
     
     # Convert to FileData - matching DeepAgents' write_file pattern
