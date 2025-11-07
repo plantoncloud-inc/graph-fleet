@@ -10,8 +10,7 @@ spec:
   availability:
     minReplicas: 2  # Production redundancy
     horizontalPodAutoscaling:
-      isEnabled: true
-      targetCpuUtilizationPercentage: 70
+      isEnabled: false
   container:
     app:
       env:
