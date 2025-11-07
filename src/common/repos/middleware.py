@@ -46,7 +46,6 @@ class RepositoryFilesMiddleware(AgentMiddleware):
             description: Description for logging (e.g., "proto schema files")
 
         """
-        self._initialized = False
         self._file_contents = file_contents
         self._vfs_directory = vfs_directory
         self._description = description
@@ -56,7 +55,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
         state: AgentState, 
         runtime: Runtime[Any]
     ) -> dict[str, Any] | None:
-        """Copy files to virtual filesystem on first request.
+        """Copy files to virtual filesystem on first request per thread.
         
         Args:
             state: The current agent state
@@ -66,7 +65,13 @@ class RepositoryFilesMiddleware(AgentMiddleware):
             State update with files added to virtual filesystem, or None if already initialized
 
         """
-        if self._initialized:
+        # Check if files already exist in THIS thread's state (per-thread check)
+        # Create a sample file path to check
+        sample_file_path = f"{self._vfs_directory}/{list(self._file_contents.keys())[0]}"
+        
+        # If files already exist in state, skip initialization
+        if "files" in state and sample_file_path in state["files"]:
+            logger.info(f"Files already present in thread state, skipping initialization")
             return None
         
         start_time = time.time()
@@ -93,6 +98,10 @@ class RepositoryFilesMiddleware(AgentMiddleware):
         logger.info(f"FIRST REQUEST: Copied {len(files_to_add)} files in {elapsed:.2f}s")
         logger.info("=" * 60)
         
-        self._initialized = True
+        # Log the state update being returned
+        logger.info(f"📤 MIDDLEWARE RETURN: Returning state update with {len(files_to_add)} files")
+        logger.info(f"   Files being added to state: {list(files_to_add.keys())}")
+        logger.debug(f"   Full state update: {{'files': <{len(files_to_add)} FileData objects>}}")
+        
         return {"files": files_to_add}
 

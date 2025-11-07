@@ -3,16 +3,57 @@ kind: MicroserviceKubernetes
 metadata:
   name: graph-fleet
   org: planton-cloud
+  labels:
+    pulumi.project-planton.org/organization: planton-cloud
+    pulumi.project-planton.org/project: planton-cloud
+    kubernetes.project-planton.org/docker-config-json-file: "~/scm/github.com/plantoncloud-inc/planton-cloud/ops/platform/service-deployments/files/docker-config.json"
 spec:
   container:
     app:
+      image:
+        repo: ghcr.io/plantoncloud-inc/graph-fleet
+        #tag: <comes-from-ci-git-commit-sha>
       env:
         variables:
           LANGCHAIN_ENDPOINT: $variables-group/langchain/api-endpoint
+          LOG_LEVEL: info
         secrets:
           TAVILY_API_KEY: $secrets-group/tavily/api-key
           LANGSMITH_API_KEY: $secrets-group/langchain/api-key
           GITHUB_TOKEN: $secrets-group/github/token
           ANTHROPIC_API_KEY: $secrets-group/anthropic/api-key
           OPENAI_API_KEY: $secrets-group/openai/api-key
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      ports:
+        - name: http-api
+          appProtocol: http
+          networkProtocol: TCP
+          servicePort: 80
+          containerPort: 8080
+          isIngressPort: true
+      # Persistent volume for state management
+      volumes:
+        - name: langgraph-state
+          mountPath: /app/.langgraph
+          spec:
+            persistentVolumeClaim:
+              storageClassName: standard
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 10Gi
+  availability:
+    minReplicas: 1
+    horizontalPodAutoscaling:
+      isEnabled: false
+  ingress:
+    enabled: true
+  version: main
 

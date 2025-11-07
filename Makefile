@@ -4,7 +4,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make deps       - Install dependencies"
 	@echo "  make venvs      - Create virtual environment and install dependencies"
-	@echo "  make run        - Start LangGraph Studio"
+	@echo "  make run        - Start LangGraph dev server on port 8080"
 	@echo "  make lint       - Run ruff linter only"
 	@echo "  make typecheck  - Run mypy type checker only"
 	@echo "  make build      - Run full validation (lint + typecheck)"
@@ -20,8 +20,8 @@ venvs:
 	@echo "Virtual environment created. Activate with: poetry shell"
 
 run:
-	@echo "Starting LangGraph Studio"
-	poetry run langgraph dev
+	@echo "Starting LangGraph dev server on port 8080"
+	poetry run langgraph dev --port 8080
 
 lint:
 	@echo "Running ruff linter..."

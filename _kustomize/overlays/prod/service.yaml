@@ -1,0 +1,32 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: MicroserviceKubernetes
+metadata:
+  name: graph-fleet
+spec:
+  availability:
+    minReplicas: 2  # Production redundancy
+    horizontalPodAutoscaling:
+      isEnabled: true
+      targetCpuUtilizationPercentage: 70
+  container:
+    app:
+      env:
+        variables:
+          ENV: production
+          LANGCHAIN_ENDPOINT: $variables-group/langchain/api-endpoint
+          LANGSMITH_PROJECT: graph-fleet-prod
+        secrets:
+          # Production-specific secrets (different from local/dev)
+          TAVILY_API_KEY: $secrets-group/tavily/api-key-prod
+          LANGSMITH_API_KEY: $secrets-group/langchain/api-key-prod
+          GITHUB_TOKEN: $secrets-group/github/token-prod
+          ANTHROPIC_API_KEY: $secrets-group/anthropic/api-key-prod
+          OPENAI_API_KEY: $secrets-group/openai/api-key-prod
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+        requests:
+          cpu: 200m
+          memory: 512Mi
+
