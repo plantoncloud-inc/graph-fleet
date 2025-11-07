@@ -2,6 +2,10 @@ apiVersion: kubernetes.project-planton.org/v1
 kind: MicroserviceKubernetes
 metadata:
   name: graph-fleet
+  env: app-prod
+  labels:
+    pulumi.project-planton.org/stack.name: app-prod.MicroserviceKubernetes.graph-fleet
+    kubernetes.project-planton.org/namespace: service-app-prod-graph-fleet
 spec:
   availability:
     minReplicas: 2  # Production redundancy
