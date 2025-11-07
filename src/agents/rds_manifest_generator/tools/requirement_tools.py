@@ -14,75 +14,40 @@ REQUIREMENTS_FILE = "/requirements.json"
 
 
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
-    """Read requirements from virtual filesystem.
+    """Read requirements from state (not from file).
+    
+    This function reads requirements from the 'requirements' state key, which uses
+    a reducer to merge parallel updates. This prevents race conditions when multiple
+    store_requirement() calls execute simultaneously.
     
     Args:
-        runtime: Tool runtime with access to filesystem state
+        runtime: Tool runtime with access to state
         
     Returns:
-        Dictionary of collected requirements, empty dict if file doesn't exist
+        Dictionary of collected requirements, empty dict if none collected yet
 
     """
-    files = runtime.state.get("files", {})
-    
-    if REQUIREMENTS_FILE not in files:
-        return {}
-    
-    file_data = files[REQUIREMENTS_FILE]
-    # Handle both plain string (new format) and FileData object (old format)
-    if isinstance(file_data, str):
-        content = file_data
-    else:
-        content = "\n".join(file_data["content"])
-    
-    if not content.strip():
-        return {}
-    
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {}
-
-
-def _write_requirements(runtime: ToolRuntime, requirements: dict[str, Any], message: str) -> Command:
-    """Write requirements to virtual filesystem.
-    
-    Args:
-        runtime: Tool runtime with access to filesystem state
-        requirements: Dictionary of requirements to save
-        message: Success message for tool response
-        
-    Returns:
-        Command to update filesystem state
-
-    """
-    content = json.dumps(requirements, indent=2)
-    
-    # Convert to FileData - matching DeepAgents' write_file pattern
-    file_data = create_file_data(content)
-    
-    return Command(
-        update={
-            "files": {REQUIREMENTS_FILE: file_data},
-            "messages": [ToolMessage(message, tool_call_id=runtime.tool_call_id)],
-        }
-    )
+    return runtime.state.get("requirements", {})
 
 
 @tool
 def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Command | str:
-    """Store a collected requirement value.
+    """Store a collected requirement value (parallel-safe with auto-sync to file).
 
     Use this tool to save user-provided values for RDS fields as you gather them
-    during the conversation. This helps track what information has been collected.
+    during the conversation. This tool is parallel-safe - multiple calls can execute
+    simultaneously without losing data, thanks to the requirements reducer.
+    
+    The requirement is automatically written to /requirements.json for user visibility
+    in real-time, in addition to being stored in the state dictionary.
 
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
         value: The user-provided value for this field
-        runtime: Tool runtime with access to filesystem state
+        runtime: Tool runtime with access to state
 
     Returns:
-        Command to update filesystem, or error message
+        Command to update state, or error message
 
     Example:
         store_requirement('engine', 'postgres')
@@ -95,14 +60,26 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     if value is None or (isinstance(value, str) and not value.strip()):
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
-    # Read current requirements
-    requirements = _read_requirements(runtime)
+    # Read current requirements from state (not from file - avoids race conditions)
+    current_requirements = _read_requirements(runtime)
     
-    # Update with new value
-    requirements[field_name] = value
+    # Merge in the new field to create updated requirements
+    updated_requirements = {**current_requirements, field_name: value}
     
-    # Write back to filesystem
-    return _write_requirements(runtime, requirements, f"✓ Stored {field_name} = {value}")
+    # Serialize to JSON for file storage (user visibility)
+    content = json.dumps(updated_requirements, indent=2)
+    file_data = create_file_data(content)
+    
+    # Return Command that updates both state AND file
+    # - State update uses reducer to merge parallel calls safely
+    # - File update provides real-time visibility to users
+    return Command(
+        update={
+            "requirements": {field_name: value},  # State update (merged by reducer)
+            "files": {REQUIREMENTS_FILE: file_data},  # File update (for visibility)
+            "messages": [ToolMessage(f"✓ Stored {field_name} = {value}", tool_call_id=runtime.tool_call_id)],
+        }
+    )
 
 
 @tool
@@ -146,7 +123,7 @@ def check_requirement_collected(field_name: str, runtime: ToolRuntime) -> str:
 
     Args:
         field_name: The proto field name to check (e.g., 'engine', 'multi_az')
-        runtime: Tool runtime with access to filesystem state
+        runtime: Tool runtime with access to state
 
     Returns:
         Whether the requirement is collected and its value if so
@@ -162,4 +139,51 @@ def check_requirement_collected(field_name: str, runtime: ToolRuntime) -> str:
     if field_name in requirements:
         return f"Yes, {field_name} = {requirements[field_name]}"
     return f"No, {field_name} has not been collected yet"
+
+
+# DEPRECATED: sync_requirements_to_file() is no longer needed
+# Requirements are now automatically synced to /requirements.json after each store_requirement() call
+# Keeping this function commented out in case we need to revert the auto-sync behavior
+
+# @tool
+# def sync_requirements_to_file(runtime: ToolRuntime) -> Command:
+#     """Sync requirements dict to /requirements.json file for user visibility.
+#     
+#     DEPRECATED: This tool is no longer needed as store_requirement() now automatically
+#     writes to /requirements.json after each field is stored.
+#     
+#     This tool writes the current requirements from state to a JSON file in the
+#     virtual filesystem so users can view their collected requirements. This is
+#     optional and typically called when the user wants to see their progress or
+#     after collecting all requirements.
+#     
+#     Args:
+#         runtime: Tool runtime with access to state
+#         
+#     Returns:
+#         Command to update filesystem with requirements file
+#         
+#     Example:
+#         sync_requirements_to_file()
+#         # Creates/updates /requirements.json with current requirements
+# 
+#     """
+#     requirements = _read_requirements(runtime)
+#     
+#     if not requirements:
+#         return Command(
+#             update={
+#                 "messages": [ToolMessage("No requirements to sync yet.", tool_call_id=runtime.tool_call_id)],
+#             }
+#         )
+#     
+#     content = json.dumps(requirements, indent=2)
+#     file_data = create_file_data(content)
+#     
+#     return Command(
+#         update={
+#             "files": {REQUIREMENTS_FILE: file_data},
+#             "messages": [ToolMessage(f"✓ Synced {len(requirements)} requirements to {REQUIREMENTS_FILE}", tool_call_id=runtime.tool_call_id)],
+#         }
+#     )
 

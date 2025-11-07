@@ -57,14 +57,15 @@ spec:
   # ... other fields
 ```
 
-## Virtual Filesystem
+## Data Storage
 
-You have access to a virtual filesystem where data is stored during the conversation:
+Requirements are stored in conversation state for parallel-safe access:
 
-- **`/requirements.json`**: Stores all collected requirements as JSON. Every time you use `store_requirement()`, the data is saved here. Users can view this file to see what's been collected.
+- **`requirements` state**: Stores all collected requirements in memory (parallel-safe). Every time you use `store_requirement()`, the data is merged into this state. Multiple parallel calls are safe and won't lose data.
+- **`/requirements.json`**: Automatically updated after each `store_requirement()` call. Users can view this file to see their progress in real-time. The file is visible in the file viewer and updates immediately as requirements are collected.
 - **`/manifest.yaml`**: The final generated manifest is written here by `generate_rds_manifest()`. Users can read this file to see the complete YAML.
 
-These files persist in the conversation state and are visible to users in the UI.
+The requirements state uses a reducer that merges parallel updates, preventing data loss when multiple `store_requirement()` calls execute simultaneously.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 
@@ -226,9 +227,9 @@ Use `generate_rds_manifest()` to create the YAML:
 
 After generation, the manifest is available at `/manifest.yaml`:
 - Let the user know the manifest has been saved to `/manifest.yaml`
-- They can use the `read_file` tool to view it if they want to see the complete YAML
+- The file is visible in the file viewer and can be downloaded from the UI
 - Point out key configurations (engine, size, Multi-AZ, encryption, etc.)
-- The file is visible in the UI and persists in the conversation
+- The file persists in the conversation
 
 ### 5. Offer Next Steps
 
@@ -236,7 +237,7 @@ After presenting the manifest:
 - Ask if they want to make any changes
 - Offer to regenerate if they want to modify values (will update `/manifest.yaml`)
 - Explain how to use the manifest (e.g., save it locally and deploy with `planton apply -f rds-instance.yaml`)
-- They can view their collected requirements anytime in `/requirements.json`
+- Note that their collected requirements are already saved in `/requirements.json` for reference
 
 ## Example Manifest Generation Flow
 
@@ -257,11 +258,11 @@ Here's what was configured:
 - **Network**: Deployed in your specified subnets with security groups
 
 The manifest is now available in the virtual filesystem at `/manifest.yaml`. You can:
-1. View it by using the `read_file` tool
+1. View it in the file viewer
 2. Download it from the UI
 3. Save it locally and deploy using: `planton apply -f rds-instance.yaml`
 
-All your collected requirements are also saved in `/requirements.json` for reference.
+Your collected requirements have been saved to `/requirements.json` for reference throughout our conversation.
 
 Would you like to make any changes or view the complete manifest?"
 
@@ -465,7 +466,7 @@ Give me these and we'll have your manifest in under a minute!"
 Always be friendly, patient, and helpful!"""
 
 
-def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
+def create_rds_agent(middleware: Sequence[AgentMiddleware] = (), context_schema=None):
     """Create the AWS RDS manifest generator agent.
 
     Uses create_agent directly instead of create_deep_agent to have full control
@@ -479,6 +480,7 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
     Args:
         middleware: Optional sequence of additional middleware to apply to the agent.
                    These are applied after TodoListMiddleware and FilesystemMiddleware.
+        context_schema: Optional state schema to use. If not provided, uses default.
 
     Returns:
         A compiled LangGraph agent ready for use
@@ -516,5 +518,6 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = ()):
         ],
         system_prompt=SYSTEM_PROMPT,
         middleware=rds_middleware,
+        context_schema=context_schema,
     ).with_config({"recursion_limit": 1000})
 

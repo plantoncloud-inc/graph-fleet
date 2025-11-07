@@ -7,6 +7,9 @@ ready before any user requests are processed.
 
 import logging
 import time
+from typing import Annotated, Any
+
+from deepagents.middleware.filesystem import FilesystemState
 
 from src.common.repos import (
     RepositoryFetchError,
@@ -25,6 +28,47 @@ logger = logging.getLogger(__name__)
 # Global storage for proto file contents from startup initialization
 # Maps filename to file content
 _cached_proto_contents: dict[str, str] = {}
+
+
+def requirements_reducer(left: dict[str, Any] | None, right: dict[str, Any]) -> dict[str, Any]:
+    """Merge requirements dicts, allowing parallel updates.
+    
+    This reducer enables parallel tool calls to store_requirement() by merging
+    dictionary keys instead of replacing the entire dict. When multiple tools
+    execute in parallel, each can add its own field and the reducer will combine
+    all fields into a single requirements dictionary.
+    
+    Args:
+        left: Existing requirements dict. May be None during initialization.
+        right: New requirements dict to merge. Keys from right will be added/updated.
+        
+    Returns:
+        Merged dictionary where right's keys are added to or override left's keys.
+        
+    Example:
+        >>> requirements_reducer({"engine": "postgres"}, {"instance_class": "db.t3.micro"})
+        {"engine": "postgres", "instance_class": "db.t3.micro"}
+    
+    """
+    if left is None:
+        return right
+    return {**left, **right}  # Merge keys, right overrides left for duplicates
+
+
+class RdsAgentState(FilesystemState):
+    """Extended state with requirements dict for parallel-safe updates.
+    
+    This state schema extends FilesystemState with a custom 'requirements' field
+    that uses a reducer to merge parallel updates. This prevents race conditions
+    when multiple store_requirement() calls execute simultaneously.
+    
+    Attributes:
+        requirements: Dictionary of collected RDS configuration requirements.
+            Uses requirements_reducer to merge parallel updates field-by-field.
+    
+    """
+
+    requirements: Annotated[dict[str, Any] | None, requirements_reducer]
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):
@@ -128,7 +172,7 @@ def _initialize_proto_schema_at_startup() -> None:
     logger.info(f"Repository: {REPO_CONFIG.name} ({REPO_CONFIG.url})")
     logger.info(f"Path in repo: {REPO_CONFIG.repo_path}")
     logger.info("=" * 60)
-    
+
     try:
         # Fetch proto files from Git repository using shared fetcher
         proto_paths = fetch_repository(REPO_CONFIG)
@@ -170,8 +214,11 @@ _initialize_proto_schema_at_startup()
 # Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
 # that causes RemoveMessage streaming errors. We only include the middleware we actually need:
 # TodoListMiddleware and FilesystemMiddleware.
-graph = create_rds_agent(middleware=[
-    FirstRequestProtoLoader(),
-])
+#
+# We use RdsAgentState to enable parallel-safe requirement storage via the requirements reducer.
+graph = create_rds_agent(
+    middleware=[FirstRequestProtoLoader()],
+    context_schema=RdsAgentState,
+)
 
 
