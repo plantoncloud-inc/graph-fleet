@@ -13,6 +13,10 @@ spec:
       type: string
       description: "Git revision to checkout"
       default: "main"
+    - name: setup-package-credentials
+      type: string
+      description: "Set to 'true' to run setup-package-credentials task"
+      default: "false"
     - name: image-name
       type: string
       description: "The full destination image (asia-south1-docker.pkg.dev/.../graph-fleet:tag)"
@@ -60,7 +64,29 @@ spec:
         - name: subdirectory
           value: ""
     
-    # 2. Build and push Docker image to GCP Artifact Registry
+    # 2. Setup package credentials (optional)
+    - name: setup-package-credentials
+      when:
+        - input: "$(params.setup-package-credentials)"
+          operator: in
+          values: [ "true" ]
+      runAfter:
+        - git-checkout
+      taskSpec:
+        workspaces:
+          - name: source
+          - name: package-credentials
+        steps:
+          - name: copy
+            image: alpine:3
+            script: |
+              mkdir -p /workspace/source/.package-credentials
+              cp /workspace/package-credentials/* /workspace/source/.package-credentials/ || true
+      workspaces:
+        - name: source
+        - name: package-credentials
+    
+    # 3. Build and push Docker image to GCP Artifact Registry
     - name: build-and-push
       runAfter: ["git-checkout"]
       taskRef:
