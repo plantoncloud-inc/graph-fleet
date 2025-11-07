@@ -4,7 +4,7 @@ version = "0.0.1"
 description = "Resolve cloud resource identities (IDs, ARNs, names) from natural language."
 authors = ["Planton Cloud <engineering@planton.cloud>"]
 license = "MIT"
-packages = [{include = "src"}]
+packages = [{include = "*", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"
