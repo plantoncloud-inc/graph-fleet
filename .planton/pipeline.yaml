@@ -89,24 +89,24 @@ spec:
     - name: kustomize-build
       runAfter: ["build-and-push"]
       taskRef:
-        resolver: hub
+        resolver: git
         params:
-          - name: catalog
-            value: tekton-catalog-tasks
-          - name: type
-            value: artifact
-          - name: kind
-            value: task
-          - name: name
-            value: kustomize-build
-          - name: version
-            value: "0.1"
+          - name: url
+            value: "https://github.com/plantoncloud/tekton-hub.git"
+          - name: revision
+            value: "main"
+          - name: pathInRepo
+            value: "tasks/kustomize-build.yaml"
       workspaces:
         - name: source
           workspace: source
       params:
-        - name: kustomize-dir
-          value: $(params.project-root)/_kustomize/overlays/prod
         - name: config-map-name
           value: $(params.kustomize-manifests-config-map-name)
+        - name: config-map-namespace
+          value: planton-cloud-pipelines
+        - name: project-root
+          value: $(params.project-root)
+        - name: kustomize-base-directory
+          value: "_kustomize"
 
