@@ -245,7 +245,7 @@ description = "Foreign Function Interface for Python calling C code."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "platform_python_implementation != \"PyPy\" or platform_python_implementation == \"CPython\" and sys_platform == \"win32\""
+markers = "platform_python_implementation == \"CPython\" and sys_platform == \"win32\" or platform_python_implementation != \"PyPy\""
 files = [
     {file = "cffi-2.0.0-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:0cf2d91ecc3fcc0625c2c530fe004f82c110405f101548512cce44322fa8ac44"},
     {file = "cffi-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f73b96c41e3b2adedc34a7356e64c8eb96e03a3782b535e043a986276ce12a49"},
@@ -1716,25 +1716,25 @@ psycopg-pool = ">=3.2.0"
 
 [[package]]
 name = "langgraph-cli"
-version = "0.4.0"
+version = "0.4.7"
 description = "CLI for interacting with LangGraph API"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "langgraph_cli-0.4.0-py3-none-any.whl", hash = "sha256:a7bc91d4e6112c4e186a74113764290a61f6a7c3385e50f9aeb58c18551e83d6"},
-    {file = "langgraph_cli-0.4.0.tar.gz", hash = "sha256:0478989dd1d90c42449f0cc5e7ae6fc57e6031104a600195810d848dbc7f6fde"},
+    {file = "langgraph_cli-0.4.7-py3-none-any.whl", hash = "sha256:c24e1593c2cdffb658841999eccf71d8bd73025105c727ebcad7fafe35c983ab"},
+    {file = "langgraph_cli-0.4.7.tar.gz", hash = "sha256:51dc5c7bfd0ce957162facea5ef93ffe9778e8d9ec993354f19aec9dd0161470"},
 ]
 
 [package.dependencies]
 click = ">=8.1.7"
-langgraph-api = {version = ">=0.3,<0.5.0", optional = true, markers = "python_version >= \"3.11\" and extra == \"inmem\""}
+langgraph-api = {version = ">=0.4,<0.6.0", optional = true, markers = "python_version >= \"3.11\" and extra == \"inmem\""}
 langgraph-runtime-inmem = {version = ">=0.7", optional = true, markers = "python_version >= \"3.11\" and extra == \"inmem\""}
 langgraph-sdk = {version = ">=0.1.0", markers = "python_version >= \"3.11\""}
 python-dotenv = {version = ">=0.8.0", optional = true, markers = "extra == \"inmem\""}
 
 [package.extras]
-inmem = ["langgraph-api (>=0.3,<0.5.0) ; python_version >= \"3.11\"", "langgraph-runtime-inmem (>=0.7) ; python_version >= \"3.11\"", "python-dotenv (>=0.8.0)"]
+inmem = ["langgraph-api (>=0.4,<0.6.0) ; python_version >= \"3.11\"", "langgraph-runtime-inmem (>=0.7) ; python_version >= \"3.11\"", "python-dotenv (>=0.8.0)"]
 
 [[package]]
 name = "langgraph-prebuilt"
@@ -3074,7 +3074,7 @@ description = "C parser in Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "(platform_python_implementation != \"PyPy\" or platform_python_implementation == \"CPython\" and sys_platform == \"win32\") and implementation_name != \"PyPy\""
+markers = "(platform_python_implementation == \"CPython\" and sys_platform == \"win32\" or platform_python_implementation != \"PyPy\") and implementation_name != \"PyPy\""
 files = [
     {file = "pycparser-2.23-py3-none-any.whl", hash = "sha256:e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934"},
     {file = "pycparser-2.23.tar.gz", hash = "sha256:78816d4f24add8f10a06d6f05b4d424ad9e96cfebf68a4ddc99c65c0720d00c2"},
@@ -5236,4 +5236,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "2ada3694ff262e41839902cd233e706ba61321858a74b190e8e3c71f82858fdd"
+content-hash = "64f7a2ca548ae19c0dff9394feb221beafd8bc494174acc84f547feb7f32abf3"

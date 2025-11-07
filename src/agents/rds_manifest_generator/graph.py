@@ -101,6 +101,18 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
         # Call parent to copy files to virtual filesystem
         result = super().before_agent(state, runtime)
         
+        # Log what parent middleware returned
+        if result is not None:
+            logger.info(f"🔧 PROTO LOADER: Parent middleware returned state update")
+            logger.info(f"   State update keys: {list(result.keys())}")
+            if "files" in result:
+                logger.info(f"   Files in update: {len(result['files'])} files")
+                logger.info(f"   File paths: {list(result['files'].keys())}")
+            else:
+                logger.warning(f"   ⚠️  NO 'files' KEY in state update!")
+        else:
+            logger.info(f"🔧 PROTO LOADER: Parent middleware returned None (already initialized)")
+        
         # If files were just copied, initialize the schema loader
         if result is not None and not self._schema_initialized:
             # Create a file reader that reads from the cached contents
@@ -140,6 +152,12 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
                 logger.error(f"Failed to verify schema after loading: {e}")
             
             self._schema_initialized = True
+        
+        # Log final return value
+        if result is not None:
+            logger.info(f"✅ PROTO LOADER COMPLETE: Returning state update with files and schema initialized")
+        else:
+            logger.info(f"✅ PROTO LOADER COMPLETE: Returning None (no-op)")
         
         return result
 
