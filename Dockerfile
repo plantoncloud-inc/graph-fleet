@@ -1,5 +1,5 @@
-# Use base image from GitHub Container Registry
-FROM ghcr.io/plantoncloud-inc/backend/services/graph-fleet:base-latest
+# Stage 1: Dependencies
+FROM ghcr.io/plantoncloud-inc/backend/services/graph-fleet:base-latest AS deps
 
 WORKDIR /app
 
@@ -11,11 +11,22 @@ RUN pip install --no-cache-dir poetry==1.8.5 && \
     poetry config virtualenvs.create false && \
     poetry install --no-dev --no-root --no-interaction --no-ansi
 
+# Stage 2: Runtime
+FROM ghcr.io/plantoncloud-inc/backend/services/graph-fleet:base-latest
+
+WORKDIR /app
+
+# Copy installed packages from deps stage
+COPY --from=deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
+
 # Copy application code
 COPY . .
 
-# Now install the project package itself
-RUN poetry install --no-dev --only-root --no-interaction --no-ansi
+# Install Poetry and the project package itself
+RUN pip install --no-cache-dir poetry==1.8.5 && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev --only-root --no-interaction --no-ansi
 
 # Create directory for state persistence
 RUN mkdir -p /app/.langgraph
