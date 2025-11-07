@@ -8,7 +8,7 @@ metadata:
     kubernetes.project-planton.org/namespace: service-app-prod-graph-fleet
 spec:
   availability:
-    minReplicas: 2  # Production redundancy
+    minReplicas: 1  # Production redundancy
     horizontalPodAutoscaling:
       isEnabled: false
   container:
