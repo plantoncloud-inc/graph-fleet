@@ -20,11 +20,11 @@ spec:
           LANGSMITH_PROJECT: graph-fleet-prod
         secrets:
           # Production-specific secrets (different from local/dev)
-          TAVILY_API_KEY: $secrets-group/tavily/api-key-prod
-          LANGSMITH_API_KEY: $secrets-group/langchain/api-key-prod
-          GITHUB_TOKEN: $secrets-group/github/token-prod
-          ANTHROPIC_API_KEY: $secrets-group/anthropic/api-key-prod
-          OPENAI_API_KEY: $secrets-group/openai/api-key-prod
+          TAVILY_API_KEY: $secrets-group/tavily/prod.api-key
+          LANGSMITH_API_KEY: $secrets-group/langchain/prod.api-key
+          GITHUB_TOKEN: $secrets-group/github/token
+          ANTHROPIC_API_KEY: $secrets-group/anthropic/prod.api-key
+          OPENAI_API_KEY: $secrets-group/openai/prod.api-key
       resources:
         limits:
           cpu: 2000m

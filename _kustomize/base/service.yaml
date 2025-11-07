@@ -17,12 +17,6 @@ spec:
         variables:
           LANGCHAIN_ENDPOINT: $variables-group/langchain/api-endpoint
           LOG_LEVEL: info
-        secrets:
-          TAVILY_API_KEY: $secrets-group/tavily/api-key
-          LANGSMITH_API_KEY: $secrets-group/langchain/api-key
-          GITHUB_TOKEN: $secrets-group/github/token
-          ANTHROPIC_API_KEY: $secrets-group/anthropic/api-key
-          OPENAI_API_KEY: $secrets-group/openai/api-key
       resources:
         limits:
           cpu: 1000m
