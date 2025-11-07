@@ -103,15 +103,15 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
         
         # Log what parent middleware returned
         if result is not None:
-            logger.info(f"🔧 PROTO LOADER: Parent middleware returned state update")
+            logger.info("🔧 PROTO LOADER: Parent middleware returned state update")
             logger.info(f"   State update keys: {list(result.keys())}")
             if "files" in result:
                 logger.info(f"   Files in update: {len(result['files'])} files")
                 logger.info(f"   File paths: {list(result['files'].keys())}")
             else:
-                logger.warning(f"   ⚠️  NO 'files' KEY in state update!")
+                logger.warning("   ⚠️  NO 'files' KEY in state update!")
         else:
-            logger.info(f"🔧 PROTO LOADER: Parent middleware returned None (already initialized)")
+            logger.info("🔧 PROTO LOADER: Parent middleware returned None (already initialized)")
         
         # If files were just copied, initialize the schema loader
         if result is not None and not self._schema_initialized:
@@ -155,9 +155,9 @@ class FirstRequestProtoLoader(RepositoryFilesMiddleware):
         
         # Log final return value
         if result is not None:
-            logger.info(f"✅ PROTO LOADER COMPLETE: Returning state update with files and schema initialized")
+            logger.info("✅ PROTO LOADER COMPLETE: Returning state update with files and schema initialized")
         else:
-            logger.info(f"✅ PROTO LOADER COMPLETE: Returning None (no-op)")
+            logger.info("✅ PROTO LOADER COMPLETE: Returning None (no-op)")
         
         return result
 

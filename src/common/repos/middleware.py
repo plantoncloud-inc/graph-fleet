@@ -71,7 +71,7 @@ class RepositoryFilesMiddleware(AgentMiddleware):
         
         # If files already exist in state, skip initialization
         if "files" in state and sample_file_path in state["files"]:
-            logger.info(f"Files already present in thread state, skipping initialization")
+            logger.info("Files already present in thread state, skipping initialization")
             return None
         
         start_time = time.time()
