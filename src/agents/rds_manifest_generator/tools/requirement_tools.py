@@ -1,28 +1,57 @@
 """Tools for collecting and managing RDS manifest requirements."""
 
+import json
 from typing import Any
 
+from deepagents.backends import StateBackend
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langgraph.types import Command
 
+# Path to requirements file in virtual filesystem
+REQUIREMENTS_FILE = "/requirements.json"
+
 
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
-    """Read requirements from state (not from file).
+    """Read requirements from /requirements.json file.
     
-    This function reads requirements from the 'requirements' state key, which uses
-    a reducer to merge parallel updates. This prevents race conditions when multiple
-    store_requirement() calls execute simultaneously.
+    This function reads requirements from the /requirements.json file in the
+    virtual filesystem. The file is guaranteed to exist (created by middleware
+    on first turn) and uses the built-in _file_data_reducer for parallel-safe updates.
     
     Args:
-        runtime: Tool runtime with access to state
+        runtime: Tool runtime with access to files state
         
     Returns:
-        Dictionary of collected requirements, empty dict if none collected yet
+        Dictionary of collected requirements, empty dict if file doesn't exist or parse fails
 
     """
-    return runtime.state.get("requirements", {})
+    backend = StateBackend(runtime)
+    content = backend.read(REQUIREMENTS_FILE)
+    
+    # Handle file not found (shouldn't happen with init middleware, but defensive)
+    if "Error" in content:
+        return {}
+    
+    # Parse line-numbered output from backend.read()
+    # Format is: "     1|{...}" - we need to extract just the JSON content
+    lines = []
+    for line in content.splitlines():
+        if "|" in line:
+            # Split on first | to remove line number prefix
+            _, file_content = line.split("|", 1)
+            lines.append(file_content)
+        else:
+            lines.append(line)
+    
+    json_content = "\n".join(lines)
+    
+    try:
+        return json.loads(json_content)
+    except json.JSONDecodeError:
+        # If JSON is invalid, return empty dict
+        return {}
 
 
 @tool
@@ -31,19 +60,19 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
 
     Use this tool to save user-provided values for RDS fields as you gather them
     during the conversation. This tool is parallel-safe - multiple calls can execute
-    simultaneously without losing data, thanks to the requirements reducer.
+    simultaneously without losing data, thanks to LangGraph's built-in _file_data_reducer.
     
-    The requirement is stored in the state dictionary and automatically synced to
-    /requirements.json after the agent turn completes (via RequirementsFileSyncMiddleware).
-    This ensures the file always reflects the complete merged state without race conditions.
+    The requirement is stored directly in /requirements.json file. When multiple
+    store_requirement() calls execute in parallel, each updates the file independently,
+    and the file reducer merges all updates into the final file state.
 
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
         value: The user-provided value for this field
-        runtime: Tool runtime with access to state
+        runtime: Tool runtime with access to files state
 
     Returns:
-        Command to update state, or error message
+        Command to update file, or error message
 
     Example:
         store_requirement('engine', 'postgres')
@@ -56,12 +85,50 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     if value is None or (isinstance(value, str) and not value.strip()):
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
-    # Return Command that updates state only
-    # - State update uses reducer to merge parallel calls safely
-    # - File sync happens automatically via RequirementsFileSyncMiddleware after agent turn
+    # Read current requirements from file
+    current_requirements = _read_requirements(runtime)
+    
+    # Add new field to requirements
+    updated_requirements = {**current_requirements, field_name: value}
+    
+    # Serialize to JSON
+    new_content = json.dumps(updated_requirements, indent=2)
+    
+    # Use backend.edit() to replace entire file content
+    # This is parallel-safe because the file reducer merges all updates
+    backend = StateBackend(runtime)
+    
+    # Read current file content to use as old_string
+    current_content = backend.read(REQUIREMENTS_FILE)
+    
+    # Extract just the JSON (remove line numbers)
+    if "Error" not in current_content:
+        lines = []
+        for line in current_content.splitlines():
+            if "|" in line:
+                _, file_content = line.split("|", 1)
+                lines.append(file_content)
+            else:
+                lines.append(line)
+        old_content = "\n".join(lines)
+    else:
+        old_content = "{}"
+    
+    # Use edit to replace entire file content
+    result = backend.edit(
+        file_path=REQUIREMENTS_FILE,
+        old_string=old_content,
+        new_string=new_content,
+        replace_all=False
+    )
+    
+    if result.error:
+        return f"✗ Error updating requirements file: {result.error}"
+    
+    # Return Command with file update (uses file reducer to merge parallel updates)
     return Command(
         update={
-            "requirements": {field_name: value},  # State update (merged by reducer)
+            "files": result.files_update,
             "messages": [ToolMessage(f"✓ Stored {field_name} = {value}", tool_call_id=runtime.tool_call_id)],
         }
     )

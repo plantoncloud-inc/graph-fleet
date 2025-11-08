@@ -59,13 +59,23 @@ spec:
 
 ## Data Storage
 
-Requirements are stored in conversation state for parallel-safe access:
+Requirements are stored in a single JSON file for simplicity and clarity:
 
-- **`requirements` state**: Stores all collected requirements in memory (parallel-safe). Every time you use `store_requirement()`, the data is merged into this state. Multiple parallel calls are safe and won't lose data thanks to the requirements reducer.
-- **`/requirements.json`**: Automatically synced after each agent turn via middleware. When you make multiple `store_requirement()` calls in parallel, the middleware waits for all updates to be merged by the reducer, then writes the complete merged state to the file. This prevents race conditions and ensures the file always shows all collected requirements.
-- **`/manifest.yaml`**: The final generated manifest is written here by `generate_rds_manifest()`. Users can read this file to see the complete YAML.
+- **`/requirements.json`**: Single source of truth for all collected requirements
+  - Automatically created as empty `{}` on first conversation turn
+  - Updated directly via parallel-safe file operations (built-in file reducer prevents data loss)
+  - Agent can read anytime with `read_file` tool to check what's been collected
+  - Tools like `store_requirement()` update the file directly using the backend
+  - When multiple `store_requirement()` calls execute in parallel, LangGraph's built-in 
+    `_file_data_reducer` ensures all updates merge correctly without overwriting each other
 
-The requirements state uses a reducer that merges parallel updates, preventing data loss when multiple `store_requirement()` calls execute simultaneously. The RequirementsFileSyncMiddleware then syncs the merged state to `/requirements.json` after each agent turn.
+- **`/manifest.yaml`**: Final generated manifest (written by `generate_rds_manifest()`)
+  - Users can read this file to see the complete YAML
+  - Available in the file viewer and can be downloaded from the UI
+
+The file-based storage is parallel-safe: when multiple tools execute simultaneously,
+each updates the file independently, and the file reducer merges all updates into the
+final state. No race conditions, no data loss - just simple, reliable file storage.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 

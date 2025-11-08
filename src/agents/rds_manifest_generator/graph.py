@@ -7,7 +7,6 @@ ready before any user requests are processed.
 
 import logging
 import time
-from typing import Annotated, Any
 
 from deepagents.middleware.filesystem import FilesystemState
 
@@ -19,7 +18,7 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
-from .middleware import RequirementsFileSyncMiddleware
+from .middleware import RequirementsFileInitMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -31,45 +30,10 @@ logger = logging.getLogger(__name__)
 _cached_proto_contents: dict[str, str] = {}
 
 
-def requirements_reducer(left: dict[str, Any] | None, right: dict[str, Any]) -> dict[str, Any]:
-    """Merge requirements dicts, allowing parallel updates.
-    
-    This reducer enables parallel tool calls to store_requirement() by merging
-    dictionary keys instead of replacing the entire dict. When multiple tools
-    execute in parallel, each can add its own field and the reducer will combine
-    all fields into a single requirements dictionary.
-    
-    Args:
-        left: Existing requirements dict. May be None during initialization.
-        right: New requirements dict to merge. Keys from right will be added/updated.
-        
-    Returns:
-        Merged dictionary where right's keys are added to or override left's keys.
-        
-    Example:
-        >>> requirements_reducer({"engine": "postgres"}, {"instance_class": "db.t3.micro"})
-        {"engine": "postgres", "instance_class": "db.t3.micro"}
-    
-    """
-    if left is None:
-        return right
-    return {**left, **right}  # Merge keys, right overrides left for duplicates
-
-
-class RdsAgentState(FilesystemState):
-    """Extended state with requirements dict for parallel-safe updates.
-    
-    This state schema extends FilesystemState with a custom 'requirements' field
-    that uses a reducer to merge parallel updates. This prevents race conditions
-    when multiple store_requirement() calls execute simultaneously.
-    
-    Attributes:
-        requirements: Dictionary of collected RDS configuration requirements.
-            Uses requirements_reducer to merge parallel updates field-by-field.
-    
-    """
-
-    requirements: Annotated[dict[str, Any] | None, requirements_reducer]
+# RdsAgentState is now just FilesystemState - no custom requirements field needed
+# Requirements are stored in /requirements.json file, which uses the built-in
+# _file_data_reducer from FilesystemMiddleware for parallel-safe updates
+RdsAgentState = FilesystemState
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):
@@ -229,18 +193,18 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. RequirementsFileSyncMiddleware - Syncs merged requirements state to /requirements.json
-#    after each agent turn, preventing race conditions from parallel tool calls
+# 2. RequirementsFileInitMiddleware - Initializes empty /requirements.json on first turn
 #
 # Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
 # that causes RemoveMessage streaming errors. We only include the middleware we actually need:
 # TodoListMiddleware and FilesystemMiddleware.
 #
-# We use RdsAgentState to enable parallel-safe requirement storage via the requirements reducer.
+# RdsAgentState is now just FilesystemState - requirements stored in /requirements.json file
+# using built-in _file_data_reducer for parallel-safe updates
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
-        RequirementsFileSyncMiddleware(),
+        RequirementsFileInitMiddleware(),
     ],
     context_schema=RdsAgentState,
 )
