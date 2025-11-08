@@ -1,5 +1,6 @@
 """Tests for parallel requirement storage to verify race condition fix."""
 
+import json
 from unittest.mock import Mock
 
 import pytest
@@ -7,6 +8,7 @@ from langchain.tools import ToolRuntime
 from langgraph.types import Command
 
 from src.agents.rds_manifest_generator.graph import RdsAgentState, requirements_reducer
+from src.agents.rds_manifest_generator.middleware import RequirementsFileSyncMiddleware
 from src.agents.rds_manifest_generator.tools.requirement_tools import store_requirement
 
 
@@ -98,6 +100,8 @@ class TestStoreRequirementParallelSafe:
         assert "requirements" in result.update
         assert result.update["requirements"] == {"engine": "postgres"}
         assert "messages" in result.update
+        # Verify it does NOT update files (middleware handles that)
+        assert "files" not in result.update
 
     def test_store_requirement_does_not_read_all_requirements(self):
         """Test store_requirement doesn't depend on reading all existing requirements."""
@@ -190,6 +194,110 @@ class TestRdsAgentState:
         # Verify the state schema has the files field (from FilesystemState)
         assert hasattr(RdsAgentState, "__annotations__")
         assert "files" in RdsAgentState.__annotations__
+
+
+class TestRequirementsFileSyncMiddleware:
+    """Test the middleware that syncs requirements state to file."""
+
+    def test_middleware_syncs_requirements_to_file(self):
+        """Test middleware creates file update with complete requirements."""
+        middleware = RequirementsFileSyncMiddleware()
+        
+        # Create mock state with requirements
+        state = {
+            "requirements": {
+                "engine": "postgres",
+                "instance_class": "db.t3.micro",
+                "engine_version": "15.5",
+            }
+        }
+        runtime = Mock()
+        
+        # Call after_agent hook
+        result = middleware.after_agent(state, runtime)
+        
+        # Verify it returns file update
+        assert result is not None
+        assert "files" in result
+        assert "/requirements.json" in result["files"]
+        
+        # Verify file content is correct JSON
+        file_data = result["files"]["/requirements.json"]
+        # create_file_data returns dict with 'content' as a list of strings
+        content = "".join(file_data["content"])
+        parsed = json.loads(content)
+        
+        assert parsed == {
+            "engine": "postgres",
+            "instance_class": "db.t3.micro",
+            "engine_version": "15.5",
+        }
+
+    def test_middleware_skips_when_no_requirements(self):
+        """Test middleware returns None when no requirements to sync."""
+        middleware = RequirementsFileSyncMiddleware()
+        
+        # Create mock state with no requirements
+        state = {}
+        runtime = Mock()
+        
+        # Call after_agent hook
+        result = middleware.after_agent(state, runtime)
+        
+        # Verify it returns None (no-op)
+        assert result is None
+
+    def test_middleware_skips_when_requirements_unchanged(self):
+        """Test middleware skips sync when requirements haven't changed."""
+        middleware = RequirementsFileSyncMiddleware()
+        
+        # Create mock state with requirements
+        state = {"requirements": {"engine": "postgres"}}
+        runtime = Mock()
+        
+        # First call - should sync
+        result1 = middleware.after_agent(state, runtime)
+        assert result1 is not None
+        
+        # Second call with same requirements - should skip
+        result2 = middleware.after_agent(state, runtime)
+        assert result2 is None
+
+    def test_middleware_integration_with_parallel_updates(self):
+        """Integration test: Verify middleware syncs all fields after parallel updates."""
+        middleware = RequirementsFileSyncMiddleware()
+        
+        # Simulate the state AFTER reducer has merged parallel tool updates
+        # This is what the middleware will see after LangGraph processes all Commands
+        merged_state = {
+            "requirements": {
+                "engine": "postgres",
+                "instance_class": "db.t3.micro",
+                "engine_version": "15.5",
+                "allocated_storage_gb": 100,
+                "multi_az": True,
+            }
+        }
+        runtime = Mock()
+        
+        # Call middleware after agent turn
+        result = middleware.after_agent(merged_state, runtime)
+        
+        # Verify file contains ALL fields (not just one like in the race condition)
+        assert result is not None
+        assert "files" in result
+        file_data = result["files"]["/requirements.json"]
+        # create_file_data returns dict with 'content' as a list of strings
+        content = "".join(file_data["content"])
+        parsed = json.loads(content)
+        
+        # All 5 fields should be present
+        assert len(parsed) == 5
+        assert parsed["engine"] == "postgres"
+        assert parsed["instance_class"] == "db.t3.micro"
+        assert parsed["engine_version"] == "15.5"
+        assert parsed["allocated_storage_gb"] == 100
+        assert parsed["multi_az"] is True
 
 
 if __name__ == "__main__":

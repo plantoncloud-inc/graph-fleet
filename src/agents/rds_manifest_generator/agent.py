@@ -61,11 +61,11 @@ spec:
 
 Requirements are stored in conversation state for parallel-safe access:
 
-- **`requirements` state**: Stores all collected requirements in memory (parallel-safe). Every time you use `store_requirement()`, the data is merged into this state. Multiple parallel calls are safe and won't lose data.
-- **`/requirements.json`**: Automatically updated after each `store_requirement()` call. Users can view this file to see their progress in real-time. The file is visible in the file viewer and updates immediately as requirements are collected.
+- **`requirements` state**: Stores all collected requirements in memory (parallel-safe). Every time you use `store_requirement()`, the data is merged into this state. Multiple parallel calls are safe and won't lose data thanks to the requirements reducer.
+- **`/requirements.json`**: Automatically synced after each agent turn via middleware. When you make multiple `store_requirement()` calls in parallel, the middleware waits for all updates to be merged by the reducer, then writes the complete merged state to the file. This prevents race conditions and ensures the file always shows all collected requirements.
 - **`/manifest.yaml`**: The final generated manifest is written here by `generate_rds_manifest()`. Users can read this file to see the complete YAML.
 
-The requirements state uses a reducer that merges parallel updates, preventing data loss when multiple `store_requirement()` calls execute simultaneously.
+The requirements state uses a reducer that merges parallel updates, preventing data loss when multiple `store_requirement()` calls execute simultaneously. The RequirementsFileSyncMiddleware then syncs the merged state to `/requirements.json` after each agent turn.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 
