@@ -19,6 +19,7 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
+from .middleware import RequirementsFileSyncMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -228,6 +229,8 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
+# 2. RequirementsFileSyncMiddleware - Syncs merged requirements state to /requirements.json
+#    after each agent turn, preventing race conditions from parallel tool calls
 #
 # Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
 # that causes RemoveMessage streaming errors. We only include the middleware we actually need:
@@ -235,7 +238,10 @@ _initialize_proto_schema_at_startup()
 #
 # We use RdsAgentState to enable parallel-safe requirement storage via the requirements reducer.
 graph = create_rds_agent(
-    middleware=[FirstRequestProtoLoader()],
+    middleware=[
+        FirstRequestProtoLoader(),
+        RequirementsFileSyncMiddleware(),
+    ],
     context_schema=RdsAgentState,
 )
 

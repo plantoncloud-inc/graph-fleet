@@ -1,16 +1,11 @@
 """Tools for collecting and managing RDS manifest requirements."""
 
-import json
 from typing import Any
 
-from deepagents.backends.utils import create_file_data
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langgraph.types import Command
-
-# Path to requirements file in virtual filesystem
-REQUIREMENTS_FILE = "/requirements.json"
 
 
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
@@ -32,14 +27,15 @@ def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
 
 @tool
 def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Command | str:
-    """Store a collected requirement value (parallel-safe with auto-sync to file).
+    """Store a collected requirement value (parallel-safe).
 
     Use this tool to save user-provided values for RDS fields as you gather them
     during the conversation. This tool is parallel-safe - multiple calls can execute
     simultaneously without losing data, thanks to the requirements reducer.
     
-    The requirement is automatically written to /requirements.json for user visibility
-    in real-time, in addition to being stored in the state dictionary.
+    The requirement is stored in the state dictionary and automatically synced to
+    /requirements.json after the agent turn completes (via RequirementsFileSyncMiddleware).
+    This ensures the file always reflects the complete merged state without race conditions.
 
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
@@ -60,23 +56,12 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     if value is None or (isinstance(value, str) and not value.strip()):
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
-    # Read current requirements from state (not from file - avoids race conditions)
-    current_requirements = _read_requirements(runtime)
-    
-    # Merge in the new field to create updated requirements
-    updated_requirements = {**current_requirements, field_name: value}
-    
-    # Serialize to JSON for file storage (user visibility)
-    content = json.dumps(updated_requirements, indent=2)
-    file_data = create_file_data(content)
-    
-    # Return Command that updates both state AND file
+    # Return Command that updates state only
     # - State update uses reducer to merge parallel calls safely
-    # - File update provides real-time visibility to users
+    # - File sync happens automatically via RequirementsFileSyncMiddleware after agent turn
     return Command(
         update={
             "requirements": {field_name: value},  # State update (merged by reducer)
-            "files": {REQUIREMENTS_FILE: file_data},  # File update (for visibility)
             "messages": [ToolMessage(f"✓ Stored {field_name} = {value}", tool_call_id=runtime.tool_call_id)],
         }
     )
