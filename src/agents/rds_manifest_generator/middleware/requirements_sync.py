@@ -43,6 +43,7 @@ class RequirementsSyncMiddleware(AgentMiddleware):
             
         Returns:
             State update with file, or None if no requirements to sync
+
         """
         requirements = state.get("requirements", {})
         
