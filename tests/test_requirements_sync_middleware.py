@@ -1,16 +1,21 @@
 """Test RequirementsSyncMiddleware syncs state to file."""
 
 import json
-from src.agents.rds_manifest_generator.middleware.requirements_sync import RequirementsSyncMiddleware
+
+from src.agents.rds_manifest_generator.middleware.requirements_sync import (
+    RequirementsSyncMiddleware,
+)
 
 
 class MockState(dict):
     """Mock state for testing."""
+
     pass
 
 
 class MockRuntime:
     """Mock runtime for testing."""
+
     pass
 
 
@@ -90,7 +95,6 @@ def test_sync_middleware_json_formatting():
     content = "\n".join(file_data["content"])
     
     # Check that keys are sorted
-    lines = content.split("\n")
     assert '"alpha"' in content, "Expected 'alpha' key in JSON"
     assert '"mike"' in content, "Expected 'mike' key in JSON"
     assert '"zulu"' in content, "Expected 'zulu' key in JSON"

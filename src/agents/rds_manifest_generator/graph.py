@@ -8,7 +8,6 @@ ready before any user requests are processed.
 import logging
 import time
 from typing import Annotated, Any
-from typing_extensions import NotRequired
 
 from deepagents.middleware.filesystem import FilesystemState
 
@@ -32,7 +31,7 @@ logger = logging.getLogger(__name__)
 _cached_proto_contents: dict[str, str] = {}
 
 
-def requirements_reducer(left: dict | None, right: dict) -> dict:
+def requirements_reducer(left: dict[str, Any] | None, right: dict[str, Any]) -> dict[str, Any]:
     """Merge requirements at field level for parallel-safe updates.
     
     This reducer enables parallel tool execution by merging requirement fields
@@ -50,6 +49,8 @@ def requirements_reducer(left: dict | None, right: dict) -> dict:
         left = {"engine": "postgres"}
         right = {"instance_class": "db.t3.micro"}
         result = {"engine": "postgres", "instance_class": "db.t3.micro"}
+
+    
     """
     result = {**(left or {})}
     result.update(right or {})
@@ -63,7 +64,8 @@ class RdsAgentState(FilesystemState):
     merging via requirements_reducer. This enables parallel tool execution without
     data loss.
     """
-    requirements: Annotated[NotRequired[dict[str, Any]], requirements_reducer]
+
+    requirements: Annotated[dict[str, Any], requirements_reducer]
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):

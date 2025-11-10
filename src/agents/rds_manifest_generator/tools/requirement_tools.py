@@ -19,6 +19,7 @@ def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
         
     Returns:
         Dictionary of collected requirements, empty dict if none collected yet
+
     """
     return runtime.state.get("requirements", {})
 
@@ -46,6 +47,7 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
         store_requirement('engine', 'postgres')
         store_requirement('instance_class', 'db.t3.micro')
         store_requirement('multi_az', True)
+
     """
     if not field_name:
         return "✗ Error: field_name cannot be empty"
