@@ -52,9 +52,10 @@ User Presentation
 - Uses DeepAgent in-memory filesystem for runtime access
 
 **Requirement Store**
-- In-memory dictionary storing user responses
-- Persists across tool calls within a session
-- Separate metadata fields (prefixed with `_metadata_`)
+- State-based storage with custom reducer for parallel-safe field merging
+- Requirements stored in `RdsAgentState.requirements` field
+- Persists across conversation turns via LangGraph state management
+- Automatically synced to `/requirements.json` file for user visibility
 
 **Manifest Builder**
 - Programmatic YAML construction
@@ -184,7 +185,13 @@ store_requirement("subnet_ids", ["subnet-1", "subnet-2"])
 
 **Implementation**:
 ```python
-_requirements_store[field_name] = value
+# Returns Command to update state
+return Command(
+    update={
+        "requirements": {field_name: value},
+        "messages": [ToolMessage(...)],
+    }
+)
 ```
 
 #### `get_collected_requirements() -> str`
@@ -287,7 +294,7 @@ Store metadata for manifest (name, labels).
 - `name`: Custom resource name
 - `labels`: Key-value labels/tags
 
-**Storage**: Stores in `_requirements_store` with `_metadata_` prefix
+**Storage**: Stores in requirements state with `_metadata_` prefix to distinguish from spec fields
 
 **Example**:
 ```python
@@ -461,53 +468,187 @@ Extracted as:
 
 ## Requirement Storage
 
-### Storage Implementation
+### Architecture: State-Based with File Sync
 
-**File**: `tools/requirement_tools.py`
+The requirement storage system uses a **state-based architecture** with automatic file synchronization for user visibility. This architecture ensures parallel-safe operation when the LLM executes multiple tool calls simultaneously.
 
-**Global State**:
-```python
-_requirements_store: Dict[str, Any] = {}
-```
+### Source of Truth: State Field
 
-**Persistence**: In-memory for conversation duration
-
-**Access Pattern**:
-- Write: `_requirements_store[field_name] = value`
-- Read: `_requirements_store.get(field_name)`
-- Clear: `_requirements_store.clear()`
-
-### Metadata Handling
-
-Metadata fields use special prefix `_metadata_`:
+Requirements are stored in the `requirements` field of `RdsAgentState` (defined in `graph.py`):
 
 ```python
-_requirements_store["_metadata_name"] = "production-db"
-_requirements_store["_metadata_labels"] = {"team": "backend"}
+from typing import Annotated, Any
+from typing_extensions import NotRequired
+from deepagents.middleware.filesystem import FilesystemState
+
+class RdsAgentState(FilesystemState):
+    """State for RDS agent with parallel-safe requirements storage.
+    
+    Extends FilesystemState to add a custom requirements field with field-level
+    merging via requirements_reducer. This enables parallel tool execution without
+    data loss.
+    """
+    requirements: Annotated[NotRequired[dict[str, Any]], requirements_reducer]
 ```
 
-These are filtered out during manifest generation (not included in spec).
+The `requirements` field is annotated with a custom reducer function that enables field-level merging instead of dictionary replacement.
+
+### Custom Reducer for Parallel Safety
+
+The `requirements_reducer` function (in `graph.py`) enables parallel-safe field merging:
+
+```python
+def requirements_reducer(left: dict | None, right: dict) -> dict:
+    """Merge requirements at field level for parallel-safe updates.
+    
+    This reducer enables parallel tool execution by merging requirement fields
+    instead of replacing the entire dictionary. When multiple store_requirement()
+    calls execute simultaneously, each field update is preserved.
+    
+    Args:
+        left: Existing requirements dict (or None on first update)
+        right: New requirements dict to merge
+        
+    Returns:
+        Merged dictionary with all fields from both left and right
+        
+    Example:
+        left = {"engine": "postgres"}
+        right = {"instance_class": "db.t3.micro"}
+        result = {"engine": "postgres", "instance_class": "db.t3.micro"}
+    """
+    result = {**(left or {})}
+    result.update(right or {})
+    return result
+```
+
+**How It Works**: When multiple `store_requirement()` calls execute in parallel, each returns a Command with a dict update like `{"engine": "postgres"}`. The reducer **merges these at the field level** rather than overwriting the entire requirements dictionary.
+
+**Parallel Execution Example**:
+- Tool call 1 stores: `{"engine": "postgres"}`
+- Tool call 2 stores: `{"instance_class": "db.t3.micro"}`
+- Tool call 3 stores: `{"multi_az": True}`
+- **Result**: `{"engine": "postgres", "instance_class": "db.t3.micro", "multi_az": True}`
+
+**Without the reducer**: Only the last tool's update would survive because LangGraph's default behavior is to replace the entire value (last-write-wins).
+
+### File Sync Middleware
+
+`RequirementsSyncMiddleware` (in `middleware/requirements_sync.py`) runs after each agent turn and syncs the requirements state to `/requirements.json` for user visibility:
+
+```python
+class RequirementsSyncMiddleware(AgentMiddleware):
+    """Sync requirements state to file for user visibility."""
+    
+    def after_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:
+        """Sync requirements state to /requirements.json file."""
+        requirements = state.get("requirements", {})
+        
+        # Only sync if requirements exist
+        if not requirements:
+            return None
+        
+        # Format as pretty JSON with sorted keys for consistent presentation
+        json_content = json.dumps(requirements, indent=2, sort_keys=True)
+        file_data = create_file_data(json_content)
+        
+        return {"files": {"/requirements.json": file_data}}
+```
+
+**Key Points**:
+- Runs **after** each agent turn (via `after_agent` hook)
+- Reads requirements from state
+- Formats as pretty JSON
+- Creates/updates `/requirements.json` in virtual filesystem
+- Users see the file in the file viewer automatically
+
+### Tool Implementation
+
+The `store_requirement()` tool (in `tools/requirement_tools.py`) returns a Command to update state:
+
+```python
+@tool
+def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Command | str:
+    """Store a collected requirement value (parallel-safe)."""
+    if not field_name:
+        return "✗ Error: field_name cannot be empty"
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return f"✗ Error: value for '{field_name}' cannot be empty"
+    
+    # Return Command to update requirements state
+    # The requirements_reducer will merge this with existing requirements
+    return Command(
+        update={
+            "requirements": {field_name: value},
+            "messages": [ToolMessage(
+                f"✓ Stored {field_name} = {value}", 
+                tool_call_id=runtime.tool_call_id
+            )],
+        }
+    )
+```
+
+The `_read_requirements()` helper reads from state:
+
+```python
+def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
+    """Read requirements from state.
+    
+    Requirements are stored in the 'requirements' state field with a custom
+    reducer that enables parallel-safe field merging.
+    """
+    return runtime.state.get("requirements", {})
+```
+
+### Why This Architecture?
+
+**Benefits**:
+1. **Parallel-safe**: Multiple tools can execute simultaneously without data loss
+2. **Simple**: No complex file edit string matching or line-number tracking
+3. **Correct abstraction**: Requirements are data (state), not files
+4. **Framework-aligned**: Uses LangGraph's state management correctly
+5. **User-friendly**: File viewer shows collected requirements automatically
+6. **No race conditions**: Reducer ensures all parallel updates are merged
+
+**Previous Approach (Broken)**:
+- Used `backend.edit()` with read-modify-write on `/requirements.json`
+- File-level reducer (`_file_data_reducer`) overwrites entire file
+- Parallel tools caused data loss (only last update survived)
+- Required complex string matching and line-number stripping
+
+**Why the old approach failed**: LangGraph's `_file_data_reducer` operates at the FILE level (replaces entire file content), not at the CONTENT level (merges JSON fields). When 5 parallel tool calls each tried to update the file, only the last one's changes survived.
+
+### Persistence
+
+Requirements persist across conversation turns via LangGraph's state management system. The state is maintained in memory for the conversation duration and can be persisted to a database using LangGraph's checkpointing feature (not currently enabled).
 
 ### Type Handling
 
-The store accepts any Python type:
+The state-based store accepts any Python type:
 
 ```python
 # Strings
-_requirements_store["engine"] = "postgres"
+store_requirement("engine", "postgres")
+# Stored as: {"requirements": {"engine": "postgres"}}
 
 # Integers
-_requirements_store["allocated_storage_gb"] = 100
+store_requirement("allocated_storage_gb", 100)
+# Stored as: {"requirements": {"allocated_storage_gb": 100}}
 
 # Booleans
-_requirements_store["multi_az"] = True
+store_requirement("multi_az", True)
+# Stored as: {"requirements": {"multi_az": True}}
 
 # Lists
-_requirements_store["subnet_ids"] = ["subnet-1", "subnet-2"]
+store_requirement("subnet_ids", ["subnet-1", "subnet-2"])
+# Stored as: {"requirements": {"subnet_ids": ["subnet-1", "subnet-2"]}}
 
-# Dicts (for labels)
-_requirements_store["_metadata_labels"] = {"env": "prod"}
+# Dicts (for nested structures)
+store_requirement("tags", {"env": "prod", "team": "backend"})
+# Stored as: {"requirements": {"tags": {"env": "prod", "team": "backend"}}}
 ```
+
+All types are preserved through JSON serialization when synced to the file.
 
 ## Extending the Agent
 
@@ -636,14 +777,21 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 ```
 
-### Inspecting Requirements Store
+### Inspecting Requirements State
 
 ```python
-# In test or debugging session
-from src.agents.rds_manifest_generator.tools.requirement_tools import _requirements_store
+# In test or debugging session with access to runtime
+from langchain.tools import ToolRuntime
 
-print(_requirements_store)
+# Within a tool that has runtime access
+requirements = runtime.state.get("requirements", {})
+print(requirements)
 # Shows all collected requirements
+
+# Or use the tool directly
+from src.agents.rds_manifest_generator.tools.requirement_tools import get_collected_requirements
+result = get_collected_requirements.invoke({"runtime": runtime})
+print(result)
 ```
 
 ### Checking Schema Loading
@@ -701,11 +849,16 @@ with open(loader.spec_proto_path) as f:
 **Debug**:
 ```python
 from src.agents.rds_manifest_generator.tools.manifest_tools import validate_manifest
-from src.agents.rds_manifest_generator.tools.requirement_tools import _requirements_store
+from src.agents.rds_manifest_generator.tools.requirement_tools import get_collected_requirements
 
-print("Current requirements:", _requirements_store)
-result = validate_manifest.invoke({})
+# Within a tool context with runtime
+print("Current requirements:", runtime.state.get("requirements", {}))
+result = validate_manifest.invoke({"runtime": runtime})
 print("Validation result:", result)
+
+# Or use the get_collected_requirements tool
+requirements_summary = get_collected_requirements.invoke({"runtime": runtime})
+print(requirements_summary)
 ```
 
 **Issue**: Field names not converting properly
@@ -860,9 +1013,16 @@ def my_tool(...) -> str:
     # Implementation
 ```
 
-**Global State for Requirements**:
+**State-Based Requirements with Custom Reducer**:
 ```python
-_requirements_store: Dict[str, Any] = {}
+def requirements_reducer(left: dict | None, right: dict) -> dict:
+    """Merge requirements at field level for parallel-safe updates."""
+    result = {**(left or {})}
+    result.update(right or {})
+    return result
+
+class RdsAgentState(FilesystemState):
+    requirements: Annotated[NotRequired[dict[str, Any]], requirements_reducer]
 ```
 
 **Programmatic YAML Building**:
