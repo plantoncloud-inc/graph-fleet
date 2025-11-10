@@ -277,14 +277,14 @@ Storage can be increased without downtime, but cannot be decreased.
 ## Next Steps
 
 1. **Generate your own**: Use the agent to create custom manifests
-2. **Read the docs**: See [USER_GUIDE.md](../USER_GUIDE.md) for conversation examples
+2. **Read the docs**: See [USER_GUIDE.md](../user_guide.md) for conversation examples
 3. **Try the agent**: Run `make run` and chat with the agent
-4. **Learn more**: Check [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md) for technical details
+4. **Learn more**: Check [DEVELOPER_GUIDE.md](../developer_guide.md) for technical details
 
 ## Questions?
 
-- **User Guide**: [USER_GUIDE.md](../USER_GUIDE.md)
-- **Quick Start**: [QUICKSTART.md](../QUICKSTART.md)
-- **Demos**: [DEMO_SCENARIOS.md](../DEMO_SCENARIOS.md)
-- **Integration**: [INTEGRATION.md](../INTEGRATION.md)
+- **User Guide**: [USER_GUIDE.md](../user_guide.md)
+- **Quick Start**: [QUICKSTART.md](../quickstart.md)
+- **Demos**: [DEMO_SCENARIOS.md](../demo_scenarios.md)
+- **Integration**: [INTEGRATION.md](../integration.md)
 

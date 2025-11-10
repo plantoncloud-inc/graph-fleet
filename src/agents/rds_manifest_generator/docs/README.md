@@ -242,16 +242,16 @@ make build  # Runs ruff linting and type checks
 ## Documentation
 
 ### For Users
-- **[Quick Start Guide](QUICKSTART.md)** - Get your first manifest in 5 minutes
-- **[User Guide](USER_GUIDE.md)** - Comprehensive guide with examples and tips
+- **[Quick Start Guide](quickstart.md)** - Get your first manifest in 5 minutes
+- **[User Guide](user_guide.md)** - Comprehensive guide with examples and tips
 - **[Example Manifests](examples/)** - Sample configurations for common scenarios
 
 ### For Developers
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Architecture, tools, and extension guide
-- **[Integration Guide](INTEGRATION.md)** - How to integrate into Planton Cloud
+- **[Developer Guide](developer_guide.md)** - Architecture, tools, and extension guide
+- **[Integration Guide](integration.md)** - How to integrate into Planton Cloud
 
 ### For Demos
-- **[Demo Scenarios](DEMO_SCENARIOS.md)** - Compelling presentation scripts
+- **[Demo Scenarios](demo_scenarios.md)** - Compelling presentation scripts
 
 ## Project Completion
 

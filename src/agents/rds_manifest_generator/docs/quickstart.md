@@ -123,8 +123,8 @@ planton apply -f rds-instance.yaml
 
 - **Try Different Scenarios** - Create MySQL, MariaDB, or Oracle databases
 - **Explore Features** - Ask for Multi-AZ, encryption, custom ports
-- **Read the User Guide** - See [USER_GUIDE.md](USER_GUIDE.md) for detailed examples
-- **Understand the Code** - Check [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) to learn how it works
+- **Read the User Guide** - See [USER_GUIDE.md](user_guide.md) for detailed examples
+- **Understand the Code** - Check [DEVELOPER_GUIDE.md](developer_guide.md) to learn how it works
 
 ## Troubleshooting
 
@@ -143,9 +143,9 @@ planton apply -f rds-instance.yaml
 
 ## Getting Help
 
-- Check [USER_GUIDE.md](USER_GUIDE.md) for common questions
-- Review [DEMO_SCENARIOS.md](DEMO_SCENARIOS.md) for example conversations
-- See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for technical details
+- Check [USER_GUIDE.md](user_guide.md) for common questions
+- Review [DEMO_SCENARIOS.md](demo_scenarios.md) for example conversations
+- See [DEVELOPER_GUIDE.md](developer_guide.md) for technical details
 
 ---
 

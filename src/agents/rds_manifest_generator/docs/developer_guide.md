@@ -932,8 +932,8 @@ Primary latency is LLM inference:
 ## Getting Help
 
 - Review test files for usage examples
-- Check [USER_GUIDE.md](USER_GUIDE.md) for user-facing features
-- See [DEMO_SCENARIOS.md](DEMO_SCENARIOS.md) for conversation examples
+- Check [USER_GUIDE.md](user_guide.md) for user-facing features
+- See [DEMO_SCENARIOS.md](demo_scenarios.md) for conversation examples
 - Read proto files for field definitions
 - Experiment in LangGraph Studio for interactive debugging
 

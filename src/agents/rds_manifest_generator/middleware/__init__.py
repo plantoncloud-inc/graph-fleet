@@ -1,6 +1,6 @@
 """Middleware for RDS manifest generator agent."""
 
-from .requirements_init import RequirementsFileInitMiddleware
+from .requirements_sync import RequirementsSyncMiddleware
 
-__all__ = ["RequirementsFileInitMiddleware"]
+__all__ = ["RequirementsSyncMiddleware"]
 

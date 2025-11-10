@@ -59,23 +59,27 @@ spec:
 
 ## Data Storage
 
-Requirements are stored in a single JSON file for simplicity and clarity:
+Requirements are stored using a state-based architecture with automatic file sync:
 
-- **`/requirements.json`**: Single source of truth for all collected requirements
-  - Automatically created as empty `{}` on first conversation turn
-  - Updated directly via parallel-safe file operations (built-in file reducer prevents data loss)
-  - Agent can read anytime with `read_file` tool to check what's been collected
-  - Tools like `store_requirement()` update the file directly using the backend
-  - When multiple `store_requirement()` calls execute in parallel, LangGraph's built-in 
-    `_file_data_reducer` ensures all updates merge correctly without overwriting each other
+- **`requirements` state field**: Source of truth for all collected requirements
+  - Uses custom `requirements_reducer` for parallel-safe field merging
+  - When you call `store_requirement()`, it updates this state field
+  - Multiple parallel `store_requirement()` calls merge correctly (no data loss)
+  - You can read current requirements with `get_collected_requirements()` tool
+
+- **`/requirements.json`**: Automatically synced file for user visibility
+  - Middleware syncs state to this file after each agent turn
+  - Users see their requirements in the file viewer
+  - File is always up-to-date with state
+  - You don't need to manually manage this file - sync is automatic
 
 - **`/manifest.yaml`**: Final generated manifest (written by `generate_rds_manifest()`)
-  - Users can read this file to see the complete YAML
-  - Available in the file viewer and can be downloaded from the UI
+  - Created when you generate the final YAML manifest
+  - Available in file viewer for download
 
-The file-based storage is parallel-safe: when multiple tools execute simultaneously,
-each updates the file independently, and the file reducer merges all updates into the
-final state. No race conditions, no data loss - just simple, reliable file storage.
+**Architecture**: State is the source of truth, files are the presentation layer. When you store 
+requirements, they go into state first (parallel-safe via reducer), then automatically sync to 
+file for user visibility. This ensures no data loss while maintaining UX.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 
@@ -272,7 +276,7 @@ The manifest is now available in the virtual filesystem at `/manifest.yaml`. You
 2. Download it from the UI
 3. Save it locally and deploy using: `planton apply -f rds-instance.yaml`
 
-Your collected requirements have been saved to `/requirements.json` for reference throughout our conversation.
+Your collected requirements are visible in `/requirements.json` (automatically synced from state).
 
 Would you like to make any changes or view the complete manifest?"
 
