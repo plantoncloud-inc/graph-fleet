@@ -1,57 +1,26 @@
 """Tools for collecting and managing RDS manifest requirements."""
 
-import json
 from typing import Any
 
-from deepagents.backends import StateBackend
 from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langgraph.types import Command
 
-# Path to requirements file in virtual filesystem
-REQUIREMENTS_FILE = "/requirements.json"
-
 
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
-    """Read requirements from /requirements.json file.
+    """Read requirements from state.
     
-    This function reads requirements from the /requirements.json file in the
-    virtual filesystem. The file is guaranteed to exist (created by middleware
-    on first turn) and uses the built-in _file_data_reducer for parallel-safe updates.
+    Requirements are stored in the 'requirements' state field with a custom
+    reducer that enables parallel-safe field merging.
     
     Args:
-        runtime: Tool runtime with access to files state
+        runtime: Tool runtime with access to state
         
     Returns:
-        Dictionary of collected requirements, empty dict if file doesn't exist or parse fails
-
+        Dictionary of collected requirements, empty dict if none collected yet
     """
-    backend = StateBackend(runtime)
-    content = backend.read(REQUIREMENTS_FILE)
-    
-    # Handle file not found (shouldn't happen with init middleware, but defensive)
-    if "Error" in content:
-        return {}
-    
-    # Parse line-numbered output from backend.read()
-    # Format is: "     1|{...}" - we need to extract just the JSON content
-    lines = []
-    for line in content.splitlines():
-        if "|" in line:
-            # Split on first | to remove line number prefix
-            _, file_content = line.split("|", 1)
-            lines.append(file_content)
-        else:
-            lines.append(line)
-    
-    json_content = "\n".join(lines)
-    
-    try:
-        return json.loads(json_content)
-    except json.JSONDecodeError:
-        # If JSON is invalid, return empty dict
-        return {}
+    return runtime.state.get("requirements", {})
 
 
 @tool
@@ -60,76 +29,38 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
 
     Use this tool to save user-provided values for RDS fields as you gather them
     during the conversation. This tool is parallel-safe - multiple calls can execute
-    simultaneously without losing data, thanks to LangGraph's built-in _file_data_reducer.
+    simultaneously without losing data, thanks to the custom requirements_reducer.
     
-    The requirement is stored directly in /requirements.json file. When multiple
-    store_requirement() calls execute in parallel, each updates the file independently,
-    and the file reducer merges all updates into the final file state.
+    Requirements are stored in the 'requirements' state field. The reducer merges
+    all parallel updates at the field level, ensuring no data loss.
 
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
         value: The user-provided value for this field
-        runtime: Tool runtime with access to files state
+        runtime: Tool runtime with access to state
 
     Returns:
-        Command to update file, or error message
+        Command to update state, or error message
 
     Example:
         store_requirement('engine', 'postgres')
         store_requirement('instance_class', 'db.t3.micro')
         store_requirement('multi_az', True)
-
     """
     if not field_name:
         return "✗ Error: field_name cannot be empty"
     if value is None or (isinstance(value, str) and not value.strip()):
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
-    # Read current requirements from file
-    current_requirements = _read_requirements(runtime)
-    
-    # Add new field to requirements
-    updated_requirements = {**current_requirements, field_name: value}
-    
-    # Serialize to JSON
-    new_content = json.dumps(updated_requirements, indent=2)
-    
-    # Use backend.edit() to replace entire file content
-    # This is parallel-safe because the file reducer merges all updates
-    backend = StateBackend(runtime)
-    
-    # Read current file content to use as old_string
-    current_content = backend.read(REQUIREMENTS_FILE)
-    
-    # Extract just the JSON (remove line numbers)
-    if "Error" not in current_content:
-        lines = []
-        for line in current_content.splitlines():
-            if "|" in line:
-                _, file_content = line.split("|", 1)
-                lines.append(file_content)
-            else:
-                lines.append(line)
-        old_content = "\n".join(lines)
-    else:
-        old_content = "{}"
-    
-    # Use edit to replace entire file content
-    result = backend.edit(
-        file_path=REQUIREMENTS_FILE,
-        old_string=old_content,
-        new_string=new_content,
-        replace_all=False
-    )
-    
-    if result.error:
-        return f"✗ Error updating requirements file: {result.error}"
-    
-    # Return Command with file update (uses file reducer to merge parallel updates)
+    # Return Command to update requirements state
+    # The requirements_reducer will merge this with existing requirements
     return Command(
         update={
-            "files": result.files_update,
-            "messages": [ToolMessage(f"✓ Stored {field_name} = {value}", tool_call_id=runtime.tool_call_id)],
+            "requirements": {field_name: value},
+            "messages": [ToolMessage(
+                f"✓ Stored {field_name} = {value}", 
+                tool_call_id=runtime.tool_call_id
+            )],
         }
     )
 

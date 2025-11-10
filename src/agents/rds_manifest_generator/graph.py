@@ -7,6 +7,8 @@ ready before any user requests are processed.
 
 import logging
 import time
+from typing import Annotated, Any
+from typing_extensions import NotRequired
 
 from deepagents.middleware.filesystem import FilesystemState
 
@@ -30,10 +32,38 @@ logger = logging.getLogger(__name__)
 _cached_proto_contents: dict[str, str] = {}
 
 
-# RdsAgentState is now just FilesystemState - no custom requirements field needed
-# Requirements are stored in /requirements.json file, which uses the built-in
-# _file_data_reducer from FilesystemMiddleware for parallel-safe updates
-RdsAgentState = FilesystemState
+def requirements_reducer(left: dict | None, right: dict) -> dict:
+    """Merge requirements at field level for parallel-safe updates.
+    
+    This reducer enables parallel tool execution by merging requirement fields
+    instead of replacing the entire dictionary. When multiple store_requirement()
+    calls execute simultaneously, each field update is preserved.
+    
+    Args:
+        left: Existing requirements dict (or None on first update)
+        right: New requirements dict to merge
+        
+    Returns:
+        Merged dictionary with all fields from both left and right
+        
+    Example:
+        left = {"engine": "postgres"}
+        right = {"instance_class": "db.t3.micro"}
+        result = {"engine": "postgres", "instance_class": "db.t3.micro"}
+    """
+    result = {**(left or {})}
+    result.update(right or {})
+    return result
+
+
+class RdsAgentState(FilesystemState):
+    """State for RDS agent with parallel-safe requirements storage.
+    
+    Extends FilesystemState to add a custom requirements field with field-level
+    merging via requirements_reducer. This enables parallel tool execution without
+    data loss.
+    """
+    requirements: Annotated[NotRequired[dict[str, Any]], requirements_reducer]
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):
