@@ -181,6 +181,12 @@ src/agents/rds_manifest_generator/
 - System prompt guides conversational approach and manifest generation
 - Configured to use Claude Sonnet 4 (via deepagents default)
 
+**Requirement Storage** (`graph.py`, `middleware/requirements_sync.py`):
+- State-based storage with custom `requirements_reducer` for parallel-safe field merging
+- Requirements stored in `RdsAgentState.requirements` field with field-level merge capability
+- `RequirementsSyncMiddleware` automatically syncs state to `/requirements.json` for user visibility
+- Enables parallel tool execution without data loss
+
 ## Schema Understanding
 
 The agent understands the AWS RDS proto schema including:
