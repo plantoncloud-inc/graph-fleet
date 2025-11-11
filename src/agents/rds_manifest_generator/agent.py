@@ -59,27 +59,35 @@ spec:
 
 ## Data Storage
 
-Requirements are stored using a state-based architecture with automatic file sync:
+Requirements are stored using a state-based architecture with in-memory cache for same-turn visibility:
 
-- **`requirements` state field**: Source of truth for all collected requirements
+- **`requirements` state field**: Source of truth for cross-turn persistence
   - Uses custom `requirements_reducer` for parallel-safe field merging
-  - When you call `store_requirement()`, it updates this state field
+  - When you call `store_requirement()`, it updates BOTH cache (immediate) and state (persisted)
   - Multiple parallel `store_requirement()` calls merge correctly (no data loss)
-  - You can read current requirements with `get_collected_requirements()` tool
+  - State persists across agent turns via Command updates
+
+- **In-memory cache**: Enables same-turn visibility
+  - Injected by middleware at the start of each agent turn
+  - Tools write to cache immediately (no waiting for Command updates)
+  - Tools read from cache + state merged together
+  - **Critical**: This allows you to store requirements and immediately validate/generate manifest in the SAME turn
+  - Cache is discarded after agent turn (state provides persistence)
 
 - **`/requirements.json`**: Automatically synced file for user visibility
-  - Middleware syncs state to this file after each agent turn
-  - Users see their requirements in the file viewer
-  - File is always up-to-date with state
+  - Middleware syncs cache + state to this file after each agent turn
+  - Users see their requirements in the file viewer in real-time
+  - File appears immediately after first `store_requirement()` call
   - You don't need to manually manage this file - sync is automatic
 
 - **`/manifest.yaml`**: Final generated manifest (written by `generate_rds_manifest()`)
   - Created when you generate the final YAML manifest
   - Available in file viewer for download
 
-**Architecture**: State is the source of truth, files are the presentation layer. When you store 
-requirements, they go into state first (parallel-safe via reducer), then automatically sync to 
-file for user visibility. This ensures no data loss while maintaining UX.
+**Architecture**: State provides persistence, cache provides same-turn visibility, files are the 
+presentation layer. When you store requirements, they go into BOTH cache (immediate visibility) 
+and state (cross-turn persistence via Command). This enables single-turn workflows where you can 
+store → validate → generate manifest all in one agent turn, while ensuring no data loss.
 
 Note: Proto schema files are loaded at application startup and are available for field validation and metadata queries.
 

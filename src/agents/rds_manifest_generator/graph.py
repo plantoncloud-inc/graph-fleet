@@ -19,7 +19,7 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
-from .middleware import RequirementsSyncMiddleware
+from .middleware import RequirementsCacheMiddleware, RequirementsSyncMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -225,21 +225,28 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. RequirementsSyncMiddleware - Syncs requirements state to /requirements.json after each turn
+# 2. RequirementsCacheMiddleware - Injects in-memory cache for same-turn requirements visibility
+# 3. RequirementsSyncMiddleware - Syncs requirements state + cache to /requirements.json after each turn
 #
-# Architecture: State as source of truth, file as presentation layer
+# Architecture: State as source of truth, cache for same-turn visibility, file as presentation layer
 # - Requirements stored in 'requirements' state field with requirements_reducer
-# - Reducer enables parallel-safe field merging (no data loss)
-# - Middleware syncs state to /requirements.json for user visibility
+# - Reducer enables parallel-safe field merging (no data loss across turns)
+# - Cache enables same-turn visibility (tools see requirements stored in same agent turn)
+# - Middleware syncs state + cache to /requirements.json for user visibility
 # - File updates are automatic and transparent
 #
 # Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
 # that causes RemoveMessage streaming errors. We only include the middleware we actually need:
 # TodoListMiddleware and FilesystemMiddleware.
+#
+# Middleware order matters:
+# - RequirementsCacheMiddleware must run BEFORE RequirementsSyncMiddleware
+# - Cache must be initialized before tools run, and synced to file after agent turn
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
-        RequirementsSyncMiddleware(),
+        RequirementsCacheMiddleware(),  # Inject cache for same-turn visibility
+        RequirementsSyncMiddleware(),    # Sync cache + state to file
     ],
     context_schema=RdsAgentState,
 )
