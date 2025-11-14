@@ -36,7 +36,7 @@ CACHE_DIR = Path.home() / ".cache" / "graph-fleet" / "repos"
 PROJECT_PLANTON = RepositoryConfig(
     name="project-planton",
     url="https://github.com/project-planton/project-planton.git",
-    repo_path="apis/project/planton/provider/aws/awsrdsinstance/v1",
+    repo_path="apis/org/project_planton/provider/aws/awsrdsinstance/v1",
     files=["api.proto", "spec.proto", "stack_outputs.proto"],
 )
 
