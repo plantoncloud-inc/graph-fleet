@@ -19,7 +19,7 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
-from .middleware import RequirementsCacheMiddleware, RequirementsSyncMiddleware
+from .middleware import RequirementsSyncMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -225,28 +225,28 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. RequirementsCacheMiddleware - Injects in-memory cache for same-turn requirements visibility
-# 3. RequirementsSyncMiddleware - Syncs requirements state + cache to /requirements.json after each turn
+# 2. RequirementsSyncMiddleware - Syncs requirements state to /requirements.json after each turn
 #
-# Architecture: State as source of truth, cache for same-turn visibility, file as presentation layer
+# Architecture with Subagents: State as source of truth, file as presentation layer
+# - Main agent delegates requirement collection to "requirements-collector" subagent
+# - Subagent collects all requirements through conversation with user
+# - Subagent stores requirements in state using store_requirement() tool
 # - Requirements stored in 'requirements' state field with requirements_reducer
-# - Reducer enables parallel-safe field merging (no data loss across turns)
-# - Cache enables same-turn visibility (tools see requirements stored in same agent turn)
-# - Middleware syncs state + cache to /requirements.json for user visibility
-# - File updates are automatic and transparent
+# - Reducer enables parallel-safe field merging (subagent can make parallel calls)
+# - When subagent completes, all Commands have been applied to state
+# - RequirementsSyncMiddleware syncs state → /requirements.json for user visibility
+# - Parent agent resumes with all requirements available in state
+# - Parent agent validates and generates manifest
 #
-# Note: We use create_agent (not create_deep_agent) to avoid the buggy PatchToolCallsMiddleware
-# that causes RemoveMessage streaming errors. We only include the middleware we actually need:
-# TodoListMiddleware and FilesystemMiddleware.
-#
-# Middleware order matters:
-# - RequirementsCacheMiddleware must run BEFORE RequirementsSyncMiddleware
-# - Cache must be initialized before tools run, and synced to file after agent turn
+# Benefits of subagent architecture:
+# - Clean separation: subagent = collection, parent = validation & generation
+# - No timing issues: subagent completes before parent continues
+# - Context isolation: detailed conversation doesn't pollute parent context
+# - State sharing: requirements field shared between parent and subagent
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
-        RequirementsCacheMiddleware(),  # Inject cache for same-turn visibility
-        RequirementsSyncMiddleware(),    # Sync cache + state to file
+        RequirementsSyncMiddleware(),  # Sync state → file after agent/subagent turns
     ],
     context_schema=RdsAgentState,
 )

@@ -9,50 +9,37 @@ from langgraph.types import Command
 
 
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
-    """Read requirements from cache + state.
+    """Read requirements from state.
     
-    Requirements are stored in two places for same-turn visibility:
-    1. Cache (current turn) - immediate visibility via middleware-injected dict
-    2. State (previous turns) - persisted via Command updates with custom reducer
-    
-    This function merges both sources, with cache taking priority for same-turn updates.
+    With the subagent architecture, requirements are stored in state using a custom
+    reducer for parallel-safe field merging. The subagent collects all requirements
+    and they persist in state via Command updates.
     
     Args:
-        runtime: Tool runtime with access to state and config
+        runtime: Tool runtime with access to state
         
     Returns:
         Dictionary of collected requirements, empty dict if none collected yet
 
     """
-    from ..middleware.requirements_cache import get_requirements_cache
-    
-    # Read from both sources
-    state_reqs = runtime.state.get("requirements", {})
-    cache_reqs = get_requirements_cache(runtime)
-    
-    # Merge: state (previous turns) + cache (current turn)
-    # Cache overwrites state for same-field updates in current turn
-    all_requirements = {**state_reqs, **cache_reqs}
-    
-    return all_requirements
+    return runtime.state.get("requirements", {})
 
 
 @tool
 def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Command | str:
-    """Store a collected requirement value (parallel-safe with same-turn visibility).
+    """Store a collected requirement value (parallel-safe).
 
     Use this tool to save user-provided values for RDS fields as you gather them
     during the conversation. This tool is parallel-safe - multiple calls can execute
     simultaneously without losing data, thanks to the custom requirements_reducer.
     
-    Requirements are stored in TWO places:
-    1. Cache (immediate) - for same-turn visibility by other tools
-    2. State (persisted) - via Command updates with custom reducer for cross-turn persistence
+    Requirements are stored in state via Command updates. The custom reducer merges
+    fields at the field level (not file level), ensuring all parallel updates are preserved.
 
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
         value: The user-provided value for this field
-        runtime: Tool runtime with access to state and config
+        runtime: Tool runtime with access to state
 
     Returns:
         Command to update state, or error message
@@ -68,12 +55,7 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     if value is None or (isinstance(value, str) and not value.strip()):
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
-    # Write to cache immediately for same-turn visibility
-    from ..middleware.requirements_cache import get_requirements_cache
-    cache = get_requirements_cache(runtime)
-    cache[field_name] = value
-    
-    # Return Command to update requirements state for persistence
+    # Return Command to update requirements state
     # The requirements_reducer will merge this with existing requirements
     return Command(
         update={
