@@ -1,8 +1,12 @@
-"""Middleware to sync requirements state to file for user visibility.
+"""Middleware to sync requirements state + cache to file for user visibility.
 
-After each agent turn (or subagent completion), this middleware reads the requirements
-from state and writes to /requirements.json in the virtual filesystem.
-This maintains user visibility while keeping state as the source of truth.
+After each agent turn, this middleware reads requirements from both state (persistent)
+and cache (transient) and writes to /requirements.json in the virtual filesystem.
+
+This ensures the file reflects all collected requirements, including those from the
+current turn that may not have been committed to state yet due to Command batching.
+
+LangGraph 1.0+ compatible: Uses runtime.tool_cache attribute, not runtime.config.
 """
 
 import json
@@ -20,19 +24,25 @@ REQUIREMENTS_FILE = "/requirements.json"
 
 
 class RequirementsSyncMiddleware(AgentMiddleware):
-    """Sync requirements state to file for user visibility.
+    """Sync requirements state + cache to file for user visibility.
     
-    After each agent turn (including subagent completion), this middleware reads
-    requirements from state and writes to /requirements.json in the virtual filesystem.
+    After each agent turn, this middleware reads requirements from both state and
+    cache, then writes to /requirements.json in the virtual filesystem.
     
-    With the subagent architecture:
-    - Subagent collects requirements and stores in state
-    - Subagent completes (all Commands applied to state)
-    - This middleware runs and syncs state → file
-    - User sees /requirements.json in file viewer
+    Why read from both state and cache?
+    - LangGraph batches Commands and applies them only after tools complete
+    - Cache provides immediate visibility to requirements stored in current turn
+    - State provides persistence for requirements from previous turns
+    - File must show ALL requirements, regardless of synchronization status
     
-    The state-based requirements field uses requirements_reducer for parallel-safe
-    field merging, ensuring all requirements collected by the subagent are preserved.
+    Flow:
+    - Tools call store_requirement() → writes to cache + returns Command for state
+    - Tools complete → Commands applied to state
+    - This middleware runs → reads cache + state → syncs to file
+    - User sees /requirements.json with all collected requirements
+    
+    The state uses requirements_reducer for parallel-safe field merging.
+    The cache uses runtime.tool_cache for immediate same-turn visibility.
     """
     
     def after_agent(
@@ -42,18 +52,27 @@ class RequirementsSyncMiddleware(AgentMiddleware):
     ) -> dict[str, Any] | None:
         """Sync requirements state + cache to /requirements.json file.
         
-        Reads from both state (persistent) and cache (current turn) to ensure
+        Reads from both state (persistent) and cache (transient) to ensure
         the file reflects all collected requirements, including those from the
-        current turn that may not have been flushed to state yet.
+        current turn that haven't been committed to state yet.
         
-        With subagent architecture:
-        - Subagent collects → writes to cache + state Commands
-        - This middleware runs → reads cache + state → syncs to file
-        - User sees all requirements in file viewer immediately
+        Why read from both?
+        - LangGraph batches Commands and applies them after tools complete
+        - Cache (runtime.tool_cache) has immediate visibility to current turn
+        - State has persistent data from previous turns
+        - File must show complete picture for user
+        
+        Flow:
+        - Tools call store_requirement() → cache + Command
+        - Tools complete → Commands applied to state
+        - This runs → reads both cache + state → syncs to file
+        - User sees complete /requirements.json immediately
+        
+        LangGraph 1.0+ compatible: Uses runtime.tool_cache, not runtime.config.
         
         Args:
             state: Current agent state with requirements field
-            runtime: LangGraph runtime with cache in config
+            runtime: LangGraph runtime with tool_cache attribute
             
         Returns:
             State update with file, or None if no requirements to sync
@@ -63,9 +82,10 @@ class RequirementsSyncMiddleware(AgentMiddleware):
         
         # Read from both sources
         state_requirements = state.get("requirements", {})
-        cache_requirements = get_requirements_cache(runtime)
+        cache_requirements = get_requirements_cache(runtime)  # Accesses runtime.tool_cache
         
         # Merge: state (previous turns) + cache (current turn)
+        # Cache overwrites state for any overlapping keys
         all_requirements = {**state_requirements, **cache_requirements}
         
         # Only sync if requirements exist

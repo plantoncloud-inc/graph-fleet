@@ -11,19 +11,23 @@ from langgraph.types import Command
 def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
     """Read requirements from state and cache.
     
-    With the subagent architecture, requirements are stored in both:
-    1. State (persistent across turns, via Command updates with custom reducer)
-    2. Cache (same-turn visibility, via runtime.config injection)
+    LangGraph 1.0+ uses super-step synchronization: Commands are batched and applied
+    only after all tools complete. This means tools cannot see each other's state updates
+    within the same turn.
     
-    This dual-read pattern solves the state isolation problem:
-    - Subagent collects requirements → writes to cache + state
-    - Parent agent resumes → reads cache + state → sees all requirements
+    Solution: Dual-storage pattern
+    1. State (persistent across turns, via Command updates with custom reducer)
+    2. Cache (same-turn visibility, via runtime.tool_cache attribute injection)
+    
+    This solves the Command synchronization barrier:
+    - Tool A: store_requirement() → writes to cache + returns Command for state
+    - Tool B: validate_manifest() → reads cache + state → sees Tool A's update immediately
     
     The cache provides immediate visibility while state provides persistence.
     Cache values override state values (cache = current turn, state = previous turns).
     
     Args:
-        runtime: Tool runtime with access to state and config
+        runtime: Tool runtime with access to state and cache (via runtime.runtime.tool_cache)
         
     Returns:
         Dictionary of collected requirements (merged from state and cache)
@@ -33,7 +37,7 @@ def _read_requirements(runtime: ToolRuntime) -> dict[str, Any]:
     
     # Read from both sources
     state_reqs = runtime.state.get("requirements", {})
-    cache_reqs = get_requirements_cache(runtime)
+    cache_reqs = get_requirements_cache(runtime)  # Accesses runtime.runtime.tool_cache
     
     # Merge: state (previous turns) + cache (current turn)
     # Cache overwrites state for any overlapping keys
@@ -47,14 +51,22 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     """Store a collected requirement value (parallel-safe, dual-write).
 
     Use this tool to save user-provided values for RDS fields as you gather them
-    during the conversation. This tool uses a dual-write pattern:
+    during the conversation. This tool uses a dual-write pattern to solve the
+    Command synchronization barrier in LangGraph 1.0+:
     
-    1. Write to cache (immediate visibility) - enables same-turn access
-    2. Write to state (persistent storage) - enables cross-turn persistence
+    1. Write to cache (immediate visibility) - runtime.runtime.tool_cache[field] = value
+    2. Write to state (persistent storage) - Command(update={"requirements": {...}})
     
-    This solves the state isolation problem between subagents and parent agents:
-    - Subagent: store_requirement() → cache + state Command
-    - Parent resumes: _read_requirements() → cache + state → sees all requirements
+    Why dual-write?
+    - LangGraph batches Commands and applies them only after all tools complete
+    - Tools in the same turn cannot see each other's state updates
+    - Cache provides immediate visibility, bypassing the synchronization delay
+    - State provides persistence across turns via requirements_reducer
+    
+    This enables same-turn workflows:
+    - store_requirement('engine', 'postgres')
+    - store_requirement('version', '15.5')
+    - validate_manifest() ← sees both requirements immediately
     
     The tool is parallel-safe thanks to:
     - Cache: single-threaded within turn (LangGraph guarantee)
@@ -63,7 +75,7 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
     Args:
         field_name: The proto field name (e.g., 'engine', 'instance_class', 'username')
         value: The user-provided value for this field
-        runtime: Tool runtime with access to state and config
+        runtime: Tool runtime with access to state and cache (via runtime.runtime.tool_cache)
 
     Returns:
         Command to update state, or error message
@@ -80,6 +92,8 @@ def store_requirement(field_name: str, value: Any, runtime: ToolRuntime) -> Comm
         return f"✗ Error: value for '{field_name}' cannot be empty"
     
     # Write 1: Cache (immediate visibility for same-turn access)
+    # Cache is injected by RequirementsCacheMiddleware: runtime.tool_cache = {}
+    # Tools access via nested: runtime.runtime.tool_cache
     from ..middleware.requirements_cache import get_requirements_cache
     cache = get_requirements_cache(runtime)
     cache[field_name] = value
