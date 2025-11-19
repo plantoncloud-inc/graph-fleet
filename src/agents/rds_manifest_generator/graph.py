@@ -19,7 +19,7 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
-from .middleware import RequirementsSyncMiddleware
+from .middleware import RequirementsCacheMiddleware, RequirementsSyncMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -225,28 +225,42 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. RequirementsSyncMiddleware - Syncs requirements state to /requirements.json after each turn
+# 2. RequirementsCacheMiddleware - Injects cache for same-turn requirements visibility
+# 3. RequirementsSyncMiddleware - Syncs requirements state+cache to /requirements.json after each turn
 #
-# Architecture with Subagents: State as source of truth, file as presentation layer
+# Architecture with Subagents: Dual-storage (state + cache) for cross-context visibility
 # - Main agent delegates requirement collection to "requirements-collector" subagent
 # - Subagent collects all requirements through conversation with user
-# - Subagent stores requirements in state using store_requirement() tool
+# - Subagent stores requirements using store_requirement() tool with dual-write:
+#   * Cache: immediate visibility (runtime.config injection)
+#   * State: persistent storage (Command updates with requirements_reducer)
 # - Requirements stored in 'requirements' state field with requirements_reducer
 # - Reducer enables parallel-safe field merging (subagent can make parallel calls)
 # - When subagent completes, all Commands have been applied to state
-# - RequirementsSyncMiddleware syncs state → /requirements.json for user visibility
-# - Parent agent resumes with all requirements available in state
+# - RequirementsSyncMiddleware syncs state+cache → /requirements.json for user visibility
+# - Parent agent resumes with all requirements available via _read_requirements():
+#   * Reads from state (previous turns)
+#   * Reads from cache (current turn)
+#   * Merges both → parent sees all requirements
 # - Parent agent validates and generates manifest
 #
-# Benefits of subagent architecture:
+# Why Cache + State?
+# - Subagents run in isolated execution contexts
+# - State updates from subagent may not be immediately visible to parent
+# - Cache bridges the gap: immediate in-memory access within turn
+# - State provides persistence: survives across turns
+# - Together they solve the state isolation problem
+#
+# Benefits of this architecture:
 # - Clean separation: subagent = collection, parent = validation & generation
-# - No timing issues: subagent completes before parent continues
+# - No timing issues: cache provides immediate visibility, state provides persistence
 # - Context isolation: detailed conversation doesn't pollute parent context
-# - State sharing: requirements field shared between parent and subagent
+# - Cross-context visibility: cache bridges subagent ↔ parent state isolation
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
-        RequirementsSyncMiddleware(),  # Sync state → file after agent/subagent turns
+        RequirementsCacheMiddleware(),   # Inject cache BEFORE sync middleware
+        RequirementsSyncMiddleware(),    # Sync state+cache → file after agent/subagent turns
     ],
     context_schema=RdsAgentState,
 )

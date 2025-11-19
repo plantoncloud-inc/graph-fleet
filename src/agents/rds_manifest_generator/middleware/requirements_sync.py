@@ -40,31 +40,47 @@ class RequirementsSyncMiddleware(AgentMiddleware):
         state: AgentState, 
         runtime: Runtime[Any]
     ) -> dict[str, Any] | None:
-        """Sync requirements state to /requirements.json file.
+        """Sync requirements state + cache to /requirements.json file.
+        
+        Reads from both state (persistent) and cache (current turn) to ensure
+        the file reflects all collected requirements, including those from the
+        current turn that may not have been flushed to state yet.
+        
+        With subagent architecture:
+        - Subagent collects → writes to cache + state Commands
+        - This middleware runs → reads cache + state → syncs to file
+        - User sees all requirements in file viewer immediately
         
         Args:
             state: Current agent state with requirements field
-            runtime: LangGraph runtime
+            runtime: LangGraph runtime with cache in config
             
         Returns:
             State update with file, or None if no requirements to sync
 
         """
-        # Read from state
-        requirements = state.get("requirements", {})
+        from .requirements_cache import get_requirements_cache
+        
+        # Read from both sources
+        state_requirements = state.get("requirements", {})
+        cache_requirements = get_requirements_cache(runtime)
+        
+        # Merge: state (previous turns) + cache (current turn)
+        all_requirements = {**state_requirements, **cache_requirements}
         
         # Only sync if requirements exist
-        if not requirements:
+        if not all_requirements:
             logger.debug("RequirementsSyncMiddleware: No requirements to sync")
             return None
         
         # Format as pretty JSON with sorted keys for consistent presentation
-        json_content = json.dumps(requirements, indent=2, sort_keys=True)
+        json_content = json.dumps(all_requirements, indent=2, sort_keys=True)
         file_data = create_file_data(json_content)
         
         logger.info(
-            f"RequirementsSyncMiddleware: Syncing {len(requirements)} "
-            f"fields to {REQUIREMENTS_FILE}"
+            f"RequirementsSyncMiddleware: Syncing {len(all_requirements)} "
+            f"fields to {REQUIREMENTS_FILE} "
+            f"(state: {len(state_requirements)}, cache: {len(cache_requirements)})"
         )
         
         return {"files": {REQUIREMENTS_FILE: file_data}}
