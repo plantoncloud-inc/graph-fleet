@@ -99,7 +99,7 @@ Created `_kustomize/base/service.yaml` with environment variable references:
 
 ```yaml
 apiVersion: kubernetes.project-planton.org/v1
-kind: MicroserviceKubernetes
+kind: KubernetesDeployment
 metadata:
   name: graph-fleet
   org: planton-cloud
@@ -125,7 +125,7 @@ Created `_kustomize/overlays/local/service.yaml` to add local-specific configura
 
 ```yaml
 apiVersion: kubernetes.project-planton.org/v1
-kind: MicroserviceKubernetes
+kind: KubernetesDeployment
 metadata:
   name: graph-fleet
 spec:
