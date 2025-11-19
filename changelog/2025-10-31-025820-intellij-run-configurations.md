@@ -70,7 +70,7 @@ Created two IntelliJ run configurations stored in the `.run/` directory (reposit
 
 **What it does**:
 1. Runs `planton service dot-env --env local` from repository root
-2. Planton CLI detects GraphFleet as a MicroserviceKubernetes deployment
+2. Planton CLI detects GraphFleet as a KubernetesDeployment deployment
 3. Reads `_kustomize/overlays/local/service.yaml`
 4. Resolves variables from `langchain` variables group (API endpoint, project name)
 5. Resolves secrets from `tavily`, `langchain`, `github`, `anthropic`, `openai` secrets groups
@@ -82,7 +82,7 @@ Created two IntelliJ run configurations stored in the `.run/` directory (reposit
 Base service definition (`_kustomize/base/service.yaml`):
 ```yaml
 apiVersion: kubernetes.project-planton.org/v1
-kind: MicroserviceKubernetes
+kind: KubernetesDeployment
 metadata:
   name: graph-fleet
   org: planton-cloud
@@ -103,7 +103,7 @@ spec:
 Local overlay (`_kustomize/overlays/local/service.yaml`):
 ```yaml
 apiVersion: kubernetes.project-planton.org/v1
-kind: MicroserviceKubernetes
+kind: KubernetesDeployment
 metadata:
   name: graph-fleet
 spec:

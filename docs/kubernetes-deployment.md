@@ -154,7 +154,7 @@ CMD ["poetry", "run", "langgraph", "dev", "--host", "0.0.0.0", "--port", "8080"]
 
 ```yaml
 apiVersion: kubernetes.project-planton.org/v1
-kind: MicroserviceKubernetes
+kind: KubernetesDeployment
 metadata:
   name: graph-fleet
 spec:
