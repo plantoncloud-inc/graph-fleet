@@ -1,123 +1,121 @@
 """Middleware to inject in-memory requirements cache for same-turn visibility.
 
-This middleware solves the state isolation problem between subagents and parent agents.
-When a subagent collects requirements via store_requirement(), the Command updates
-aren't immediately visible to the parent agent when it resumes. This cache provides
-a bridge for same-turn visibility while maintaining state-based persistence.
+This middleware solves the Command synchronization barrier in LangGraph 1.0+.
+Commands are batched and applied only after all tools in a super-step complete,
+so tools cannot see each other's state updates within the same agent turn.
 
-Architecture:
-- Cache injected at turn start into runtime.config["configurable"]
+This cache provides immediate, same-turn visibility by injecting a mutable dictionary
+directly onto the Runtime object, bypassing the state synchronization delay.
+
+Architecture (LangGraph 1.0+ compatible):
+- Cache injected as direct attribute: runtime.tool_cache = {}
+- Uses before_model hook to run before LLM and ToolNode execution
 - Tools write to both cache (immediate) and state (persistent via Command)
 - Tools read from both cache (current turn) and state (previous turns)
 - Cache discarded at turn end, state persists across turns
+
+Based on Gemini Deep Research Solution IV: Runtime Injection of Transient, Mutable State
 """
 
 import logging
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware, AgentState
+from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
 from langgraph.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 
 
 def get_requirements_cache(runtime) -> dict[str, Any]:
-    """Get the requirements cache from runtime config.
+    """Get the requirements cache from runtime.tool_cache attribute.
     
     This helper function provides safe access to the requirements cache that was
-    injected by RequirementsCacheMiddleware at turn start. If the cache doesn't
-    exist (e.g., in test environments without middleware), returns empty dict.
+    injected by RequirementsCacheMiddleware. Handles both ToolRuntime (nested access)
+    and Runtime (direct access) contexts.
+    
+    LangGraph 1.0+ compatible: Uses runtime.tool_cache attribute injection,
+    not runtime.config (which was removed in LangGraph 0.6.0+).
     
     Args:
-        runtime: Tool runtime or LangGraph runtime with config
+        runtime: Tool runtime (ToolRuntime) or LangGraph runtime (Runtime)
         
     Returns:
         Dictionary of cached requirements, empty dict if cache not available
         
     Example:
+        # From tools (ToolRuntime context):
         cache = get_requirements_cache(runtime)
         cache["engine"] = "postgres"  # Write to cache
         value = cache.get("engine")   # Read from cache
     
     """
-    # Handle both ToolRuntime and Runtime objects
-    if not hasattr(runtime, 'config'):
-        return {}
+    # Handle ToolRuntime (nested access via runtime.runtime)
+    if hasattr(runtime, 'runtime'):
+        return getattr(runtime.runtime, 'tool_cache', {})
     
-    config = runtime.config
-    if not isinstance(config, dict):
-        return {}
-    
-    configurable = config.get("configurable", {})
-    if not isinstance(configurable, dict):
-        return {}
-    
-    cache = configurable.get("_requirements_cache", {})
-    if not isinstance(cache, dict):
-        return {}
-    
-    return cache
+    # Handle direct Runtime access (from middleware)
+    return getattr(runtime, 'tool_cache', {})
 
 
 class RequirementsCacheMiddleware(AgentMiddleware):
     """Inject in-memory cache for same-turn requirements visibility.
     
-    This middleware solves the state isolation problem between subagents and parent agents.
-    DeepAgents' subagents run in separate execution contexts, and Command updates from
-    the subagent's state aren't immediately visible to the parent agent when it resumes.
+    This middleware solves the Command synchronization barrier in LangGraph 1.0+.
+    LangGraph batches Command updates and applies them only after all tools in a
+    super-step complete. This means Tool B cannot see Tool A's state updates if they
+    execute in the same agent turn.
     
-    The cache provides immediate visibility:
-    - Subagent: store_requirement() writes to cache + returns Command for state
-    - Subagent completes: All Commands applied to state (persisted)
-    - Parent resumes: Reads cache + state, sees all requirements
+    Solution: Inject a mutable, thread-local cache directly onto the Runtime object.
+    This bypasses state synchronization and provides immediate visibility.
+    
+    Implementation (LangGraph 1.0+ compatible):
+    - Uses before_model hook (runs before LLM and ToolNode)
+    - Injects direct attribute: runtime.tool_cache = {}
+    - Tools access via runtime.runtime.tool_cache (nested from ToolRuntime)
+    - Cache is mutable and immediately visible to all tools in turn
     
     Lifecycle:
-    - before_agent(): Inject fresh empty cache dict for this turn
+    - before_model(): Inject fresh empty cache dict for this turn
     - [Tools execute, reading/writing cache + state]
     - after_agent(): Cache is read by RequirementsSyncMiddleware for file sync
-    - Turn ends: Cache discarded, state persists
+    - Turn ends: Cache discarded (not checkpointed), state persists
     
-    Why cache in runtime.config?
-    - Scoped to single turn (not persisted across turns like state)
-    - Doesn't pollute state schema
-    - Natural place for runtime transient data
-    - Accessible to all tools in the turn
+    Trade-offs:
+    - ✅ Immediate same-turn visibility (solves the problem)
+    - ✅ High performance (no latency, no extra super-steps)
+    - ❌ Cache not checkpointed (non-deterministic for time-travel debugging)
+    - ❌ Requires custom logging for observability
     
-    Why not just use state?
-    - Commands are batched and applied only after all tools complete
-    - Subagent and parent are different execution contexts
-    - State updates from subagent may not be visible to parent immediately
-    - Cache bridges this gap with immediate in-memory access
+    Based on Gemini Deep Research Solution IV: Runtime Injection of Transient, Mutable State
     """
     
-    def before_agent(
+    def before_model(
         self, 
         state: AgentState, 
-        runtime: Runtime[Any]
+        runtime: Runtime
     ) -> dict[str, Any] | None:
-        """Inject fresh requirements cache at turn start.
+        """Inject fresh requirements cache before model execution.
         
-        Creates an empty dictionary in runtime.config["configurable"]["_requirements_cache"]
-        that tools can use for same-turn data sharing. The cache is turn-scoped and
-        discarded after the turn ends.
+        Creates a mutable dictionary as a direct attribute on the Runtime object.
+        This cache is accessible to all tools via runtime.runtime.tool_cache and
+        provides immediate visibility without waiting for state synchronization.
+        
+        LangGraph 1.0+ compatible: Uses direct attribute injection, not runtime.config
+        (which was removed in LangGraph 0.6.0+).
         
         Args:
             state: Current agent state (not modified)
             runtime: LangGraph runtime
             
         Returns:
-            None (no state update, only runtime.config modification)
+            None (no state update, only runtime attribute injection)
         
         """
-        # Ensure configurable dict exists
-        if "configurable" not in runtime.config:
-            runtime.config["configurable"] = {}
+        # Inject mutable cache as direct attribute on Runtime object
+        runtime.tool_cache = {}
         
-        # Inject fresh empty cache for this turn
-        runtime.config["configurable"]["_requirements_cache"] = {}
+        logger.debug("RequirementsCacheMiddleware: Injected empty tool_cache for this turn")
         
-        logger.debug("RequirementsCacheMiddleware: Injected empty requirements cache for this turn")
-        
-        # Return None - we're modifying runtime.config, not state
+        # Return None - we're modifying runtime attribute, not state
         return None
 

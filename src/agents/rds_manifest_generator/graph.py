@@ -228,34 +228,58 @@ _initialize_proto_schema_at_startup()
 # 2. RequirementsCacheMiddleware - Injects cache for same-turn requirements visibility
 # 3. RequirementsSyncMiddleware - Syncs requirements state+cache to /requirements.json after each turn
 #
-# Architecture with Subagents: Dual-storage (state + cache) for cross-context visibility
-# - Main agent delegates requirement collection to "requirements-collector" subagent
-# - Subagent collects all requirements through conversation with user
-# - Subagent stores requirements using store_requirement() tool with dual-write:
-#   * Cache: immediate visibility (runtime.config injection)
+# Dual-Storage Architecture: Solves LangGraph 1.0+ Command Synchronization Barrier
+#
+# The Problem:
+# - LangGraph uses super-step synchronization model
+# - Commands are batched and applied only after all tools complete
+# - Tools in same turn cannot see each other's state updates
+# - Tool A writes → Tool B reads → Tool B sees OLD state (not Tool A's update)
+#
+# The Solution: Dual-Write Pattern (State + Cache)
+# - store_requirement() tool writes to BOTH:
+#   * Cache: immediate visibility (runtime.tool_cache attribute injection)
 #   * State: persistent storage (Command updates with requirements_reducer)
-# - Requirements stored in 'requirements' state field with requirements_reducer
-# - Reducer enables parallel-safe field merging (subagent can make parallel calls)
-# - When subagent completes, all Commands have been applied to state
-# - RequirementsSyncMiddleware syncs state+cache → /requirements.json for user visibility
-# - Parent agent resumes with all requirements available via _read_requirements():
-#   * Reads from state (previous turns)
-#   * Reads from cache (current turn)
-#   * Merges both → parent sees all requirements
-# - Parent agent validates and generates manifest
+# - Reading tools (_read_requirements()) merge BOTH:
+#   * State: requirements from previous turns
+#   * Cache: requirements from current turn
+#   * Result: complete view of all collected requirements
+#
+# How It Works:
+# 1. RequirementsCacheMiddleware runs before_model hook
+#    → Injects mutable dict: runtime.tool_cache = {}
+# 2. Tools execute (possibly in parallel or sequence)
+#    → store_requirement('engine', 'postgres')
+#      → Writes to cache: runtime.runtime.tool_cache['engine'] = 'postgres'
+#      → Returns Command(update={"requirements": {"engine": "postgres"}})
+#    → store_requirement('version', '15.5')
+#      → Writes to cache immediately
+#      → Returns Command for state
+# 3. validate_manifest() executes in same turn
+#    → Calls _read_requirements()
+#      → Merges state + cache
+#      → Sees BOTH 'engine' and 'version' immediately ✅
+# 4. Tools complete → Commands applied to state
+# 5. RequirementsSyncMiddleware runs after_agent
+#    → Reads state + cache → syncs to /requirements.json
 #
 # Why Cache + State?
-# - Subagents run in isolated execution contexts
-# - State updates from subagent may not be immediately visible to parent
-# - Cache bridges the gap: immediate in-memory access within turn
-# - State provides persistence: survives across turns
-# - Together they solve the state isolation problem
+# - Cache: Bypasses Command synchronization delay (immediate visibility)
+# - State: Provides persistence across turns + parallel-safe merging
+# - Together: Enable same-turn workflows while maintaining deterministic state
 #
-# Benefits of this architecture:
-# - Clean separation: subagent = collection, parent = validation & generation
-# - No timing issues: cache provides immediate visibility, state provides persistence
-# - Context isolation: detailed conversation doesn't pollute parent context
-# - Cross-context visibility: cache bridges subagent ↔ parent state isolation
+# LangGraph 1.0+ Compatibility:
+# - Uses runtime.tool_cache (direct attribute injection)
+# - NOT runtime.config (removed in LangGraph 0.6.0+)
+# - Uses before_model hook (runs before LLM and ToolNode)
+# - Based on Gemini Deep Research Solution IV: Runtime Injection of Transient, Mutable State
+#
+# Trade-offs:
+# - ✅ Immediate same-turn visibility (solves the problem)
+# - ✅ High performance (no extra super-steps or latency)
+# - ✅ Parallel-safe (cache single-threaded, state has reducer)
+# - ❌ Cache not checkpointed (non-deterministic for time-travel debugging)
+# - ❌ Requires observability via custom logging
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
