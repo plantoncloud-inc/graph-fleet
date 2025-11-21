@@ -8,7 +8,6 @@ from .manifest_tools import (
 from .requirement_tools import (
     check_requirement_collected,
     get_collected_requirements,
-    store_requirement,
 )
 from .schema_tools import (
     get_all_rds_fields,
@@ -26,7 +25,6 @@ __all__ = [
     # Requirement tools
     "check_requirement_collected",
     "get_collected_requirements",
-    "store_requirement",
     # Manifest tools
     "generate_rds_manifest",
     "set_manifest_metadata",
