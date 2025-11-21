@@ -37,5 +37,6 @@ spec:
       isEnabled: false
   ingress:
     enabled: true
+    dnsDomain: planton.live
   version: main
 
