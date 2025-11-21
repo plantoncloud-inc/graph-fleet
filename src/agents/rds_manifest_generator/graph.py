@@ -7,7 +7,6 @@ ready before any user requests are processed.
 
 import logging
 import time
-from typing import Annotated, Any
 
 from deepagents.middleware.filesystem import FilesystemState
 
@@ -19,7 +18,6 @@ from src.common.repos import (
 
 from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
-from .middleware import RequirementsCacheMiddleware, RequirementsSyncMiddleware
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
 # Configure logging
@@ -31,41 +29,13 @@ logger = logging.getLogger(__name__)
 _cached_proto_contents: dict[str, str] = {}
 
 
-def requirements_reducer(left: dict[str, Any] | None, right: dict[str, Any]) -> dict[str, Any]:
-    """Merge requirements at field level for parallel-safe updates.
-    
-    This reducer enables parallel tool execution by merging requirement fields
-    instead of replacing the entire dictionary. When multiple store_requirement()
-    calls execute simultaneously, each field update is preserved.
-    
-    Args:
-        left: Existing requirements dict (or None on first update)
-        right: New requirements dict to merge
-        
-    Returns:
-        Merged dictionary with all fields from both left and right
-        
-    Example:
-        left = {"engine": "postgres"}
-        right = {"instance_class": "db.t3.micro"}
-        result = {"engine": "postgres", "instance_class": "db.t3.micro"}
-
-    
-    """
-    result = {**(left or {})}
-    result.update(right or {})
-    return result
-
-
 class RdsAgentState(FilesystemState):
-    """State for RDS agent with parallel-safe requirements storage.
+    """State for RDS agent.
     
-    Extends FilesystemState to add a custom requirements field with field-level
-    merging via requirements_reducer. This enables parallel tool execution without
-    data loss.
+    Extends FilesystemState to provide file storage capabilities.
+    Requirements are stored in /requirements.json using native file tools.
     """
-
-    requirements: Annotated[dict[str, Any], requirements_reducer]
+    pass
 
 
 class FirstRequestProtoLoader(RepositoryFilesMiddleware):
@@ -225,66 +195,31 @@ _initialize_proto_schema_at_startup()
 
 # Export the compiled graph for LangGraph with custom middleware:
 # 1. FirstRequestProtoLoader - Copies proto files to virtual filesystem on first request
-# 2. RequirementsCacheMiddleware - Injects cache for same-turn requirements visibility
-# 3. RequirementsSyncMiddleware - Syncs requirements state+cache to /requirements.json after each turn
 #
-# Dual-Storage Architecture: Solves LangGraph 1.0+ Command Synchronization Barrier
-#
-# The Problem:
-# - LangGraph uses super-step synchronization model
-# - Commands are batched and applied only after all tools complete
-# - Tools in same turn cannot see each other's state updates
-# - Tool A writes → Tool B reads → Tool B sees OLD state (not Tool A's update)
-#
-# The Solution: Dual-Write Pattern (State + Cache)
-# - store_requirement() tool writes to BOTH:
-#   * Cache: immediate visibility (runtime.tool_cache attribute injection)
-#   * State: persistent storage (Command updates with requirements_reducer)
-# - Reading tools (_read_requirements()) merge BOTH:
-#   * State: requirements from previous turns
-#   * Cache: requirements from current turn
-#   * Result: complete view of all collected requirements
+# File-Based Requirements Storage:
+# The subagent uses native DeepAgents file tools (write_file, edit_file, read_file) 
+# to maintain /requirements.json. This approach:
+# - Uses DeepAgents as designed (no Runtime mutation)
+# - Provides immediate visibility (file operations complete before next tool)
+# - Simpler architecture (no custom middleware for requirements)
+# - More maintainable (fewer moving parts)
+# - Aligns with how Cursor agents intelligently edit files
 #
 # How It Works:
-# 1. RequirementsCacheMiddleware runs before_model hook
-#    → Injects mutable dict: runtime.tool_cache = {}
-# 2. Tools execute (possibly in parallel or sequence)
-#    → store_requirement('engine', 'postgres')
-#      → Writes to cache: runtime.runtime.tool_cache['engine'] = 'postgres'
-#      → Returns Command(update={"requirements": {"engine": "postgres"}})
-#    → store_requirement('version', '15.5')
-#      → Writes to cache immediately
-#      → Returns Command for state
-# 3. validate_manifest() executes in same turn
-#    → Calls _read_requirements()
-#      → Merges state + cache
-#      → Sees BOTH 'engine' and 'version' immediately ✅
-# 4. Tools complete → Commands applied to state
-# 5. RequirementsSyncMiddleware runs after_agent
-#    → Reads state + cache → syncs to /requirements.json
+# 1. Subagent collects requirements from user
+# 2. Uses write_file to create /requirements.json with first field
+# 3. Uses edit_file to add subsequent fields (reads first, then edits)
+# 4. Main agent reads /requirements.json for validation and generation
+# 5. File is visible to user throughout the process
 #
-# Why Cache + State?
-# - Cache: Bypasses Command synchronization delay (immediate visibility)
-# - State: Provides persistence across turns + parallel-safe merging
-# - Together: Enable same-turn workflows while maintaining deterministic state
-#
-# LangGraph 1.0+ Compatibility:
-# - Uses runtime.tool_cache (direct attribute injection)
-# - NOT runtime.config (removed in LangGraph 0.6.0+)
-# - Uses before_model hook (runs before LLM and ToolNode)
-# - Based on Gemini Deep Research Solution IV: Runtime Injection of Transient, Mutable State
-#
-# Trade-offs:
-# - ✅ Immediate same-turn visibility (solves the problem)
-# - ✅ High performance (no extra super-steps or latency)
-# - ✅ Parallel-safe (cache single-threaded, state has reducer)
-# - ❌ Cache not checkpointed (non-deterministic for time-travel debugging)
-# - ❌ Requires observability via custom logging
+# This eliminates the need for:
+# - Custom store_requirement() tool
+# - RequirementsCacheMiddleware (was causing Runtime mutation errors)
+# - RequirementsSyncMiddleware (file is already the source of truth)
+# - Custom requirements state field and reducer
 graph = create_rds_agent(
     middleware=[
         FirstRequestProtoLoader(),
-        RequirementsCacheMiddleware(),   # Inject cache BEFORE sync middleware
-        RequirementsSyncMiddleware(),    # Sync state+cache → file after agent/subagent turns
     ],
     context_schema=RdsAgentState,
 )

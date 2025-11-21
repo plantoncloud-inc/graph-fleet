@@ -1,7 +1,8 @@
-"""Middleware for RDS manifest generator agent."""
+"""Middleware for RDS manifest generator agent.
 
-from .requirements_cache import RequirementsCacheMiddleware
-from .requirements_sync import RequirementsSyncMiddleware
+Note: Previously contained RequirementsCacheMiddleware and RequirementsSyncMiddleware,
+which have been removed in favor of file-based requirements storage using native
+DeepAgents file tools.
+"""
 
-__all__ = ["RequirementsCacheMiddleware", "RequirementsSyncMiddleware"]
-
+__all__ = []

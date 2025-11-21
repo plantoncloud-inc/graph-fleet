@@ -14,7 +14,6 @@ from .tools.manifest_tools import (
 from .tools.requirement_tools import (
     check_requirement_collected,
     get_collected_requirements,
-    store_requirement,
 )
 from .tools.schema_tools import (
     get_all_rds_fields,
@@ -27,35 +26,76 @@ REQUIREMENTS_COLLECTOR_PROMPT = r"""You are a requirements collection specialist
 
 ## Your Mission
 
-Collect ALL required field values from the user through friendly conversation. The required fields typically include:
-- engine (database type: postgres, mysql, mariadb, oracle-se2, sqlserver-ex)
-- engine_version (e.g., "15.5")
-- instance_class (e.g., "db.t3.micro")
-- allocated_storage_gb (number > 0)
-- username (master username)
-- password (master password)
-
-Use `list_required_fields()` at the start to see the exact list of required fields for the current schema.
+Collect ALL required field values from the user and store them in `/requirements.json` using native file tools.
 
 ## Your Workflow
 
 1. Use `list_required_fields()` to see what fields are required
-2. Use `get_rds_field_info(field_name)` to understand each field's requirements and validation rules
+2. Use `get_rds_field_info(field_name)` to understand each field's validation rules
 3. Ask the user for values in a friendly, conversational way
-4. Validate each value against the field rules before storing
-5. Use `store_requirement(field_name, value)` to save each validated value
+4. Validate each value against the field rules
+5. **Store requirements in /requirements.json using write_file or edit_file**
 6. Continue until all required fields are collected
-7. Use `get_collected_requirements()` to verify everything is collected
-8. When complete, summarize what was collected and END your work
+7. When complete, summarize what was collected
 
-## Important Rules
+## How to Store Requirements
 
-- **Be conversational and friendly** - You're a helpful colleague, not a form
-- **Validate before storing** - Check values match field requirements
-- **Accept multiple values** - If user provides several values at once, store them all
-- **Group related questions** - Ask engine + version together when sensible
-- **When all required fields are collected, SUMMARIZE and COMPLETE** - Don't keep asking questions
-- **Your summary will be sent to the main agent** - Make it clear and complete
+### First Requirement (Create File)
+
+When you collect the FIRST requirement, create the file:
+
+```
+write_file(
+    file_path="/requirements.json",
+    content='{\n  "engine": "postgres"\n}'
+)
+```
+
+### Subsequent Requirements (Edit File)
+
+When you collect ADDITIONAL requirements:
+
+1. Read current contents: `read_file("/requirements.json")`
+2. Add new field intelligently using edit_file:
+
+```
+edit_file(
+    file_path="/requirements.json",
+    old_string='{\n  "engine": "postgres"\n}',
+    new_string='{\n  "engine": "postgres",\n  "engine_version": "15.5"\n}'
+)
+```
+
+**JSON Editing Rules:**
+- Always read the file before editing to see current structure
+- Maintain proper JSON syntax (commas, quotes, brackets)
+- Add new fields INSIDE the closing brace }
+- Use proper indentation (2 spaces)
+- Add comma after previous field, no comma on last field
+- Verify after each edit by reading the file
+
+## Example Flow
+
+User: "I want Postgres 15.5, t3.micro instance, 20GB storage"
+
+You:
+1. "Great! Let me collect these requirements..."
+2. `write_file("/requirements.json", '{\n  "engine": "postgres"\n}')`
+3. `read_file("/requirements.json")` ← verify
+4. `edit_file(...)` to add "engine_version": "15.5"
+5. `read_file("/requirements.json")` ← verify
+6. `edit_file(...)` to add "instance_class": "db.t3.micro"
+7. Continue for remaining fields...
+8. `get_collected_requirements()` ← final summary
+9. "✓ All requirements collected!"
+
+## Important Tips
+
+- **Read before edit**: Always read current JSON before editing
+- **One field at a time**: Add one field per edit (simpler, less error-prone)
+- **Verify frequently**: Read file after edits to catch mistakes
+- **If edit fails**: Re-read the file and try again with correct old_string
+- **Be conversational**: You're a helpful colleague, not a form
 
 ## Validation Examples
 
@@ -67,17 +107,13 @@ If user says "0" for allocated_storage_gb (requires `gt: 0`):
 
 ## Completion Message
 
-When all required fields are collected, return a message like:
+When all required fields are collected:
 
-"✓ All required fields collected successfully:
-- engine: postgres  
-- engine_version: 15.5
-- instance_class: db.t3.micro
-- allocated_storage_gb: 20
-- username: postgres
-- password: (set securely)
+"✓ All required fields collected successfully!"
 
-Ready for validation and manifest generation!"
+[Call get_collected_requirements() to show final list]
+
+"Ready for validation and manifest generation!"
 
 After this summary, your work is complete and the main agent will take over.
 """
@@ -130,7 +166,7 @@ task(
 )
 ```
 
-**Important**: The subagent shares your state. When it stores requirements using `store_requirement()`, those requirements become available to you through the shared `requirements` state field.
+**Important**: The subagent shares your state. When it stores requirements in `/requirements.json` using native file tools, that file becomes available to you for reading and validation.
 
 ### Phase 3: Validate Requirements
 
@@ -237,16 +273,16 @@ def create_rds_agent(middleware: Sequence[AgentMiddleware] = (), context_schema=
         subagents=[
             {
                 "name": "requirements-collector",
-                "description": "Collects RDS instance requirements from the user through friendly conversation",
+                "description": "Collects RDS instance requirements from the user using native file tools",
                 "system_prompt": REQUIREMENTS_COLLECTOR_PROMPT,
                 "tools": [
-                    # Requirement collection tools (subagent)
-                    store_requirement,
+                    # Requirement query tools (subagent reads from /requirements.json)
                     get_collected_requirements,
                     check_requirement_collected,
                     # Schema tools for validation (subagent)
                     get_rds_field_info,
                     list_required_fields,
+                    # Note: write_file, edit_file, read_file are provided automatically by DeepAgents
                 ],
             }
         ],
