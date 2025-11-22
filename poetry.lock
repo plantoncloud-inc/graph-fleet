@@ -111,6 +111,66 @@ files = [
 ]
 
 [[package]]
+name = "bufbuild-protovalidate-protocolbuffers-pyi"
+version = "33.1.0.1.20250912141014+52f32327d4b0"
+description = "This package contains generated code for the protobuf module bufbuild/protovalidate when generated with the plugin protocolbuffers/pyi."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "bufbuild_protovalidate_protocolbuffers_pyi-33.1.0.1.20250912141014+52f32327d4b0-py3-none-any.whl", hash = "sha256:0b59efadb20dea3fd06530575eb29b531de3dc51833c32e621d19e2279fc07d8"},
+]
+
+[package.dependencies]
+protobuf = ">=3.20"
+types-protobuf = "*"
+
+[package.source]
+type = "legacy"
+url = "https://buf.build/gen/python"
+reference = "buf-build"
+
+[[package]]
+name = "bufbuild-protovalidate-protocolbuffers-python"
+version = "33.1.0.1.20250912141014+52f32327d4b0"
+description = "This package contains generated code for the protobuf module bufbuild/protovalidate when generated with the plugin protocolbuffers/python."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "bufbuild_protovalidate_protocolbuffers_python-33.1.0.1.20250912141014+52f32327d4b0-py3-none-any.whl", hash = "sha256:b1a7f0072b7df5549c39617bfbfc8dbccd62e21b338c8c3fe28d9f5c4dfb4414"},
+]
+
+[package.dependencies]
+bufbuild-protovalidate-protocolbuffers-pyi = ">=33.1.0.1.20250912141014"
+protobuf = ">=3.20"
+
+[package.source]
+type = "legacy"
+url = "https://buf.build/gen/python"
+reference = "buf-build"
+
+[[package]]
+name = "cel-python"
+version = "0.2.0"
+description = "Pure Python implementation of Google Common Expression Language"
+optional = false
+python-versions = "<4.0,>=3.8"
+groups = ["main"]
+files = [
+    {file = "cel_python-0.2.0-py3-none-any.whl", hash = "sha256:478ff73def7b39d51e6982f95d937a57c2b088c491c578fe5cecdbd79f476f60"},
+    {file = "cel_python-0.2.0.tar.gz", hash = "sha256:75de72a5cf223ec690b236f0cc24da267219e667bd3e7f8f4f20595fcc1c0c0f"},
+]
+
+[package.dependencies]
+jmespath = ">=1.0.1,<2.0.0"
+lark = ">=0.12.0,<0.13.0"
+python-dateutil = ">=2.9.0.post0,<3.0.0"
+pyyaml = ">=6.0.1,<7.0.0"
+types-python-dateutil = ">=2.9.0.20240316,<3.0.0.0"
+types-pyyaml = ">=6.0.12.20240311,<7.0.0.0"
+
+[[package]]
 name = "certifi"
 version = "2025.10.5"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -506,6 +566,24 @@ files = [
 ]
 
 [[package]]
+name = "googleapis-common-protos"
+version = "1.70.0"
+description = "Common protobufs used in Google APIs"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "googleapis_common_protos-1.70.0-py3-none-any.whl", hash = "sha256:b8bfcca8c25a2bb253e0e0b0adaf8c00773e5e6af6fd92397576680b807e0fd8"},
+    {file = "googleapis_common_protos-1.70.0.tar.gz", hash = "sha256:0e1b44e0ea153e6594f9f394fef15193a68aaaea2d843f83e2742717ca753257"},
+]
+
+[package.dependencies]
+protobuf = ">=3.20.2,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<7.0.0"
+
+[package.extras]
+grpc = ["grpcio (>=1.44.0,<2.0.0)"]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
@@ -701,6 +779,18 @@ files = [
     {file = "jiter-0.11.1-graalpy312-graalpy250_312_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c9022974781155cd5521d5cb10997a03ee5e31e8454c9d999dcdccd253f2353f"},
     {file = "jiter-0.11.1-graalpy312-graalpy250_312_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:18c77aaa9117510d5bdc6a946baf21b1f0cfa58ef04d31c8d016f206f2118960"},
     {file = "jiter-0.11.1.tar.gz", hash = "sha256:849dcfc76481c0ea0099391235b7ca97d7279e0fa4c86005457ac7c88e8b76dc"},
+]
+
+[[package]]
+name = "jmespath"
+version = "1.0.1"
+description = "JSON Matching Expressions"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980"},
+    {file = "jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe"},
 ]
 
 [[package]]
@@ -1121,6 +1211,23 @@ pytest = ["pytest (>=7.0.0)", "rich (>=13.9.4)", "vcrpy (>=7.0.0)"]
 vcr = ["vcrpy (>=7.0.0)"]
 
 [[package]]
+name = "lark"
+version = "0.12.0"
+description = "a modern parsing library"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "lark-0.12.0-py2.py3-none-any.whl", hash = "sha256:ed1d891cbcf5151ead1c1d14663bf542443e579e63a76ae175b01b899bd854ca"},
+    {file = "lark-0.12.0.tar.gz", hash = "sha256:7da76fcfddadabbbbfd949bbae221efd33938451d90b1fefbbc423c3cccf48ef"},
+]
+
+[package.extras]
+atomic-cache = ["atomicwrites"]
+nearley = ["js2py"]
+regex = ["regex"]
+
+[[package]]
 name = "mcp"
 version = "1.19.0"
 description = "Model Context Protocol SDK"
@@ -1436,6 +1543,84 @@ files = [
     {file = "pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08"},
     {file = "pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712"},
 ]
+
+[[package]]
+name = "project-planton-apis-protocolbuffers-pyi"
+version = "33.1.0.1.20251120030842+4ae0c84bced3"
+description = "This package contains generated code for the protobuf module project-planton/apis when generated with the plugin protocolbuffers/pyi."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "project_planton_apis_protocolbuffers_pyi-33.1.0.1.20251120030842+4ae0c84bced3-py3-none-any.whl", hash = "sha256:a7e706ec1a2715575aea3a9d271bc2a732e770bbf685c6d2cc54b7be611e2bee"},
+]
+
+[package.dependencies]
+bufbuild-protovalidate-protocolbuffers-pyi = ">=33.1.0.1.20250717185734,<33.2.0.0.0"
+protobuf = ">=3.20"
+types-protobuf = "*"
+
+[package.source]
+type = "legacy"
+url = "https://buf.build/gen/python"
+reference = "buf-build"
+
+[[package]]
+name = "project-planton-apis-protocolbuffers-python"
+version = "33.1.0.1.20251120030842+4ae0c84bced3"
+description = "This package contains generated code for the protobuf module project-planton/apis when generated with the plugin protocolbuffers/python."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "project_planton_apis_protocolbuffers_python-33.1.0.1.20251120030842+4ae0c84bced3-py3-none-any.whl", hash = "sha256:5c7d3adad5ef07b7c20ce7d1e1eb5acdc8299a7c25ae01429a207e2188f75fc6"},
+]
+
+[package.dependencies]
+bufbuild-protovalidate-protocolbuffers-python = ">=33.1.0.1.20250717185734,<33.2.0.0.0"
+project-planton-apis-protocolbuffers-pyi = ">=33.1.0.1.20251120030842"
+protobuf = ">=3.20"
+
+[package.source]
+type = "legacy"
+url = "https://buf.build/gen/python"
+reference = "buf-build"
+
+[[package]]
+name = "protobuf"
+version = "6.33.1"
+description = ""
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "protobuf-6.33.1-cp310-abi3-win32.whl", hash = "sha256:f8d3fdbc966aaab1d05046d0240dd94d40f2a8c62856d41eaa141ff64a79de6b"},
+    {file = "protobuf-6.33.1-cp310-abi3-win_amd64.whl", hash = "sha256:923aa6d27a92bf44394f6abf7ea0500f38769d4b07f4be41cb52bd8b1123b9ed"},
+    {file = "protobuf-6.33.1-cp39-abi3-macosx_10_9_universal2.whl", hash = "sha256:fe34575f2bdde76ac429ec7b570235bf0c788883e70aee90068e9981806f2490"},
+    {file = "protobuf-6.33.1-cp39-abi3-manylinux2014_aarch64.whl", hash = "sha256:f8adba2e44cde2d7618996b3fc02341f03f5bc3f2748be72dc7b063319276178"},
+    {file = "protobuf-6.33.1-cp39-abi3-manylinux2014_s390x.whl", hash = "sha256:0f4cf01222c0d959c2b399142deb526de420be8236f22c71356e2a544e153c53"},
+    {file = "protobuf-6.33.1-cp39-abi3-manylinux2014_x86_64.whl", hash = "sha256:8fd7d5e0eb08cd5b87fd3df49bc193f5cfd778701f47e11d127d0afc6c39f1d1"},
+    {file = "protobuf-6.33.1-cp39-cp39-win32.whl", hash = "sha256:023af8449482fa884d88b4563d85e83accab54138ae098924a985bcbb734a213"},
+    {file = "protobuf-6.33.1-cp39-cp39-win_amd64.whl", hash = "sha256:df051de4fd7e5e4371334e234c62ba43763f15ab605579e04c7008c05735cd82"},
+    {file = "protobuf-6.33.1-py3-none-any.whl", hash = "sha256:d595a9fd694fdeb061a62fbe10eb039cc1e444df81ec9bb70c7fc59ebcb1eafa"},
+    {file = "protobuf-6.33.1.tar.gz", hash = "sha256:97f65757e8d09870de6fd973aeddb92f85435607235d20b2dfed93405d00c85b"},
+]
+
+[[package]]
+name = "protovalidate"
+version = "0.13.0"
+description = "Protocol Buffer Validation for Python"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "protovalidate-0.13.0-py3-none-any.whl", hash = "sha256:ed97aeb21548ed80d43a597065b8bcc4f5c906a12ef08aea6b911ef5f85ef620"},
+    {file = "protovalidate-0.13.0.tar.gz", hash = "sha256:6ed8065a1bb7dfa8d3d85e30aa8b841bebb616438ac75e0bce727f2b05640871"},
+]
+
+[package.dependencies]
+cel-python = "==0.2.*"
+protobuf = "==6.*"
 
 [[package]]
 name = "psycopg"
@@ -1757,6 +1942,21 @@ crypto = ["cryptography (>=3.4.0)"]
 dev = ["coverage[toml] (==5.0.4)", "cryptography (>=3.4.0)", "pre-commit", "pytest (>=6.0.0,<7.0.0)", "sphinx", "sphinx-rtd-theme", "zope.interface"]
 docs = ["sphinx", "sphinx-rtd-theme", "zope.interface"]
 tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
+
+[[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+description = "Extensions to the standard Python datetime module"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+groups = ["main"]
+files = [
+    {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
+    {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[package.dependencies]
+six = ">=1.5"
 
 [[package]]
 name = "python-dotenv"
@@ -2213,6 +2413,18 @@ files = [
 ]
 
 [[package]]
+name = "six"
+version = "1.17.0"
+description = "Python 2 and 3 compatibility utilities"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+groups = ["main"]
+files = [
+    {file = "six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"},
+    {file = "six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"},
+]
+
+[[package]]
 name = "sniffio"
 version = "1.3.1"
 description = "Sniff out which async library your code is running under"
@@ -2400,12 +2612,36 @@ files = [
 ]
 
 [[package]]
+name = "types-protobuf"
+version = "6.32.1.20251105"
+description = "Typing stubs for protobuf"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "types_protobuf-6.32.1.20251105-py3-none-any.whl", hash = "sha256:a15109d38f7cfefd2539ef86d3f93a6a41c7cad53924f8aa1a51eaddbb72a660"},
+    {file = "types_protobuf-6.32.1.20251105.tar.gz", hash = "sha256:641002611ff87dd9fedc38a39a29cacb9907ae5ce61489b53e99ca2074bef764"},
+]
+
+[[package]]
+name = "types-python-dateutil"
+version = "2.9.0.20251115"
+description = "Typing stubs for python-dateutil"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "types_python_dateutil-2.9.0.20251115-py3-none-any.whl", hash = "sha256:9cf9c1c582019753b8639a081deefd7e044b9fa36bd8217f565c6c4e36ee0624"},
+    {file = "types_python_dateutil-2.9.0.20251115.tar.gz", hash = "sha256:8a47f2c3920f52a994056b8786309b43143faa5a64d4cbb2722d6addabdf1a58"},
+]
+
+[[package]]
 name = "types-pyyaml"
 version = "6.0.12.20250915"
 description = "Typing stubs for PyYAML"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "types_pyyaml-6.0.12.20250915-py3-none-any.whl", hash = "sha256:e7d4d9e064e89a3b3cae120b4990cd370874d2bf12fa5f46c97018dd5d3c9ab6"},
     {file = "types_pyyaml-6.0.12.20250915.tar.gz", hash = "sha256:0f8b54a528c303f0e6f7165687dd33fafa81c807fcac23f632b63aa624ced1d3"},
@@ -2890,4 +3126,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "9110de8b32d111d8a22b36e4b74af0f3aec471de8ef0e2b39eec5ebb4d48f757"
+content-hash = "54eecd95280c46405f7b42b8fcf9fc0db36c2b6f15ca3a8a2e2327faaa3954e3"

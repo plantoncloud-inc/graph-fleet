@@ -1,7 +1,6 @@
 """Tools for generating and validating AWS RDS YAML manifests."""
 
 import random
-import re
 import string
 from typing import Any
 
@@ -13,6 +12,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langgraph.types import Command
 
+from ..validation.manifest_validator import validate_manifest_yaml
 from .field_converter import proto_to_yaml_field_name
 from .requirement_tools import _read_requirements
 
@@ -35,42 +35,6 @@ def generate_random_suffix(length: int = 6) -> str:
 
     """
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
-
-
-def _get_pattern_example(field_name: str, pattern: str) -> str:
-    r"""Get user-friendly example for pattern validation errors.
-
-    Args:
-        field_name: Name of the field with pattern validation
-        pattern: The regex pattern
-
-    Returns:
-        User-friendly example string
-
-    Example:
-        >>> _get_pattern_example('instance_class', '^db\\\\.')
-        'must start with "db." (e.g., db.t3.micro, db.m6g.large)'
-
-    """
-    # Common patterns and their examples
-    pattern_examples = {
-        "instance_class": 'must start with "db." (e.g., db.t3.micro, db.m6g.large)',
-        "subnet_ids": "valid subnet ID format (e.g., subnet-abc123)",
-        "security_group_ids": "valid security group ID (e.g., sg-xyz789)",
-        "kms_key_id": "KMS key ARN (e.g., arn:aws:kms:region:account:key/key-id)",
-    }
-
-    # Return specific example if available
-    if field_name in pattern_examples:
-        return pattern_examples[field_name]
-
-    # Generic pattern description
-    if pattern.startswith("^") and "\\" in pattern:
-        # Try to extract meaningful info from pattern
-        if "db\\." in pattern:
-            return 'must start with "db."'
-
-    return f"must match pattern {pattern}"
 
 
 @tool
@@ -113,17 +77,17 @@ def set_manifest_metadata(name: str | None = None, labels: dict[str, str] | None
 
 
 @tool
-def validate_manifest(runtime: ToolRuntime) -> str:
-    r"""Validate collected requirements against proto validation rules.
+def validate_manifest(runtime: ToolRuntime, config: RunnableConfig = None) -> str:
+    r"""Validate collected requirements against proto validation rules using protovalidate.
 
-    Checks that all required fields are present and all values meet
-    validation constraints (pattern, min_len, gt, gte, lte, etc.).
-
-    This should be called before generating the final manifest to ensure
-    all collected data is valid and complete.
+    This tool builds a complete AWS RDS Instance manifest from the collected
+    requirements and validates it against the AwsRdsInstance protobuf message
+    using Buf protovalidate. This ensures all required fields are present and
+    all values meet the validation constraints defined in the proto schema.
 
     Args:
         runtime: Tool runtime with access to filesystem state
+        config: Runtime configuration containing org and env from execution context
 
     Returns:
         Validation result message listing any issues or confirming validity
@@ -131,78 +95,65 @@ def validate_manifest(runtime: ToolRuntime) -> str:
     Example:
         validate_manifest()
         # Returns: "✓ All requirements are valid and complete"
-        # Or: "Validation issues found:\n  - Missing required field: engine\n  - ..."
+        # Or: "Validation issues found:\n  - spec.engine: field is required\n  - ..."
 
     """
-    from ..schema.loader import get_schema_loader
-
+    # Extract org and env from configurable, with fallback defaults
+    org = "project-planton"  # default fallback
+    env = "aws"  # default fallback
+    
+    if config and "configurable" in config:
+        org = config["configurable"].get("org", org)
+        env = config["configurable"].get("env", env)
+    
     # Read requirements from filesystem
     requirements = _read_requirements(runtime)
 
-    loader = get_schema_loader()
-    required_fields = loader.get_required_fields()
-    all_fields = loader.load_spec_schema()
+    # Check for user-provided metadata
+    user_provided_name = requirements.get("_metadata_name")
+    user_provided_labels = requirements.get("_metadata_labels")
 
-    issues = []
+    # Use user-provided name or generate a temporary one for validation
+    if user_provided_name:
+        name = user_provided_name
+    else:
+        # Use a temporary name for validation purposes
+        engine = requirements.get("engine", "db")
+        name = f"{engine}-instance-validation"
 
-    # Check required fields
-    for field in required_fields:
-        if field.name not in requirements:
-            # Skip metadata-internal fields
-            if not field.name.startswith("_metadata_"):
-                # Provide helpful context about the missing field
-                field_desc = field.description[:60] if field.description else "Required field"
-                issues.append(
-                    f"Missing required field '{field.name}': {field_desc}..."
-                )
+    # Build metadata section
+    metadata: dict[str, Any] = {"name": name, "org": org, "env": env}
 
-    # Validate field values against rules
-    for field_name, value in requirements.items():
-        # Skip metadata fields
-        if field_name.startswith("_metadata_"):
+    # Add labels if user provided them
+    if user_provided_labels:
+        metadata["labels"] = user_provided_labels
+
+    # Build spec section by converting collected requirements
+    spec: dict[str, Any] = {}
+    for proto_field, value in requirements.items():
+        # Skip metadata fields (internal markers)
+        if proto_field.startswith("_metadata_"):
             continue
 
-        field_info = next((f for f in all_fields if f.name == field_name), None)
-        if not field_info:
-            continue
+        yaml_field = proto_to_yaml_field_name(proto_field)
+        spec[yaml_field] = value
 
-        # Check validation rules with user-friendly messages
-        for rule, rule_value in field_info.validation_rules.items():
-            if rule == "pattern" and isinstance(value, str):
-                if not re.match(rule_value, value):
-                    # Provide helpful examples based on field name
-                    example = _get_pattern_example(field_name, rule_value)
-                    issues.append(
-                        f"{field_name}: Value '{value}' doesn't match required pattern. "
-                        f"Expected format: {example}"
-                    )
-            elif rule == "min_len" and isinstance(value, str):
-                if len(value) < rule_value:
-                    issues.append(
-                        f"{field_name}: Value too short (minimum {rule_value} characters, "
-                        f"got {len(value)})"
-                    )
-            elif rule == "gt" and isinstance(value, (int, float)):
-                if value <= rule_value:
-                    issues.append(
-                        f"{field_name}: Value must be greater than {rule_value} "
-                        f"(got {value})"
-                    )
-            elif rule == "gte" and isinstance(value, (int, float)):
-                if value < rule_value:
-                    issues.append(
-                        f"{field_name}: Value must be at least {rule_value} "
-                        f"(got {value})"
-                    )
-            elif rule == "lte" and isinstance(value, (int, float)):
-                if value > rule_value:
-                    issues.append(
-                        f"{field_name}: Value must be at most {rule_value} "
-                        f"(got {value})"
-                    )
+    # Build complete manifest for validation
+    manifest = {
+        "apiVersion": "aws.project-planton.org/v1",
+        "kind": "AwsRdsInstance",
+        "metadata": metadata,
+        "spec": spec,
+    }
 
-    if issues:
-        return "Validation issues found:\n" + "\n".join(f"  - {issue}" for issue in issues)
+    # Convert to YAML
+    manifest_yaml = yaml.dump(manifest, default_flow_style=False, sort_keys=False)
+
+    # Validate using protovalidate
+    validation_errors = validate_manifest_yaml(manifest_yaml)
+
+    if validation_errors:
+        return "Validation issues found:\n" + "\n".join(f"  - {error}" for error in validation_errors)
 
     return "✓ All requirements are valid and complete"
 

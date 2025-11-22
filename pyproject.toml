@@ -23,6 +23,15 @@ psycopg = {extras = ["binary", "pool"], version = ">=3.0.0,<4.0.0"}
 langgraph-checkpoint-postgres = ">=3.0.0,<4.0.0"
 deepagents = "0.2.0"
 
+# Protobuf & validation
+protobuf = "^6.32.0"
+protovalidate = "0.13.0"
+googleapis-common-protos = "1.70.0"
+
+# Project Planton proto stubs from Buf registry
+project-planton-apis-protocolbuffers-python = { version = "*", source = "buf-build" }
+project-planton-apis-protocolbuffers-pyi = { version = "*", source = "buf-build" }
+
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"
 mypy = ">=1.10.0"
@@ -31,6 +40,11 @@ types-pyyaml = "^6.0.12.20250915"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "buf-build"
+url = "https://buf.build/gen/python"
+priority = "supplemental"
 
 [tool.ruff]
 lint.select = ["E", "F", "I", "D", "UP"]
