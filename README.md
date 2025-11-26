@@ -10,6 +10,27 @@ Each agent in Graph Fleet is built using the [LangGraph](https://langchain-ai.gi
 
 ## Current Agents
 
+### AWS RDS Instance Creator
+
+An intelligent conversational agent that provisions AWS RDS instances directly through Planton Cloud using MCP tools.
+
+**Features:**
+- 🗣️ Natural language provisioning - no YAML or config files needed
+- 🧠 Intelligent extraction - understands complete or partial requirements
+- 🎯 Smart clarification - asks only for missing required information
+- 🚀 Direct provisioning - creates actual RDS instances in AWS
+- 🔄 Dynamic schema - adapts to all RDS engine types automatically
+- 🛡️ Server-side validation - helpful error messages with retry
+
+**Quick Start:**
+```bash
+make deps  # Install dependencies
+make run   # Start LangGraph Studio
+# Open http://localhost:8123 and select 'aws_rds_instance_creator'
+```
+
+📚 **[Complete Documentation →](src/agents/aws_rds_instance_creator/docs/README.md)**
+
 ### RDS Manifest Generator
 
 An AI agent that helps users create valid AWS RDS Instance YAML manifests through natural language conversation.
