@@ -37,6 +37,6 @@ spec:
       isEnabled: false
   ingress:
     enabled: true
-    dnsDomain: planton.live
+    hostname: service-graph-fleet-prod.planton.live
   version: main
 
