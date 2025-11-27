@@ -82,8 +82,9 @@ make run
 
 1. Create agent directory: `src/agents/your_agent_name/`
 2. Implement agent using LangGraph and Deep Agents patterns
-3. Add documentation: `src/agents/your_agent_name/docs/README.md`
-4. Register in `langgraph.json`:
+3. **If using MCP tools**: Follow the per-user authentication pattern (see [Developer Guide](docs/DEVELOPER_GUIDE.md))
+4. Add documentation: `src/agents/your_agent_name/docs/README.md`
+5. Register in `langgraph.json`:
    ```json
    {
      "graphs": {
@@ -91,7 +92,10 @@ make run
      }
    }
    ```
-5. Test locally with LangGraph Studio
+6. Test locally with LangGraph Studio
+7. Deploy to staging for multi-user testing
+
+**Important**: Agents using Planton Cloud MCP tools MUST follow the per-user authentication pattern. See the [Developer Guide](docs/DEVELOPER_GUIDE.md) for complete implementation details.
 
 ### Project Structure
 
@@ -185,9 +189,41 @@ For details on branch protection setup and troubleshooting, see [`.github/BRANCH
 3. Optional configurations (see `.env.example` for full list):
    - `TAVILY_API_KEY` - Search functionality
    - `DATABASE_URL` - Persistent memory
-   - `PLANTON_TOKEN` - Planton Cloud integration
+   - `PLANTON_API_KEY` - For local MCP testing only (optional)
 
 Agent-specific environment variables may be required - see individual agent documentation.
+
+## Authentication
+
+### Production (Planton Cloud)
+
+When deployed on Planton Cloud, authentication is **fully automatic**:
+
+- User JWT tokens are automatically extracted from incoming requests
+- Tokens propagate through the execution stack to MCP tools
+- Each MCP tool call uses the requesting user's credentials
+- Fine-Grained Authorization (FGA) enforces user permissions
+- No configuration required - authentication is transparent
+
+### Local Development (LangGraph Studio)
+
+For local testing with LangGraph Studio, you can use a machine account token:
+
+```bash
+# Optional: For local MCP testing only
+PLANTON_API_KEY=your_test_token
+```
+
+**Note**: Local development uses a single test account. Multi-user testing requires deployment to Planton Cloud staging environment.
+
+### Security Model
+
+**Per-User Authentication ensures**:
+- ✅ Users see only resources they have permission to access
+- ✅ All actions are attributed to the requesting user
+- ✅ Audit trail tracks who performed what actions
+- ✅ Principle of least privilege enforced via FGA
+- ✅ No shared machine account with broad permissions
 
 ## Architecture
 
@@ -195,19 +231,21 @@ Agent-specific environment variables may be required - see individual agent docu
 
 The Graph Fleet uses MCP servers to provide tools to agents:
 
-- **AWS Tools**: Uses the `awslabs.aws-api-mcp-server` for AWS operations
-- **Planton Cloud Tools**: Uses the local `planton-cloud-mcp-server` for context establishment
+- **Planton Cloud Tools**: Uses the remote MCP server at `https://mcp.planton.ai/`
+- **Authentication**: Per-user JWT tokens in production, optional API key for local development
 
-Both follow the same pattern:
-1. MCP server configuration is created with appropriate credentials
-2. `MultiServerMCPClient` connects to the MCP server
+**MCP Integration Pattern**:
+1. User JWT token extracted from request (production) or environment (local)
+2. `MultiServerMCPClient` connects with dynamic Authorization headers
 3. Tools are filtered based on agent-specific allowlists
 4. Tools are provided to agents as LangChain-compatible tools
 
 This architecture ensures:
-- No blocking imports in the async environment
-- Consistent tool management across different providers
-- Easy addition of new tool providers
+- **Per-User Authentication**: Each MCP tool call uses the requesting user's credentials
+- **FGA Enforcement**: Fine-Grained Authorization properly enforced
+- **No blocking imports**: All MCP clients created in async context
+- **Consistent tool management**: Uniform pattern across all agents
+- **Security**: No shared credentials, full audit trail
 
 ## Troubleshooting
 
