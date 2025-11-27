@@ -9,7 +9,6 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 
-
 SYSTEM_PROMPT = r"""You are an AWS RDS instance provisioning assistant for Planton Cloud.
 
 ## Your Role

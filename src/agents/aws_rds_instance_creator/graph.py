@@ -1,12 +1,14 @@
-"""Main graph for AWS RDS Instance Creator agent.
+"""Main graph for AWS RDS Instance Creator agent with per-user authentication.
 
-This module loads MCP tools at runtime and creates the agent graph for LangGraph.
+This module creates the agent graph dynamically per-execution, loading MCP tools
+with the user's JWT token for Fine-Grained Authorization enforcement.
 """
 
 import asyncio
 import logging
 
 from deepagents.middleware.filesystem import FilesystemState
+from langchain_core.runnables import RunnableConfig
 
 from .agent import create_aws_rds_creator_agent
 from .mcp_tools import load_mcp_tools
@@ -26,30 +28,65 @@ class AwsRdsCreatorState(FilesystemState):
     pass
 
 
-def _create_graph():
-    """Create the agent graph with MCP tools.
+def _load_mcp_tools_sync(config: RunnableConfig):
+    """Load MCP tools synchronously by extracting user token from config.
     
-    This function loads MCP tools from Planton Cloud MCP server and creates
-    the agent with those tools. It's called at module import time but wraps
-    the async tool loading in a sync context.
+    This function is called at graph initialization time and must be synchronous.
+    It wraps the async tool loading logic.
     
+    Args:
+        config: Runtime configuration containing user token in configurable dict
+        
     Returns:
-        Compiled agent graph ready for LangGraph
+        List of MCP tools with user authentication
+        
+    Raises:
+        ValueError: If user token not found in config
+
+    """
+    # Extract user token from config
+    user_token = config["configurable"].get("_user_token")
+    if not user_token:
+        raise ValueError(
+            "User token not found in config. "
+            "Ensure _user_token is passed in config['configurable'] from agent-fleet-worker."
+        )
+    
+    logger.info("Loading MCP tools with user token from config")
+    
+    # Run async function in sync context
+    loop = asyncio.new_event_loop()
+    try:
+        tools = loop.run_until_complete(load_mcp_tools(user_token))
+        return tools
+    finally:
+        loop.close()
+
+
+def _create_graph(config: RunnableConfig):
+    """Create the agent graph with per-user MCP authentication.
+    
+    This function loads MCP tools with the user's token from config and creates
+    the agent. It's called per-execution with runtime configuration.
+    
+    Args:
+        config: Runtime configuration containing user token
+        
+    Returns:
+        Compiled agent graph ready for execution
 
     """
     logger.info("=" * 60)
-    logger.info("Initializing AWS RDS Instance Creator agent...")
+    logger.info("Initializing AWS RDS Instance Creator agent with per-user auth...")
     logger.info("=" * 60)
     
     try:
-        # Load MCP tools using asyncio
-        # This pattern ensures tools are loaded before the agent is created
-        # while avoiding blocking operations during module load
-        mcp_tools = asyncio.run(load_mcp_tools())
+        # Load MCP tools with user authentication
+        mcp_tools = _load_mcp_tools_sync(config)
         
         if not mcp_tools:
             raise RuntimeError(
-                "No MCP tools loaded. Check MCP server configuration in langgraph.json"
+                "No MCP tools loaded. Check MCP server accessibility and user permissions."
             )
         
         logger.info(f"Loaded {len(mcp_tools)} MCP tools successfully")
@@ -75,7 +112,7 @@ def _create_graph():
         raise
 
 
-# Export the compiled graph for LangGraph
-# This is loaded when LangGraph server starts
-graph = _create_graph()
+# Export the graph creation function for LangGraph
+# LangGraph will call this with runtime config containing user token per-execution
+graph = _create_graph
 

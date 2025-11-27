@@ -5,15 +5,6 @@
     "session_subject_generator": "src.agents.session_subject_generator.graph:graph",
     "aws_rds_instance_creator": "src.agents.aws_rds_instance_creator.graph:graph"
   },
-  "mcp_servers": {
-    "planton-cloud": {
-      "type": "http",
-      "url": "https://mcp.planton.ai/",
-      "headers": {
-        "Authorization": "Bearer ${PLANTON_API_KEY}"
-      }
-    }
-  },
   "env": ".env",
   "python_version": "3.11"
 }
