@@ -6,8 +6,9 @@ from typing import Any
 from deepagents import create_deep_agent
 from langchain.agents.middleware.types import AgentMiddleware
 from langchain_anthropic import ChatAnthropic
-from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
+
+from . import mcp_tool_wrappers
 
 SYSTEM_PROMPT = r"""You are an AWS RDS instance provisioning assistant for Planton Cloud.
 
@@ -232,15 +233,17 @@ Let's help users provision RDS instances with confidence and ease!"""
 
 
 def create_aws_rds_creator_agent(
-    tools: Sequence[BaseTool],
     middleware: Sequence[AgentMiddleware] = (),
     context_schema: type[Any] | None = None,
 ) -> CompiledStateGraph:
     """Create the AWS RDS Instance Creator agent.
     
+    MCP tools are loaded dynamically at execution time via McpToolsLoader middleware,
+    not passed during graph creation. This eliminates async/sync event loop conflicts
+    while maintaining per-user authentication.
+    
     Args:
-        tools: MCP tools loaded from Planton Cloud MCP server
-        middleware: Optional additional middleware
+        middleware: Middleware including McpToolsLoader for dynamic tool loading
         context_schema: Optional state schema (defaults to FilesystemState)
     
     Returns:
@@ -252,7 +255,14 @@ def create_aws_rds_creator_agent(
             model_name="claude-sonnet-4-5-20250929",
             max_tokens=20000,
         ),
-        tools=list(tools),
+        tools=[
+            # MCP tool wrappers - delegate to actual tools loaded by middleware
+            mcp_tool_wrappers.list_environments_for_org,
+            mcp_tool_wrappers.list_cloud_resource_kinds,
+            mcp_tool_wrappers.get_cloud_resource_schema,
+            mcp_tool_wrappers.create_cloud_resource,
+            mcp_tool_wrappers.search_cloud_resources,
+        ],
         system_prompt=SYSTEM_PROMPT,
         middleware=middleware,
         context_schema=context_schema,

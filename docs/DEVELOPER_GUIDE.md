@@ -208,10 +208,8 @@ def create_your_agent(
 ```python
 """MCP tool loading with per-user authentication."""
 
-import asyncio
 from typing import Sequence
 from langchain_core.tools import BaseTool
-from langchain_core.runnables import RunnableConfig
 from langchain_mcp_adapters import MultiServerMCPClient
 
 
@@ -230,11 +228,6 @@ async def load_mcp_tools(user_token: str) -> Sequence[BaseTool]:
         
     Raises:
         ValueError: If user_token is None, empty, or whitespace-only
-        
-    Example:
-        >>> user_token = "eyJhbGc..."  # User's JWT
-        >>> tools = await load_mcp_tools(user_token)
-        >>> # Use tools with agent
     """
     # Validate token (CRITICAL for security)
     if not user_token or not user_token.strip():
@@ -255,17 +248,14 @@ async def load_mcp_tools(user_token: str) -> Sequence[BaseTool]:
     }
     
     # Instantiate MCP client
-    # Note: langchain-mcp-adapters 0.1.0+ removed async context manager
     mcp_client = MultiServerMCPClient(client_config)
     all_tools = await mcp_client.get_tools()
     
     # Filter to only the tools your agent needs
-    # This improves performance and reduces token usage
     required_tools = [
         "get_cloud_resource_schema",
         "create_cloud_resource",
         "list_environments_for_org",
-        # Add your required tool names here
     ]
     
     filtered_tools = [
@@ -275,91 +265,122 @@ async def load_mcp_tools(user_token: str) -> Sequence[BaseTool]:
     
     if not filtered_tools:
         raise RuntimeError(
-            f"No required tools found. Available tools: "
-            f"{[t.name for t in all_tools]}"
+            f"No required tools found. Available: {[t.name for t in all_tools]}"
         )
     
     return filtered_tools
-
-
-def _load_mcp_tools_sync(config: RunnableConfig) -> Sequence[BaseTool]:
-    """Extract user token from config and load MCP tools synchronously.
-    
-    This function bridges the gap between LangGraph's synchronous graph
-    creation and our async MCP tool loading. It extracts the user token
-    from the runtime configuration and loads the tools.
-    
-    Args:
-        config: LangGraph runtime configuration containing user token
-        
-    Returns:
-        Loaded MCP tools
-        
-    Raises:
-        ValueError: If user token not found in config
-        RuntimeError: If MCP tool loading fails
-    """
-    # Extract token from LangGraph config
-    # The token is passed via config["configurable"]["_user_token"]
-    user_token = config["configurable"].get("_user_token")
-    
-    if not user_token:
-        raise ValueError(
-            "User token not found in config. "
-            "This agent must be called with user authentication. "
-            "In production, tokens are automatically provided. "
-            "For local development, set PLANTON_API_KEY in .env"
-        )
-    
-    # Run async function in sync context
-    loop = asyncio.new_event_loop()
-    try:
-        tools = loop.run_until_complete(load_mcp_tools(user_token))
-        return tools
-    except Exception as e:
-        raise RuntimeError(f"Failed to load MCP tools: {e}") from e
-    finally:
-        loop.close()
 ```
 
-#### 4. Create Graph with Runtime Configuration
+#### 4. Create MCP Tool Wrappers
+
+**File: `mcp_tool_wrappers.py`**
+
+```python
+"""Lightweight wrappers that delegate to MCP tools loaded by middleware."""
+
+from typing import Any
+from deepagents.runtime import ToolRuntime
+from langchain_core.tools import tool
+
+
+@tool
+def get_cloud_resource_schema(
+    cloud_resource_kind: str,
+    runtime: ToolRuntime,
+) -> Any:
+    """Get schema for a cloud resource type."""
+    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+        raise RuntimeError("MCP tools not loaded by middleware")
+    
+    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    actual_tool = mcp_tools["get_cloud_resource_schema"]
+    return actual_tool.invoke({"cloud_resource_kind": cloud_resource_kind})
+
+
+# Add similar wrappers for other MCP tools...
+```
+
+#### 5. Create Middleware for Dynamic Tool Loading
+
+**File: `middleware/mcp_loader.py`**
+
+```python
+"""Middleware that loads MCP tools at execution time."""
+
+import logging
+from typing import Any
+from langchain.agents.middleware import AgentMiddleware, AgentState
+from langgraph.runtime import Runtime
+from ..mcp_tools import load_mcp_tools
+
+logger = logging.getLogger(__name__)
+
+
+class McpToolsLoader(AgentMiddleware):
+    """Loads MCP tools dynamically with per-user auth at execution time."""
+    
+    async def before_agent(
+        self, 
+        state: AgentState, 
+        runtime: Runtime[Any]
+    ) -> dict[str, Any] | None:
+        """Load MCP tools on first request."""
+        # Check if already loaded (idempotency)
+        if hasattr(runtime, 'mcp_tools') and runtime.mcp_tools:
+            return None
+        
+        # Extract user token from runtime config
+        user_token = runtime.config.get("configurable", {}).get("_user_token")
+        if not user_token:
+            raise ValueError("User token not found in runtime config")
+        
+        # Load MCP tools asynchronously (we're already in async context!)
+        mcp_tools = await load_mcp_tools(user_token)
+        
+        # Inject tools into runtime for wrapper access
+        runtime.mcp_tools = {tool.name: tool for tool in mcp_tools}
+        logger.info(f"Loaded {len(mcp_tools)} MCP tools with user auth")
+        
+        return None
+```
+
+**File: `middleware/__init__.py`**
+
+```python
+"""Middleware for agent."""
+from .mcp_loader import McpToolsLoader
+
+__all__ = ["McpToolsLoader"]
+```
+
+#### 6. Create Graph with Middleware
 
 **File: `graph.py`**
 
 ```python
 """Graph creation for your agent."""
 
-from langchain_core.runnables import RunnableConfig
+import logging
+from deepagents.middleware.filesystem import FilesystemState
 from .agent import create_your_agent
-from .mcp_tools import _load_mcp_tools_sync
+from .middleware import McpToolsLoader
+
+logger = logging.getLogger(__name__)
 
 
-def _create_graph(config: RunnableConfig):
-    """Create agent graph with per-user MCP authentication.
-    
-    This function is called by LangGraph at runtime with the execution
-    configuration, which includes the user's JWT token. The token is
-    extracted and used to create MCP tools with the user's credentials.
-    
-    Args:
-        config: LangGraph runtime configuration containing user token
-        
-    Returns:
-        Compiled agent graph with per-user authenticated tools
-    """
-    # Load MCP tools with user's credentials
-    # This extracts the token from config and creates the MCP client
-    mcp_tools = _load_mcp_tools_sync(config)
-    
-    # Create agent with tools
-    agent_graph = create_your_agent(tools=mcp_tools)
-    
-    return agent_graph
+class YourAgentState(FilesystemState):
+    """State schema for your agent."""
+    pass
 
 
-# Export graph as callable that accepts config
-# IMPORTANT: This must be a callable, not a pre-initialized graph
-graph = _create_graph
+# Create and export pre-compiled graph
+# MCP tools loaded at execution time by middleware
+graph = create_your_agent(
+    middleware=[McpToolsLoader()],
+    context_schema=YourAgentState,
+)
+
+logger.info("Agent initialized with lazy MCP tool loading")
 ```
 
 #### 5. Register in langgraph.json
