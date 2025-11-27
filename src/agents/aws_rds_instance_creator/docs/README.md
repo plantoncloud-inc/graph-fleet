@@ -29,26 +29,45 @@ The AWS RDS Instance Creator is a deep agent built with LangGraph and DeepAgents
 
 ## Prerequisites
 
-### Environment Variables
+### For Production Use
 
-Create a `.env` file in the graph-fleet root directory:
+**No additional configuration required!** When using this agent through Planton Cloud:
+
+- ✅ Authentication is automatic (user JWT tokens)
+- ✅ Organization and environment context provided automatically
+- ✅ MCP tools use your user permissions
+- ✅ All actions attributed to your account
+
+### For Local Development
+
+Create a `.env` file in the graph-fleet root directory with LLM API keys:
 
 ```bash
-# Required: Your Planton Cloud API key
-PLANTON_API_KEY=your_api_key_here
+# Required for LLM functionality
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 
-# Optional: Planton Cloud environment (defaults to 'live')
-PLANTON_CLOUD_ENVIRONMENT=live
+# Required for LangSmith tracing (optional)
+LANGSMITH_API_KEY=lsv2_...
+
+# Optional: For local MCP testing only
+PLANTON_API_KEY=your_test_token_here
 ```
 
-**Getting your API key:**
+**Getting a test API key for local development:**
 1. Log in to [Planton Cloud Console](https://console.planton.cloud)
 2. Click your profile icon → **API Keys**
 3. Click **Create Key** and copy the generated key
 
+**Note**: Local development uses a single test account. To test multi-user scenarios with proper FGA enforcement, deploy to Planton Cloud staging environment.
+
 ### MCP Server
 
-The agent uses the remote Planton Cloud MCP server at `https://mcp.planton.ai/`. No local installation is required - the agent connects to the remote HTTP endpoint automatically using your API key for authentication.
+The agent connects to the Planton Cloud MCP server at `https://mcp.planton.ai/`:
+
+- **Production**: Authentication happens automatically with user JWT tokens
+- **Local Development**: Uses `PLANTON_API_KEY` from `.env` (if provided)
+- **No local installation required**: Remote HTTP endpoint
 
 ## Quick Start
 
@@ -63,7 +82,8 @@ make deps
 
 ```bash
 cp .env.example .env
-# Edit .env and add your PLANTON_API_KEY
+# Edit .env and add your LLM API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY)
+# Optionally add PLANTON_API_KEY for local MCP testing
 ```
 
 ### 3. Start LangGraph Studio
@@ -234,17 +254,22 @@ Failed to load MCP tools: connection refused or timeout
 - Ensure firewall/proxy allows HTTPS connections
 - Verify PLANTON_API_KEY is set correctly
 
-### API Key Invalid
+### Authentication Issues
 
 **Error:**
 ```
 Failed to load MCP tools: authentication failed
 ```
 
-**Solution:**
-- Check `PLANTON_API_KEY` in `.env` file
+**Solution (Local Development):**
+- Check `PLANTON_API_KEY` in `.env` file (if doing local MCP testing)
 - Verify key is valid in Planton Cloud console
 - Ensure key has permissions for the organization
+
+**Solution (Production):**
+- Verify your user account has proper permissions in Planton Cloud
+- Check with your organization admin if you need resource access
+- Ensure you're authenticated to the Planton Cloud web console
 
 ### No Environments Available
 
@@ -349,10 +374,20 @@ View logs in the LangGraph Studio console or terminal output.
 
 ## Security Considerations
 
-- **API Keys**: Never commit `.env` files to version control
-- **Passwords**: Prefer auto-generation over user-provided passwords
-- **Permissions**: The agent respects your Planton Cloud RBAC permissions
+### Production
+
+- **Per-User Authentication**: Every MCP tool call uses your user credentials
+- **FGA Enforcement**: You can only access resources you have permissions for
+- **Audit Trail**: All actions are tracked and attributed to your account
 - **Resource Costs**: RDS instances cost money - the agent creates real resources
+- **No Shared Secrets**: No static API keys, each user's token is unique
+- **Passwords**: Prefer auto-generation over user-provided passwords
+
+### Local Development
+
+- **API Keys**: Never commit `.env` files to version control
+- **Test Accounts**: Local development uses test credentials (not production permissions)
+- **Limited Scope**: Test accounts should have restricted permissions
 
 ## Related Resources
 
