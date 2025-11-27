@@ -22,17 +22,18 @@ class McpToolsLoader(AgentMiddleware):
     
     This middleware runs before the agent processes each request and:
     1. Checks if MCP tools are already loaded for this thread
-    2. If not, extracts the user token from runtime config
+    2. If not, extracts the user token from runtime.context (thread config)
     3. Loads MCP tools asynchronously with the user's authentication
     4. Injects tools into runtime.mcp_tools for access by wrapper functions
     
-    The middleware runs in the proper async context (during graph execution),
-    eliminating the need for sync wrappers or creating new event loops.
+    The user token is stored in thread configuration by agent-fleet-worker
+    before streaming the execution, ensuring it's available in runtime.context.
     
     Architecture:
         - Graph creation: Synchronous, no MCP loading
         - Agent execution: Async context, middleware loads MCP tools
         - Tool wrappers: Access tools via runtime.mcp_tools
+        - Token flow: Redis → thread.config → runtime.context → middleware
     
     Example:
         ```python
@@ -56,15 +57,19 @@ class McpToolsLoader(AgentMiddleware):
         asyncio.run_coroutine_threadsafe() to safely execute the async code
         from the running event loop without creating nested loops.
         
+        The user token is extracted from runtime.context, which is populated
+        from thread configuration that agent-fleet-worker updates before
+        invoking the graph.
+        
         Args:
             state: The current agent state
-            runtime: The LangGraph runtime containing config with user token
+            runtime: The LangGraph runtime containing thread config with user token
             
         Returns:
             None (tools are injected into runtime, not state)
             
         Raises:
-            ValueError: If user token not found in config
+            ValueError: If user token not found in thread configuration
             RuntimeError: If MCP tools cannot be loaded
 
         """
@@ -73,82 +78,26 @@ class McpToolsLoader(AgentMiddleware):
             logger.info("MCP tools already loaded for this thread, skipping initialization")
             return None
         
-        logger.info("=" * 60)
         logger.info("Loading MCP tools with per-user authentication...")
-        logger.info("=" * 60)
         
         try:
-            # Debug: Log what's actually available on runtime
-            logger.info("=" * 60)
-            logger.info("DEBUGGING RUNTIME OBJECT")
-            logger.info("=" * 60)
-            logger.info(f"Runtime type: {type(runtime)}")
-            logger.info(f"Runtime attributes: {dir(runtime)}")
-            logger.info(f"Has 'context': {hasattr(runtime, 'context')}")
-            logger.info(f"Has 'config': {hasattr(runtime, 'config')}")
-            logger.info(f"runtime.context value: {getattr(runtime, 'context', 'NOT_FOUND')}")
-            logger.info(f"runtime.context type: {type(getattr(runtime, 'context', None))}")
-            
-            # Try alternative access patterns
-            if hasattr(runtime, '__dict__'):
-                logger.info(f"Runtime __dict__ keys: {list(runtime.__dict__.keys())}")
-                
-            # Check for nested config
-            for attr_name in ['config', '_config', 'runtime_config', '_runtime_config']:
-                if hasattr(runtime, attr_name):
-                    attr_val = getattr(runtime, attr_name)
-                    logger.info(f"Found runtime.{attr_name}: {type(attr_val)}")
-                    if hasattr(attr_val, 'get'):
-                        logger.info(f"  Can use .get() on runtime.{attr_name}")
-                        if isinstance(attr_val, dict) and 'configurable' in attr_val:
-                            logger.info(f"  Has 'configurable' key!")
-            logger.info("=" * 60)
-            
-            # Defensive token extraction with multiple fallback attempts
-            user_token = None
-            
-            # Attempt 1: runtime.context (LangGraph 1.0+ pattern)
-            if hasattr(runtime, 'context') and runtime.context is not None:
-                logger.info("Attempting to extract token from runtime.context")
-                try:
-                    user_token = runtime.context.get("configurable", {}).get("_user_token")
-                    if user_token:
-                        logger.info("✓ Token found in runtime.context")
-                except Exception as e:
-                    logger.warning(f"Failed to extract from runtime.context: {e}")
-            
-            # Attempt 2: Direct attribute (if injected by agent-fleet-worker)
-            if not user_token and hasattr(runtime, '_user_token'):
-                logger.info("Attempting to extract token from runtime._user_token")
-                try:
-                    user_token = runtime._user_token
-                    if user_token:
-                        logger.info("✓ Token found in runtime._user_token")
-                except Exception as e:
-                    logger.warning(f"Failed to extract from runtime._user_token: {e}")
-            
-            # Attempt 3: Check state (fallback)
-            if not user_token and hasattr(runtime, 'state'):
-                logger.info("Attempting to extract token from runtime.state")
-                try:
-                    # This would only work if agent-fleet-worker puts it in state
-                    user_token = runtime.state.get("_user_token")
-                    if user_token:
-                        logger.info("✓ Token found in runtime.state")
-                except Exception as e:
-                    logger.warning(f"Failed to extract from runtime.state: {e}")
-            
-            # Final validation
-            if not user_token:
-                logger.error("Failed all token extraction attempts")
-                logger.error("This suggests agent-fleet-worker is not passing the token correctly")
+            # Extract token from runtime context (LangGraph 1.0+ API)
+            # Token is stored in thread config by agent-fleet-worker before invocation
+            if not hasattr(runtime, 'context') or runtime.context is None:
                 raise ValueError(
-                    "User token not found in runtime. "
-                    "Checked: runtime.context, runtime._user_token, runtime.state. "
-                    "Ensure agent-fleet-worker passes config={'configurable': {'_user_token': '<token>'}}"
+                    "Runtime context not available. "
+                    "This indicates a configuration issue with the LangGraph deployment."
                 )
             
-            logger.info("User token successfully extracted")
+            user_token = runtime.context.get("configurable", {}).get("_user_token")
+            
+            if not user_token:
+                raise ValueError(
+                    "User token not found in thread configuration. "
+                    "Ensure agent-fleet-worker updates thread config with user token before invocation."
+                )
+            
+            logger.info("User token successfully extracted from thread configuration")
             
             # Load MCP tools asynchronously from sync context
             # Since we're called from LangGraph's async execution context,
@@ -168,29 +117,23 @@ class McpToolsLoader(AgentMiddleware):
                 )
             
             logger.info(f"Loaded {len(mcp_tools)} MCP tools successfully")
-            logger.info(f"Tool names: {[tool.name for tool in mcp_tools]}")
+            logger.info(f"Available tools: {[tool.name for tool in mcp_tools]}")
             
             # Inject tools into runtime as a dictionary for easy access by wrappers
             # Using dynamic attribute injection (Python allows this on objects)
             runtime.mcp_tools = {tool.name: tool for tool in mcp_tools}
             
-            logger.info("=" * 60)
             logger.info("MCP tools loaded and injected into runtime")
-            logger.info("=" * 60)
             
             # Return None - tools are in runtime, not state
             return None
             
         except ValueError as e:
-            logger.error("=" * 60)
             logger.error(f"Configuration error: {e}")
-            logger.error("=" * 60)
             raise
             
         except Exception as e:
-            logger.error("=" * 60)
             logger.error(f"Failed to load MCP tools: {e}")
-            logger.error("=" * 60)
             raise RuntimeError(
                 f"MCP tools loading failed: {e}. "
                 "Check MCP server connectivity and user authentication."
