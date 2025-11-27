@@ -307,6 +307,7 @@ def get_cloud_resource_schema(
 ```python
 """Middleware that loads MCP tools at execution time."""
 
+import asyncio
 import logging
 from typing import Any
 from langchain.agents.middleware import AgentMiddleware, AgentState
@@ -319,12 +320,16 @@ logger = logging.getLogger(__name__)
 class McpToolsLoader(AgentMiddleware):
     """Loads MCP tools dynamically with per-user auth at execution time."""
     
-    async def before_agent(
+    def before_agent(
         self, 
         state: AgentState, 
         runtime: Runtime[Any]
     ) -> dict[str, Any] | None:
-        """Load MCP tools on first request."""
+        """Load MCP tools on first request.
+        
+        Note: Must be synchronous per LangGraph middleware protocol.
+        Uses asyncio.run_coroutine_threadsafe() to call async load_mcp_tools().
+        """
         # Check if already loaded (idempotency)
         if hasattr(runtime, 'mcp_tools') and runtime.mcp_tools:
             return None
@@ -334,8 +339,10 @@ class McpToolsLoader(AgentMiddleware):
         if not user_token:
             raise ValueError("User token not found in runtime config")
         
-        # Load MCP tools asynchronously (we're already in async context!)
-        mcp_tools = await load_mcp_tools(user_token)
+        # Load MCP tools via asyncio from sync context
+        loop = asyncio.get_event_loop()
+        future = asyncio.run_coroutine_threadsafe(load_mcp_tools(user_token), loop)
+        mcp_tools = future.result(timeout=30)
         
         # Inject tools into runtime for wrapper access
         runtime.mcp_tools = {tool.name: tool for tool in mcp_tools}

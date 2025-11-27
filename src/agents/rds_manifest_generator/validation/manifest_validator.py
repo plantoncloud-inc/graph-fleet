@@ -62,7 +62,7 @@ def _fmt_field_path(violation) -> str:
     if FieldPath is not None and isinstance(fp, FieldPath):
         elems = fp.elements
     else:
-        elems = getattr(fp, "elements", None)
+        elems = getattr(fp, "elements", None)  # type: ignore[assignment]
         if elems is None:  # not a FieldPath at all
             legacy = _get_attr(violation, "field_path")
             return legacy if legacy else "<unknown>"
