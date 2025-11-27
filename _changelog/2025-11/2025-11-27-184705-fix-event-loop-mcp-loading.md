@@ -5,6 +5,8 @@
 **Type**: Architectural Refactoring  
 **Impact**: Critical Bug Fix + Architecture Improvement
 
+**Update**: November 27, 2025 - Fixed middleware async/sync mismatch. The `before_agent()` method must be synchronous per LangGraph's middleware protocol. Updated to use `asyncio.run_coroutine_threadsafe()` to safely call async `load_mcp_tools()` from the sync middleware hook.
+
 ## Summary
 
 Refactored the AWS RDS Instance Creator agent to use lazy MCP tool loading via middleware instead of synchronous loading during graph creation. This eliminates the `RuntimeError: Cannot run the event loop while another loop is running` error that prevented the agent from initializing, while maintaining full per-user authentication capabilities.
@@ -68,17 +70,19 @@ _create_graph(config) [SYNC - NO MCP loading]
 create_aws_rds_creator_agent(middleware=[McpToolsLoader()])
   ↓
 [Agent starts execution]
-  ↓ (middleware runs in async context)
-McpToolsLoader.before_agent() [ASYNC]
-  ↓ (directly await - NO new loop needed)
-await load_mcp_tools(user_token)
+  ↓ (middleware called synchronously)
+McpToolsLoader.before_agent() [SYNC method]
+  ↓ (schedule async work on running loop)
+asyncio.run_coroutine_threadsafe(load_mcp_tools(user_token), loop)
+  ↓ (wait for completion)
+future.result(timeout=30)
   ↓ (inject tools into runtime)
 runtime.mcp_tools = tools
   ↓
 [Agent has access to MCP tools via wrapper functions]
 ```
 
-**Result**: Clean async execution, no event loop conflicts
+**Result**: Clean async execution via thread-safe coroutine scheduling, no event loop conflicts
 
 ## Implementation Changes
 
@@ -91,9 +95,10 @@ runtime.mcp_tools = tools
 
 **File**: `src/agents/aws_rds_instance_creator/middleware/mcp_loader.py`
 - `McpToolsLoader` class implementing `AgentMiddleware`
-- Async `before_agent()` method
+- Synchronous `before_agent()` method (required by LangGraph middleware protocol)
+- Uses `asyncio.run_coroutine_threadsafe()` to call async `load_mcp_tools()`
 - Extracts user token from runtime config
-- Loads MCP tools asynchronously (in proper async context)
+- Loads MCP tools asynchronously from sync context via event loop
 - Injects tools into `runtime.mcp_tools` for wrapper access
 - Idempotent (only loads once per thread)
 

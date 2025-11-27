@@ -140,7 +140,7 @@ def create_cloud_resource(
     org_id: str,
     env_name: str,
     resource_name: str,
-    spec: dict,
+    spec: dict[str, Any],
     runtime: ToolRuntime,
 ) -> Any:
     """Create a new cloud resource in Planton Cloud.
@@ -228,7 +228,7 @@ def search_cloud_resources(
         )
     
     # Build input dict, only including optional params if provided
-    input_dict = {"org_id": org_id}
+    input_dict: dict[str, Any] = {"org_id": org_id}
     if env_names is not None:
         input_dict["env_names"] = env_names
     if cloud_resource_kinds is not None:

@@ -7,7 +7,9 @@ This guide provides manual testing steps to verify the refactored MCP tool loadi
 The agent was refactored to load MCP tools at execution time via middleware instead of during graph creation. This eliminates the `RuntimeError: Cannot run the event loop while another loop is running` error.
 
 **Before**: Synchronous graph factory tried to create new event loop → **FAILED**  
-**After**: Middleware loads tools in async execution context → **SUCCESS**
+**After**: Middleware's synchronous `before_agent()` method uses `asyncio.run_coroutine_threadsafe()` to safely call async `load_mcp_tools()` → **SUCCESS**
+
+**Update (Nov 27, 2025)**: Fixed middleware async/sync mismatch. The `before_agent()` method must be synchronous per LangGraph's protocol but can safely schedule async work on the running event loop.
 
 ## Pre-Testing Verification
 
@@ -168,6 +170,20 @@ None - this refactoring maintains full backward compatibility.
 - ✅ All RDS creation flows working
 
 ## Troubleshooting
+
+### Issue: InvalidUpdateError with coroutine object
+
+**Error**: `InvalidUpdateError: Expected dict, got <coroutine object McpToolsLoader.before_agent at 0x...>`
+
+**Cause**: The `before_agent()` method was incorrectly defined as `async def` instead of `def`. LangGraph's middleware protocol requires synchronous methods.
+
+**Solution**: Ensure `before_agent()` is synchronous and uses `asyncio.run_coroutine_threadsafe()` to call async functions:
+```python
+def before_agent(self, state, runtime):  # NOT async def
+    loop = asyncio.get_event_loop()
+    future = asyncio.run_coroutine_threadsafe(load_mcp_tools(token), loop)
+    mcp_tools = future.result(timeout=30)
+```
 
 ### Issue: MCP tools not found in runtime
 

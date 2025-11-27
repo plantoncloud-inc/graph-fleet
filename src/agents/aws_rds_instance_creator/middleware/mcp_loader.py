@@ -5,6 +5,7 @@ graph creation. This eliminates the async/sync event loop conflict that occurs
 when trying to load async MCP clients from a synchronous graph factory function.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -43,16 +44,17 @@ class McpToolsLoader(AgentMiddleware):
 
     """
     
-    async def before_agent(
+    def before_agent(
         self, 
         state: AgentState, 
         runtime: Runtime[Any]
     ) -> dict[str, Any] | None:
         """Load MCP tools with per-user authentication on first request.
         
-        This method runs in an async context during graph execution, allowing
-        us to directly await the async load_mcp_tools() function without
-        creating a new event loop.
+        This method must be synchronous per LangGraph's middleware protocol,
+        but we need to call async load_mcp_tools(). We use 
+        asyncio.run_coroutine_threadsafe() to safely execute the async code
+        from the running event loop without creating nested loops.
         
         Args:
             state: The current agent state
@@ -90,9 +92,16 @@ class McpToolsLoader(AgentMiddleware):
             
             logger.info("User token extracted from config")
             
-            # Load MCP tools asynchronously (we're already in async context!)
-            # No need for asyncio.new_event_loop() or run_until_complete()
-            mcp_tools = await load_mcp_tools(user_token)
+            # Load MCP tools asynchronously from sync context
+            # Since we're called from LangGraph's async execution context,
+            # we use run_coroutine_threadsafe to safely execute async code
+            loop = asyncio.get_event_loop()
+            future = asyncio.run_coroutine_threadsafe(
+                load_mcp_tools(user_token), 
+                loop
+            )
+            # Block synchronously waiting for the async operation to complete
+            mcp_tools = future.result(timeout=30)  # 30 second timeout
             
             if not mcp_tools:
                 raise RuntimeError(
