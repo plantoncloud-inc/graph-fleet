@@ -34,4 +34,7 @@ spec:
         requests:
           cpu: 200m
           memory: 512Mi
+  ingress:
+    enabled: true
+    hostname: graph-fleet.planton.live
 
