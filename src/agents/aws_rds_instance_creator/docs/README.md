@@ -210,18 +210,26 @@ The agent leverages these Planton Cloud MCP tools:
 
 ### Tool Loading Pattern
 
-MCP tools are loaded asynchronously at agent initialization to avoid blocking operations:
+MCP tools are loaded dynamically at execution time via middleware, not during graph creation. This eliminates async/sync event loop conflicts while maintaining per-user authentication:
 
 ```python
 # In graph.py
-mcp_tools = asyncio.run(load_mcp_tools())
-agent_graph = create_aws_rds_creator_agent(tools=mcp_tools)
+graph = create_aws_rds_creator_agent(
+    middleware=[McpToolsLoader()],  # Loads tools at execution time
+    context_schema=AwsRdsCreatorState,
+)
 ```
 
+**Architecture Flow:**
+1. **Graph Creation** (sync): Creates agent with tool wrappers and middleware
+2. **Execution Start** (async): Middleware loads actual MCP tools with user token
+3. **Tool Execution**: Wrappers delegate to loaded MCP tools
+
 This pattern ensures:
-- No blocking during module import
-- Proper async handling for MCP client
-- Clean error messages if MCP server is unavailable
+- No async/sync event loop conflicts
+- Per-user authentication (token from runtime config)
+- Proper async handling in execution context
+- Clean error messages if MCP server unavailable
 
 ## Field Naming Convention
 

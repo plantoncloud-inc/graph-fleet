@@ -97,23 +97,28 @@ Graph Fleet implements **per-user authentication** for all MCP (Model Context Pr
 ┌────────────────────────▼─────────────────────────────────────────┐
 │ LANGGRAPH AGENT (graph-fleet)                                    │
 │                                                                  │
-│ _create_graph(config: RunnableConfig):                          │
-│   1. Extract token from config:                                 │
-│      user_token = config["configurable"]["_user_token"]         │
-│   2. Validate token (not None, empty, or whitespace)            │
-│   3. Create MultiServerMCPClient:                               │
-│      client_config = {                                          │
-│        "planton-cloud": {                                       │
-│          "transport": "streamable_http",                        │
-│          "url": "https://mcp.planton.ai/",                      │
-│          "headers": {                                           │
-│            "Authorization": f"Bearer {user_token}"              │
-│          }                                                      │
-│        }                                                        │
-│      }                                                          │
-│   4. Load MCP tools                                             │
-│   5. Create agent with tools                                    │
-│   6. Agent executes, calling MCP tools as needed                │
+│ Graph Creation (sync):                                          │
+│   1. Create agent with tool wrappers and McpToolsLoader        │
+│   2. Export pre-compiled graph                                 │
+│                                                                  │
+│ Execution Start (async - McpToolsLoader middleware):           │
+│   1. Extract token from runtime.config:                        │
+│      user_token = runtime.config["configurable"]["_user_token"] │
+│   2. Validate token (not None, empty, or whitespace)           │
+│   3. Create MultiServerMCPClient:                              │
+│      client_config = {                                         │
+│        "planton-cloud": {                                      │
+│          "transport": "streamable_http",                       │
+│          "url": "https://mcp.planton.ai/",                     │
+│          "headers": {"Authorization": f"Bearer {user_token}"}  │
+│        }                                                       │
+│      }                                                         │
+│   4. await load_mcp_tools(user_token)  # Async context!       │
+│   5. Inject tools into runtime.mcp_tools                       │
+│                                                                  │
+│ Agent Execution:                                                │
+│   - Tool wrappers access runtime.mcp_tools                     │
+│   - MCP tools called with user's credentials                   │
 └────────────────────────┬─────────────────────────────────────────┘
                          │
                          │ HTTP requests with Authorization header

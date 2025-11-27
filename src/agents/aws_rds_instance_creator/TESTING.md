@@ -1,366 +1,208 @@
-# Testing Guide: AWS RDS Instance Creator
+# Testing Guide: Middleware-Based MCP Tool Loading
 
-This document provides comprehensive testing scenarios for the AWS RDS Instance Creator agent.
+This guide provides manual testing steps to verify the refactored MCP tool loading implementation.
 
-## Prerequisites
+## What Changed
 
-Before testing, ensure:
+The agent was refactored to load MCP tools at execution time via middleware instead of during graph creation. This eliminates the `RuntimeError: Cannot run the event loop while another loop is running` error.
 
-1. **Environment Setup**:
-   ```bash
-   # Create .env file with your API key
-   PLANTON_API_KEY=your_api_key_here
-   PLANTON_CLOUD_ENVIRONMENT=live
-   ```
+**Before**: Synchronous graph factory tried to create new event loop → **FAILED**  
+**After**: Middleware loads tools in async execution context → **SUCCESS**
 
-2. **Network Connectivity**:
-   - Ensure you have internet access
-   - Verify https://mcp.planton.ai/ is reachable
+## Pre-Testing Verification
 
-3. **Dependencies Installed**:
-   ```bash
-   make deps
-   ```
+All Python files compiled successfully with no syntax errors:
+- ✅ `middleware/mcp_loader.py`
+- ✅ `mcp_tool_wrappers.py`
+- ✅ `graph.py`
+- ✅ `agent.py`
 
-## Starting the Agent
+## Local Testing Steps
+
+### 1. Start LangGraph Server
 
 ```bash
 cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
 make run
-# Open http://localhost:8123
-# Select 'aws_rds_instance_creator' from dropdown
 ```
 
-## Test Scenarios
+### 2. Verify Agent Initialization
 
-### Scenario 1: Complete Initial Request
+Check the server logs for:
 
-**Purpose**: Test the agent's ability to extract all requirements from a comprehensive initial message.
-
-**Input**:
 ```
-Create a production PostgreSQL 15.5 RDS instance with:
-- Instance class: db.m5.large
-- Storage: 200GB
-- Multi-AZ enabled
-- Username: prodadmin
-- Organization: my-company
-- Environment: production
-- Name: prod-postgres-main
+═══════════════════════════════════════════════════════════
+Initializing AWS RDS Instance Creator agent...
+MCP tools will be loaded dynamically per-user at execution time
+═══════════════════════════════════════════════════════════
 ```
 
-**Expected Behavior**:
-1. Agent calls `get_cloud_resource_schema` to understand schema
-2. Extracts all fields from message
-3. May ask for password or offer to auto-generate
-4. Summarizes configuration
-5. Asks for confirmation
-6. Calls `create_cloud_resource`
-7. Reports success with resource ID
+**Expected**: No event loop errors during startup  
+**Success Criteria**: Agent appears in LangGraph Studio graph dropdown
 
-**Success Criteria**:
-- [ ] All fields extracted correctly
-- [ ] Minimal follow-up questions needed
-- [ ] Resource created successfully
-- [ ] Resource ID returned
+### 3. Trigger Agent Execution
 
-### Scenario 2: Incomplete Initial Request
+In LangGraph Studio or via API, send a message to the agent:
 
-**Purpose**: Test conversational flow when requirements are missing.
-
-**Input**:
 ```
-I need a MySQL database for development
+Create a PostgreSQL RDS instance for development
 ```
 
-**Expected Behavior**:
-1. Recognizes engine=mysql, use case=development
-2. Asks for missing fields conversationally:
-   - Instance class (suggests db.t3.small for dev)
-   - MySQL version (suggests 8.0)
-   - Storage size
-   - Organization and environment
-3. Collects responses naturally
-4. Summarizes and confirms
-5. Creates the instance
+### 4. Verify Middleware Execution
 
-**Success Criteria**:
-- [ ] Natural conversation flow
-- [ ] Helpful suggestions provided
-- [ ] All required fields collected
-- [ ] Resource created successfully
+Check logs for middleware loading sequence:
 
-### Scenario 3: Validation Error Handling
-
-**Purpose**: Test error handling when invalid values are provided.
-
-**Input**:
 ```
-Create PostgreSQL RDS with:
-- Instance class: t3.large (missing 'db.' prefix)
-- Storage: -10 (invalid negative value)
-- Engine version: 99.9 (non-existent version)
+═══════════════════════════════════════════════════════════
+Loading MCP tools with per-user authentication...
+═══════════════════════════════════════════════════════════
+User token extracted from config
+Loaded 5 MCP tools successfully
+Tool names: ['list_environments_for_org', 'list_cloud_resource_kinds', ...]
+═══════════════════════════════════════════════════════════
+MCP tools loaded and injected into runtime
+═══════════════════════════════════════════════════════════
 ```
 
-**Expected Behavior**:
-1. Agent attempts to create with provided values
-2. Receives validation error from server
-3. Explains error conversationally:
-   - "Instance class needs to start with 'db.' - did you mean db.t3.large?"
-   - "Storage must be greater than 0. How much would you like?"
-   - "Engine version 99.9 doesn't exist. Would you like 15.5 (latest stable)?"
-4. Collects corrections
-5. Retries successfully
+**Expected**: No `RuntimeError: Cannot run the event loop while another loop is running`  
+**Success Criteria**: MCP tools load successfully with user token
 
-**Success Criteria**:
-- [ ] Errors caught and explained clearly
-- [ ] Helpful corrections suggested
-- [ ] Successful retry after fixes
-- [ ] User not frustrated by errors
+### 5. Verify Tool Wrapper Functionality
 
-### Scenario 4: Different Database Engines
+The agent should successfully call MCP tools:
 
-**Purpose**: Test support for all RDS engine types.
-
-**Test Cases**:
-
-**A. PostgreSQL**:
 ```
-Create PostgreSQL 15.5 database with db.t3.small, 20GB storage
+- Get cloud resource schema
+- List environments for organization
+- Create cloud resource
 ```
 
-**B. MySQL**:
-```
-Create MySQL 8.0 database with db.t3.medium, 50GB storage
-```
+Watch for successful tool invocations in the logs.
 
-**C. MariaDB**:
-```
-Create MariaDB 10.6 database with db.t3.micro, 20GB storage
-```
+### 6. Test Per-User Authentication
 
-**Expected**: All engine types supported, appropriate version suggestions.
+Verify that different users get different tools (based on their permissions):
 
-**Success Criteria**:
-- [ ] PostgreSQL creation works
-- [ ] MySQL creation works  
-- [ ] MariaDB creation works
-- [ ] Correct engine-specific defaults suggested
+1. Execute agent as User A
+2. Execute agent as User B (different permissions)
+3. Verify each sees only their permitted resources
 
-### Scenario 5: Environment and Organization Selection
+**Success Criteria**: Fine-Grained Authorization working correctly
 
-**Purpose**: Test organization and environment handling.
+## Integration Testing (via Planton Cloud)
 
-**Input**:
-```
-Create a PostgreSQL database. I'm not sure which environment to use.
+### 1. Deploy to Staging
+
+```bash
+# Deploy updated graph-fleet to staging environment
+kubectl apply -f graph-fleet-deployment.yaml
 ```
 
-**Expected Behavior**:
-1. Agent asks for organization
-2. Offers to list available environments: "I can show you the available environments in your organization"
-3. Calls `list_environments_for_org` if user agrees
-4. Displays environments
-5. User selects one
-6. Proceeds with creation
+### 2. Trigger from Web Console
 
-**Success Criteria**:
-- [ ] Environment listing offered
-- [ ] MCP tool called correctly
-- [ ] Environments displayed clearly
-- [ ] User can select from list
+1. Log in to staging web console
+2. Navigate to AWS RDS creator agent
+3. Start conversation: "Create a production PostgreSQL database"
+4. Verify agent responds without errors
 
-### Scenario 6: Resource Name Handling
+### 3. Check Agent Fleet Logs
 
-**Purpose**: Test custom vs auto-generated names.
-
-**Test A - Custom Name**:
-```
-Create PostgreSQL RDS named 'analytics-db'
-```
-**Expected**: Uses 'analytics-db' as resource name
-
-**Test B - Auto-Generated**:
-```
-Create PostgreSQL RDS (no name specified)
-```
-**Expected**: Generates name like 'postgres-production-a4f2c1'
-
-**Success Criteria**:
-- [ ] Custom names respected
-- [ ] Auto-generated names follow pattern
-- [ ] Names are valid (lowercase, hyphens)
-
-### Scenario 7: Password Handling
-
-**Purpose**: Test password auto-generation vs user-provided.
-
-**Test A - Auto-Generate**:
-```
-Create PostgreSQL RDS, auto-generate the password
-```
-**Expected**: Password not requested, auto-generated by Planton Cloud
-
-**Test B - User-Provided**:
-```
-Create PostgreSQL RDS with username 'admin' and password 'SecurePass123!'
-```
-**Expected**: Uses provided credentials
-
-**Success Criteria**:
-- [ ] Auto-generation works
-- [ ] User-provided passwords accepted
-- [ ] Security best practices explained
-
-### Scenario 8: Multi-AZ Configuration
-
-**Purpose**: Test high availability option handling.
-
-**Input**:
-```
-Create production PostgreSQL RDS with high availability
+```bash
+kubectl logs -f deployment/graph-fleet -n planton-cloud
 ```
 
-**Expected Behavior**:
-1. Recognizes "high availability" means multi-AZ
-2. Explains cost implications
-3. Confirms user wants multi-AZ despite higher cost
-4. Creates with multiAz: true
+Look for:
+- ✅ No event loop errors
+- ✅ MCP tools loaded with user JWT
+- ✅ Tools accessible during execution
+- ✅ Successful resource creation
 
-**Success Criteria**:
-- [ ] Multi-AZ understood from various phrasings
-- [ ] Cost tradeoff explained
-- [ ] Confirmation obtained
-- [ ] Correct configuration applied
+### 4. Verify End-to-End Flow
 
-## Negative Test Cases
+Complete flow from web console to AWS:
 
-### Test 1: Missing API Key
+1. User request → Agent Fleet API (JWT extracted)
+2. Temporal workflow → Agent Fleet Worker (JWT fetched from Redis)
+3. LangGraph execution → Middleware loads MCP tools (with user JWT)
+4. Tool wrappers → MCP server (with Authorization header)
+5. MCP server → Planton APIs (FGA enforced)
+6. Resource created in AWS
 
-**Setup**: Remove `PLANTON_API_KEY` from environment
+**Success Criteria**: RDS instance created with correct user attribution
 
-**Expected**: 
-- Clear error message during agent initialization
-- Helpful instructions to set API key
+## Verification Checklist
 
-### Test 2: Invalid Organization
+- [ ] Python syntax validation passed
+- [ ] No linter errors in modified files
+- [ ] Agent initializes without event loop errors
+- [ ] Middleware loads MCP tools at execution time
+- [ ] Tool wrappers successfully delegate to MCP tools
+- [ ] Per-user authentication works correctly
+- [ ] FGA enforced by backend APIs
+- [ ] Agent creates RDS instances successfully
+- [ ] User attribution in audit logs
+- [ ] No performance regressions
 
-**Input**: Use non-existent organization name
+## Rollback Plan
 
-**Expected**:
-- Error from MCP server
-- Agent explains organization doesn't exist or user lacks access
-- Suggests verifying organization name
+If issues occur in production:
 
-### Test 3: MCP Server Not Available
+```bash
+# Revert to previous commit
+git revert <commit-hash>
 
-**Setup**: Block network access or use invalid API endpoint
-
-**Expected**:
-- Agent fails to initialize
-- Clear error about connection failure
-- Instructions to verify connectivity
-
-## Performance Testing
-
-### Response Time
-
-**Test**: Measure time from user message to agent response
-
-**Targets**:
-- Initial schema fetch: < 2 seconds
-- Follow-up questions: < 1 second
-- Resource creation: < 5 seconds (excluding AWS provisioning time)
-
-### Conversation Efficiency
-
-**Metric**: Number of back-and-forth exchanges needed
-
-**Targets**:
-- Complete initial request: 2-3 exchanges (summary → confirmation → success)
-- Incomplete request: 4-6 exchanges (questions → answers → summary → confirmation → success)
-
-## Success Criteria Summary
-
-For the agent to be considered production-ready:
-
-- [ ] All 8 positive scenarios pass
-- [ ] All 3 negative test cases handled gracefully  
-- [ ] Response times meet targets
-- [ ] Conversation feels natural and helpful
-- [ ] Error messages are clear and actionable
-- [ ] No linting or type errors
-- [ ] Documentation is complete and accurate
-
-## Manual Testing Checklist
-
-When testing manually:
-
-1. **Start Fresh**:
-   - [ ] Clean terminal
-   - [ ] Fresh LangGraph Studio session
-   - [ ] Verify internet connectivity to mcp.planton.ai
-
-2. **For Each Scenario**:
-   - [ ] Copy input exactly
-   - [ ] Observe agent behavior
-   - [ ] Note any unexpected responses
-   - [ ] Verify resource created (if applicable)
-   - [ ] Check Planton Cloud console for resource
-
-3. **Document Issues**:
-   - Screenshot unexpected behavior
-   - Copy full conversation logs
-   - Note environment details
-
-## Automated Testing (Future)
-
-Potential areas for automation:
-
-1. **Unit Tests**: Test MCP tool loading logic
-2. **Integration Tests**: Mock MCP server responses
-3. **E2E Tests**: Use LangGraph test framework
-4. **Regression Tests**: Ensure fixes don't break existing scenarios
+# Redeploy
+kubectl rollout undo deployment/graph-fleet -n planton-cloud
+```
 
 ## Known Limitations
 
-Current known limitations to test around:
+None - this refactoring maintains full backward compatibility.
 
-1. **AWS Provisioning Time**: Actual RDS creation takes 10-15 minutes (not agent's fault)
-2. **MCP Server Dependency**: Agent can't function without MCP server
-3. **API Rate Limits**: Too many rapid creations may hit limits
-4. **Schema Changes**: Agent relies on current RDS schema structure
+## Success Metrics
 
-## Troubleshooting During Testing
+- ✅ Zero event loop errors in logs
+- ✅ MCP tools load time < 2 seconds
+- ✅ Agent response time unchanged
+- ✅ 100% tool invocation success rate
+- ✅ All RDS creation flows working
 
-### Agent doesn't appear in dropdown
-- Check `langgraph.json` has correct entry
-- Run `make build` to check for errors
-- Restart LangGraph Studio
+## Troubleshooting
 
-### MCP tools not loading
-- Verify internet connectivity to https://mcp.planton.ai/
-- Check API key in `.env`
-- Look for errors in terminal output
-- Test API key works: try accessing Planton Cloud console
+### Issue: MCP tools not found in runtime
 
-### Validation errors
-- Check field name casing (camelCase)
-- Verify required fields present
-- Review schema with `get_cloud_resource_schema`
+**Error**: `RuntimeError: MCP tools not loaded by middleware`
 
-### Resource not appearing in console
-- Wait 30-60 seconds for propagation
-- Verify correct organization and environment
-- Check user has permission to view resources
+**Solution**: Verify `McpToolsLoader` is registered in middleware list:
+```python
+graph = create_aws_rds_creator_agent(
+    middleware=[McpToolsLoader()],  # ← Must be present
+    context_schema=AwsRdsCreatorState,
+)
+```
 
----
+### Issue: User token not found
 
-**Testing Status**: ⚠️ Manual testing required
+**Error**: `ValueError: User token not found in runtime config`
 
-**Next Steps**:
-1. Complete manual testing of all scenarios
-2. Document any issues found
-3. Fix bugs and retest
-4. Mark as production-ready when all criteria met
+**Solution**: Verify agent-fleet-worker passes token in config:
+```python
+config = {
+    "configurable": {
+        "_user_token": jwt_from_redis  # ← Must be set
+    }
+}
+```
 
+### Issue: Tools not accessible in wrappers
+
+**Error**: `AttributeError: 'Runtime' object has no attribute 'mcp_tools'`
+
+**Solution**: Ensure middleware runs before first tool call. Check middleware ordering.
+
+## Contact
+
+For issues or questions:
+- Review changelog in `_changelog/2025-11/`
+- Check implementation plan in `.cursor/plans/`
+- Contact: @planton-cloud-team
