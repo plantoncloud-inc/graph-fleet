@@ -83,16 +83,22 @@ Graph Fleet implements **per-user authentication** for all MCP (Model Context Pr
 │   2. Connect to Redis                                           │
 │   3. Fetch token: GET execution:token:{execution_id}            │
 │   4. Delete token immediately: DEL execution:token:{...}        │
-│   5. Prepare LangGraph config:                                  │
-│      config = {                                                 │
-│        "configurable": {                                        │
-│          "_user_token": jwt_from_redis                          │
+│   5. Update thread config with token:                           │
+│      await client.threads.update(                               │
+│        thread_id=thread_id,                                     │
+│        config={                                                 │
+│          "configurable": {                                      │
+│            "_user_token": jwt_from_redis,                       │
+│            "org": execution.metadata.org,                       │
+│            "env": execution.metadata.env,                       │
+│          }                                                      │
 │        }                                                        │
-│      }                                                          │
-│   6. Invoke LangGraph agent with config                         │
+│      )                                                          │
+│   6. Invoke LangGraph agent (token in thread config)            │
 └────────────────────────┬─────────────────────────────────────────┘
                          │
-                         │ LangGraph invocation with config
+                         │ LangGraph invocation (token in thread config)
+                         │ Thread config → runtime.context
                          │
 ┌────────────────────────▼─────────────────────────────────────────┐
 │ LANGGRAPH AGENT (graph-fleet)                                    │
@@ -102,7 +108,7 @@ Graph Fleet implements **per-user authentication** for all MCP (Model Context Pr
 │   2. Export pre-compiled graph                                 │
 │                                                                  │
 │ Execution Start (async - McpToolsLoader middleware):           │
-│   1. Extract token from runtime.context:                       │
+│   1. Extract token from runtime.context (from thread config):  │
 │      user_token = runtime.context["configurable"]["_user_token"] │
 │   2. Validate token (not None, empty, or whitespace)           │
 │   3. Create MultiServerMCPClient:                              │
@@ -208,7 +214,7 @@ ExecutionInput input = ExecutionInput.builder()
 **Responsibilities**:
 - Fetch JWT from Redis using execution ID
 - Delete JWT immediately after retrieval (one-time use)
-- Pass JWT to LangGraph via runtime configuration
+- Store JWT in thread configuration before invocation
 - Never log or persist JWT
 
 **Key Code**:
@@ -223,15 +229,21 @@ if not user_token:
 # Delete immediately (one-time use)
 redis_client.delete(token_key)
 
-# Pass to LangGraph via config
-config = {
-    "configurable": {
-        "_user_token": user_token.decode("utf-8")
+# Store token in thread config (for per-user MCP authentication)
+# This ensures token is available in runtime.context in graph-fleet middleware
+await client.threads.update(
+    thread_id=thread_id,
+    config={
+        "configurable": {
+            "_user_token": user_token.decode("utf-8"),
+            "org": execution.metadata.org,
+            "env": execution.metadata.env,
+        }
     }
-}
+)
 
-# Invoke agent with config
-result = await agent_graph.ainvoke(input_data, config=config)
+# Invoke agent (token already in thread config)
+result = await remote_graph.astream(input_data, config={"configurable": {"thread_id": thread_id}})
 ```
 
 ### 4. LangGraph Agent (graph-fleet)
@@ -239,36 +251,41 @@ result = await agent_graph.ainvoke(input_data, config=config)
 **Location**: `graph-fleet/src/agents/*/`
 
 **Responsibilities**:
-- Extract JWT from runtime configuration
+- Extract JWT from runtime.context (populated from thread config)
 - Validate token before use
 - Create MCP client with dynamic Authorization headers
 - Never log or persist token
 
 **Key Code**:
 ```python
-def _create_graph(config: RunnableConfig):
-    # Extract token from config
-    user_token = config["configurable"].get("_user_token")
+class McpToolsLoader(AgentMiddleware):
+    """Middleware to load MCP tools with per-user authentication."""
     
-    # Validate token
-    if not user_token or not user_token.strip():
-        raise ValueError("User token required")
-    
-    # Create MCP client with dynamic headers
-    client_config = {
-        "planton-cloud": {
-            "transport": "streamable_http",
-            "url": "https://mcp.planton.ai/",
-            "headers": {
-                "Authorization": f"Bearer {user_token}"
+    def before_agent(self, state: AgentState, runtime: Runtime) -> None:
+        # Extract token from runtime context (LangGraph 1.0+ API)
+        # Token is stored in thread config by agent-fleet-worker
+        if not hasattr(runtime, 'context') or runtime.context is None:
+            raise ValueError("Runtime context not available")
+        
+        user_token = runtime.context.get("configurable", {}).get("_user_token")
+        
+        if not user_token:
+            raise ValueError("User token not found in thread configuration")
+        
+        # Create MCP client with dynamic headers
+        client_config = {
+            "planton-cloud": {
+                "transport": "streamable_http",
+                "url": "https://mcp.planton.ai/",
+                "headers": {
+                    "Authorization": f"Bearer {user_token}"
+                }
             }
         }
-    }
-    
-    # Load tools and create agent
-    mcp_client = MultiServerMCPClient(client_config)
-    tools = await mcp_client.get_tools()
-    return create_agent(tools=tools)
+        
+        # Load tools asynchronously and inject into runtime
+        mcp_tools = await load_mcp_tools(user_token)
+        runtime.mcp_tools = {tool.name: tool for tool in mcp_tools}
 ```
 
 ### 5. MCP Server (Go Service)
