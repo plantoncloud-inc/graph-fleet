@@ -15,7 +15,7 @@ for dynamic, per-user tool loading without async/sync conflicts.
 
 from typing import Any
 
-from deepagents.runtime import ToolRuntime
+from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 
 

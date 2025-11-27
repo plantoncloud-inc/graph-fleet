@@ -279,7 +279,7 @@ async def load_mcp_tools(user_token: str) -> Sequence[BaseTool]:
 """Lightweight wrappers that delegate to MCP tools loaded by middleware."""
 
 from typing import Any
-from deepagents.runtime import ToolRuntime
+from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 
 
