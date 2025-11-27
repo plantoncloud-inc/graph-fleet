@@ -78,14 +78,14 @@ class McpToolsLoader(AgentMiddleware):
         logger.info("=" * 60)
         
         try:
-            # Extract user token from runtime configuration
+            # Extract user token from runtime context (LangGraph 1.0+ API)
             # The token is passed via config["configurable"]["_user_token"]
-            # by agent-fleet-worker
-            user_token = runtime.config.get("configurable", {}).get("_user_token")
+            # by agent-fleet-worker and accessible via runtime.context
+            user_token = runtime.context.get("configurable", {}).get("_user_token")
             
             if not user_token:
                 raise ValueError(
-                    "User token not found in runtime config. "
+                    "User token not found in runtime context. "
                     "Ensure _user_token is passed in config['configurable'] "
                     "from agent-fleet-worker."
                 )

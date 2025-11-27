@@ -102,8 +102,8 @@ Graph Fleet implements **per-user authentication** for all MCP (Model Context Pr
 │   2. Export pre-compiled graph                                 │
 │                                                                  │
 │ Execution Start (async - McpToolsLoader middleware):           │
-│   1. Extract token from runtime.config:                        │
-│      user_token = runtime.config["configurable"]["_user_token"] │
+│   1. Extract token from runtime.context:                       │
+│      user_token = runtime.context["configurable"]["_user_token"] │
 │   2. Validate token (not None, empty, or whitespace)           │
 │   3. Create MultiServerMCPClient:                              │
 │      client_config = {                                         │

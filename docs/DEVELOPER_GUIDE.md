@@ -334,10 +334,10 @@ class McpToolsLoader(AgentMiddleware):
         if hasattr(runtime, 'mcp_tools') and runtime.mcp_tools:
             return None
         
-        # Extract user token from runtime config
-        user_token = runtime.config.get("configurable", {}).get("_user_token")
+        # Extract user token from runtime context (LangGraph 1.0+ API)
+        user_token = runtime.context.get("configurable", {}).get("_user_token")
         if not user_token:
-            raise ValueError("User token not found in runtime config")
+            raise ValueError("User token not found in runtime context")
         
         # Load MCP tools via asyncio from sync context
         loop = asyncio.get_event_loop()
