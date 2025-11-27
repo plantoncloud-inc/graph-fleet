@@ -40,6 +40,7 @@ class McpToolsLoader(AgentMiddleware):
             context_schema=AwsRdsCreatorState,
         )
         ```
+
     """
     
     async def before_agent(
@@ -63,6 +64,7 @@ class McpToolsLoader(AgentMiddleware):
         Raises:
             ValueError: If user token not found in config
             RuntimeError: If MCP tools cannot be loaded
+
         """
         # Check if tools already loaded for this thread (idempotency)
         if hasattr(runtime, 'mcp_tools') and runtime.mcp_tools:
