@@ -6,7 +6,7 @@ defined in the AwsRdsInstance protobuf message.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Type, TypeVar
+from typing import TypeVar
 
 import protovalidate
 import yaml
@@ -104,8 +104,8 @@ def _violation_msg(violation) -> str:
 
 def yaml_to_proto(
     yaml_str: str,
-    proto_message_cls: Type[T],
-) -> Tuple[Optional[T], List[str]]:
+    proto_message_cls: type[T],
+) -> tuple[T | None, list[str]]:
     """Convert YAML text to a Protobuf message instance.
 
     Args:
@@ -116,6 +116,7 @@ def yaml_to_proto(
         A tuple (message_or_none, errors).
         * On success: (populated_message, [])
         * On failure: (None, ["error message"])
+
     """
     # YAML → dict --------------------------------------------------------------
     try:
@@ -138,12 +139,13 @@ def yaml_to_proto(
 # --------------------------------------------------------------------------- #
 def validate_manifest_yaml(
     manifest_yaml: str,
-) -> List[str]:
+) -> list[str]:
     """Validate *manifest_yaml* against rules declared on AwsRdsInstance.
 
     Returns:
         []                 – when the manifest is valid.
         ["field: message"] – one entry per violation when invalid.
+
     """
     if AwsRdsInstance is None:
         return ["Error: AwsRdsInstance proto stubs not installed"]

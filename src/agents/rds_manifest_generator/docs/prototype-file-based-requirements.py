@@ -16,7 +16,6 @@ from typing import Any
 from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 
-
 # ============================================================================
 # New File-Based Helper Functions (No Custom Tools Needed!)
 # ============================================================================
@@ -32,6 +31,7 @@ def read_requirements_from_file(runtime: ToolRuntime) -> dict[str, Any]:
         
     Returns:
         Dictionary of requirements, empty dict if file doesn't exist
+
     """
     files = runtime.state.get("files", {})
     requirements_file = files.get("/requirements.json")
@@ -67,6 +67,7 @@ def get_collected_requirements(runtime: ToolRuntime) -> str:
         
     Returns:
         Summary of all collected requirements
+
     """
     requirements = read_requirements_from_file(runtime)
     
@@ -91,6 +92,7 @@ def check_requirement_collected(field_name: str, runtime: ToolRuntime) -> str:
         
     Returns:
         Whether the requirement is collected and its value
+
     """
     requirements = read_requirements_from_file(runtime)
     
