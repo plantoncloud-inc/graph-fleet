@@ -8,7 +8,7 @@ metadata:
     kubernetes.project-planton.org/namespace: service-app-prod-graph-fleet
 spec:
   namespace:
-    value: service-app-prod-iam
+    value: service-app-prod-graph-fleet
   availability:
     minReplicas: 1  # Production redundancy
     horizontalPodAutoscaling:
