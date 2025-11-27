@@ -78,19 +78,77 @@ class McpToolsLoader(AgentMiddleware):
         logger.info("=" * 60)
         
         try:
-            # Extract user token from runtime context (LangGraph 1.0+ API)
-            # The token is passed via config["configurable"]["_user_token"]
-            # by agent-fleet-worker and accessible via runtime.context
-            user_token = runtime.context.get("configurable", {}).get("_user_token")
+            # Debug: Log what's actually available on runtime
+            logger.info("=" * 60)
+            logger.info("DEBUGGING RUNTIME OBJECT")
+            logger.info("=" * 60)
+            logger.info(f"Runtime type: {type(runtime)}")
+            logger.info(f"Runtime attributes: {dir(runtime)}")
+            logger.info(f"Has 'context': {hasattr(runtime, 'context')}")
+            logger.info(f"Has 'config': {hasattr(runtime, 'config')}")
+            logger.info(f"runtime.context value: {getattr(runtime, 'context', 'NOT_FOUND')}")
+            logger.info(f"runtime.context type: {type(getattr(runtime, 'context', None))}")
             
+            # Try alternative access patterns
+            if hasattr(runtime, '__dict__'):
+                logger.info(f"Runtime __dict__ keys: {list(runtime.__dict__.keys())}")
+                
+            # Check for nested config
+            for attr_name in ['config', '_config', 'runtime_config', '_runtime_config']:
+                if hasattr(runtime, attr_name):
+                    attr_val = getattr(runtime, attr_name)
+                    logger.info(f"Found runtime.{attr_name}: {type(attr_val)}")
+                    if hasattr(attr_val, 'get'):
+                        logger.info(f"  Can use .get() on runtime.{attr_name}")
+                        if isinstance(attr_val, dict) and 'configurable' in attr_val:
+                            logger.info(f"  Has 'configurable' key!")
+            logger.info("=" * 60)
+            
+            # Defensive token extraction with multiple fallback attempts
+            user_token = None
+            
+            # Attempt 1: runtime.context (LangGraph 1.0+ pattern)
+            if hasattr(runtime, 'context') and runtime.context is not None:
+                logger.info("Attempting to extract token from runtime.context")
+                try:
+                    user_token = runtime.context.get("configurable", {}).get("_user_token")
+                    if user_token:
+                        logger.info("✓ Token found in runtime.context")
+                except Exception as e:
+                    logger.warning(f"Failed to extract from runtime.context: {e}")
+            
+            # Attempt 2: Direct attribute (if injected by agent-fleet-worker)
+            if not user_token and hasattr(runtime, '_user_token'):
+                logger.info("Attempting to extract token from runtime._user_token")
+                try:
+                    user_token = runtime._user_token
+                    if user_token:
+                        logger.info("✓ Token found in runtime._user_token")
+                except Exception as e:
+                    logger.warning(f"Failed to extract from runtime._user_token: {e}")
+            
+            # Attempt 3: Check state (fallback)
+            if not user_token and hasattr(runtime, 'state'):
+                logger.info("Attempting to extract token from runtime.state")
+                try:
+                    # This would only work if agent-fleet-worker puts it in state
+                    user_token = runtime.state.get("_user_token")
+                    if user_token:
+                        logger.info("✓ Token found in runtime.state")
+                except Exception as e:
+                    logger.warning(f"Failed to extract from runtime.state: {e}")
+            
+            # Final validation
             if not user_token:
+                logger.error("Failed all token extraction attempts")
+                logger.error("This suggests agent-fleet-worker is not passing the token correctly")
                 raise ValueError(
-                    "User token not found in runtime context. "
-                    "Ensure _user_token is passed in config['configurable'] "
-                    "from agent-fleet-worker."
+                    "User token not found in runtime. "
+                    "Checked: runtime.context, runtime._user_token, runtime.state. "
+                    "Ensure agent-fleet-worker passes config={'configurable': {'_user_token': '<token>'}}"
                 )
             
-            logger.info("User token extracted from config")
+            logger.info("User token successfully extracted")
             
             # Load MCP tools asynchronously from sync context
             # Since we're called from LangGraph's async execution context,
