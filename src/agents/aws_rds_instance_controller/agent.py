@@ -29,7 +29,7 @@ def create_aws_rds_controller_agent():
         # {{USER_TOKEN}} is substituted at runtime from config["configurable"]["USER_TOKEN"]
         mcp_servers={
             "planton-cloud": {
-                "transport": "streamable_http",
+                "transport": "http",
                 "url": "https://mcp.planton.ai/",
                 "headers": {
                     "Authorization": "Bearer {{USER_TOKEN}}"
