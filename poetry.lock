@@ -505,24 +505,21 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "deepagents"
-version = "0.2.0"
+version = "0.2.8"
 description = "General purpose 'deep agent' with sub-agent spawning, todo list capabilities, and mock file system. Built on LangGraph."
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "deepagents-0.2.0-py3-none-any.whl", hash = "sha256:6493954071c80c0de80f618a539d395ccfc694fbd41d5421ace76751745564bb"},
-    {file = "deepagents-0.2.0.tar.gz", hash = "sha256:5a3ca28d1c4dcd8a0a0cae94d639eab1b8e9b4c877943bfabed1d1151cd7eb57"},
+    {file = "deepagents-0.2.8-py3-none-any.whl", hash = "sha256:d4c3d0df074be5e10f3a17005e68db3df18b3d51f48aca3e299d87c254fda797"},
+    {file = "deepagents-0.2.8.tar.gz", hash = "sha256:5fbf7f0db06b923409b79a6598784e0e9925958efabd4b702eed9238b459ae09"},
 ]
 
 [package.dependencies]
-langchain = ">=1.0.0,<2.0.0"
+langchain = ">=1.0.2,<2.0.0"
 langchain-anthropic = ">=1.0.0,<2.0.0"
 langchain-core = ">=1.0.0,<2.0.0"
 wcmatch = "*"
-
-[package.extras]
-dev = ["build", "langchain-openai", "pytest", "pytest-cov", "twine"]
 
 [[package]]
 name = "distro"
@@ -582,6 +579,29 @@ protobuf = ">=3.20.2,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4
 
 [package.extras]
 grpc = ["grpcio (>=1.44.0,<2.0.0)"]
+
+[[package]]
+name = "graphton"
+version = "0.1.0"
+description = "Declarative agent creation framework for LangGraph"
+optional = false
+python-versions = ">=3.11,<4.0"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+deepagents = ">=0.2.4,<0.3.0"
+langchain = ">=1.0.0,<2.0.0"
+langchain-anthropic = ">=1.0.0,<2.0.0"
+langchain-mcp-adapters = ">=0.1.9,<0.2.0"
+langchain-openai = ">=1.0.0,<2.0.0"
+langgraph = ">=1.0.0,<2.0.0"
+pydantic = ">=2.0.0,<3.0.0"
+
+[package.source]
+type = "directory"
+url = "../graphton"
 
 [[package]]
 name = "grpcio"
@@ -3453,4 +3473,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "54eecd95280c46405f7b42b8fcf9fc0db36c2b6f15ca3a8a2e2327faaa3954e3"
+content-hash = "ae84d6eed064dcd364231c84b8a0f8d941fe36e23661673425945c60aba8eea5"
