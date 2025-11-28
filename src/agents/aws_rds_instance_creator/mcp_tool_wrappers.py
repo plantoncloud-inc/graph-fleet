@@ -43,8 +43,15 @@ def list_environments_for_org(
     actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
     
     if not hasattr(actual_runtime, 'mcp_tools'):
-        raise RuntimeError(
-            "MCP tools not loaded. McpToolsLoader middleware should run before tools."
+        return (
+            "⚠️ ERROR: MCP tools not initialized yet.\n\n"
+            "You MUST call initialize_mcp_tools() FIRST and WAIT for it to return success "
+            "before calling this tool.\n\n"
+            "DO NOT call tools in parallel with initialize_mcp_tools.\n\n"
+            "Please:\n"
+            "1. Call initialize_mcp_tools() by itself\n"
+            "2. Wait for success response\n"
+            "3. Then retry this operation"
         )
     
     mcp_tools = actual_runtime.mcp_tools
@@ -83,8 +90,15 @@ def list_cloud_resource_kinds(
     actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
     
     if not hasattr(actual_runtime, 'mcp_tools'):
-        raise RuntimeError(
-            "MCP tools not loaded. McpToolsLoader middleware should run before tools."
+        return (
+            "⚠️ ERROR: MCP tools not initialized yet.\n\n"
+            "You MUST call initialize_mcp_tools() FIRST and WAIT for it to return success "
+            "before calling this tool.\n\n"
+            "DO NOT call tools in parallel with initialize_mcp_tools.\n\n"
+            "Please:\n"
+            "1. Call initialize_mcp_tools() by itself\n"
+            "2. Wait for success response\n"
+            "3. Then retry this operation"
         )
     
     mcp_tools = actual_runtime.mcp_tools
@@ -125,8 +139,15 @@ def get_cloud_resource_schema(
     actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
     
     if not hasattr(actual_runtime, 'mcp_tools'):
-        raise RuntimeError(
-            "MCP tools not loaded. McpToolsLoader middleware should run before tools."
+        return (
+            "⚠️ ERROR: MCP tools not initialized yet.\n\n"
+            "You MUST call initialize_mcp_tools() FIRST and WAIT for it to return success "
+            "before calling this tool.\n\n"
+            "DO NOT call tools in parallel with initialize_mcp_tools.\n\n"
+            "Please:\n"
+            "1. Call initialize_mcp_tools() by itself\n"
+            "2. Wait for success response\n"
+            "3. Then retry this operation"
         )
     
     mcp_tools = actual_runtime.mcp_tools
@@ -175,8 +196,15 @@ def create_cloud_resource(
     actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
     
     if not hasattr(actual_runtime, 'mcp_tools'):
-        raise RuntimeError(
-            "MCP tools not loaded. McpToolsLoader middleware should run before tools."
+        return (
+            "⚠️ ERROR: MCP tools not initialized yet.\n\n"
+            "You MUST call initialize_mcp_tools() FIRST and WAIT for it to return success "
+            "before calling this tool.\n\n"
+            "DO NOT call tools in parallel with initialize_mcp_tools.\n\n"
+            "Please:\n"
+            "1. Call initialize_mcp_tools() by itself\n"
+            "2. Wait for success response\n"
+            "3. Then retry this operation"
         )
     
     mcp_tools = actual_runtime.mcp_tools
@@ -229,8 +257,15 @@ def search_cloud_resources(
     actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
     
     if not hasattr(actual_runtime, 'mcp_tools'):
-        raise RuntimeError(
-            "MCP tools not loaded. McpToolsLoader middleware should run before tools."
+        return (
+            "⚠️ ERROR: MCP tools not initialized yet.\n\n"
+            "You MUST call initialize_mcp_tools() FIRST and WAIT for it to return success "
+            "before calling this tool.\n\n"
+            "DO NOT call tools in parallel with initialize_mcp_tools.\n\n"
+            "Please:\n"
+            "1. Call initialize_mcp_tools() by itself\n"
+            "2. Wait for success response\n"
+            "3. Then retry this operation"
         )
     
     mcp_tools = actual_runtime.mcp_tools

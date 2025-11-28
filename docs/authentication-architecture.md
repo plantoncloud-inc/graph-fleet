@@ -114,7 +114,7 @@ Graph Fleet implements **per-user authentication** for all MCP (Model Context Pr
 │   3. Create MultiServerMCPClient:                              │
 │      client_config = {                                         │
 │        "planton-cloud": {                                      │
-│          "transport": "streamable_http",                       │
+│          "transport": "sse",                                   │
 │          "url": "https://mcp.planton.ai/",                     │
 │          "headers": {"Authorization": f"Bearer {user_token}"}  │
 │        }                                                       │
@@ -275,7 +275,7 @@ class McpToolsLoader(AgentMiddleware):
         # Create MCP client with dynamic headers
         client_config = {
             "planton-cloud": {
-                "transport": "streamable_http",
+                "transport": "sse",
                 "url": "https://mcp.planton.ai/",
                 "headers": {
                     "Authorization": f"Bearer {user_token}"
