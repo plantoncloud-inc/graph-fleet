@@ -9,12 +9,27 @@ from langchain_anthropic import ChatAnthropic
 from langgraph.graph.state import CompiledStateGraph
 
 from . import mcp_tool_wrappers
+from .tools.mcp_loader_tool import initialize_mcp_tools
 
 SYSTEM_PROMPT = r"""You are an AWS RDS instance provisioning assistant for Planton Cloud.
 
 ## Your Role
 
 Help users create AWS RDS instances through natural conversation. You leverage Planton Cloud's MCP tools to provision actual cloud resources, not just generate configuration files.
+
+## CRITICAL FIRST STEP: Initialize MCP Tools
+
+**BEFORE USING ANY PLANTON CLOUD TOOLS**, you MUST call `initialize_mcp_tools()` first.
+
+This tool loads the MCP tools with your authentication credentials. Call it immediately when starting a new conversation:
+
+```python
+# First action in any new conversation:
+result = initialize_mcp_tools()
+# Now you can use list_environments_for_org, create_cloud_resource, etc.
+```
+
+This only needs to be done once per conversation. The tool is idempotent - calling it multiple times is safe.
 
 ## Your Capabilities
 
@@ -211,14 +226,19 @@ I'll auto-generate a secure password. Ready to proceed?"
 
 ## Available Tools
 
-You have access to these MCP tools:
+**Authentication Tool** (call first!):
+- `initialize_mcp_tools()` - Load MCP tools with user authentication (REQUIRED FIRST STEP)
+
+**Planton Cloud MCP Tools** (available after initialization):
 - `list_environments_for_org(org_id)` - List available environments
 - `list_cloud_resource_kinds()` - List all resource types (rarely needed)
 - `get_cloud_resource_schema(cloud_resource_kind)` - Get schema for aws_rds_instance
 - `create_cloud_resource(cloud_resource_kind, org_id, env_name, resource_name, spec)` - Create the instance
 - `search_cloud_resources(org_id, env_names, cloud_resource_kinds)` - Search existing resources (for checking if name exists)
 
-Plus standard deep agent tools: read_file, write_file, etc.
+**Standard Tools**:
+- File operations: read_file, write_file, edit_file, ls, glob, grep
+- Task delegation: task (for complex subtasks)
 
 ## Remember
 
@@ -238,12 +258,20 @@ def create_aws_rds_creator_agent(
 ) -> CompiledStateGraph:
     """Create the AWS RDS Instance Creator agent.
     
-    MCP tools are loaded dynamically at execution time via McpToolsLoader middleware,
-    not passed during graph creation. This eliminates async/sync event loop conflicts
-    while maintaining per-user authentication.
+    MCP tools are loaded dynamically at execution time via the initialize_mcp_tools tool,
+    not via middleware. This tool-based approach works because tools have access to
+    config["configurable"] which contains the user token, while middleware's Runtime
+    object does not have config access in remote deployments.
+    
+    Architecture:
+        1. Agent calls initialize_mcp_tools() first (via system prompt instruction)
+        2. Tool extracts user token from config["configurable"]["_user_token"]
+        3. Tool loads MCP tools asynchronously with user authentication
+        4. Tool injects tools into runtime for wrapper tools to access
+        5. Wrapper tools delegate to actual MCP tools loaded by the loader tool
     
     Args:
-        middleware: Middleware including McpToolsLoader for dynamic tool loading
+        middleware: Optional middleware (no MCP loader needed)
         context_schema: Optional state schema (defaults to FilesystemState)
     
     Returns:
@@ -256,7 +284,10 @@ def create_aws_rds_creator_agent(
             max_tokens=20000,
         ),
         tools=[
-            # MCP tool wrappers - delegate to actual tools loaded by middleware
+            # MCP loader tool - agent calls this FIRST to initialize authentication
+            initialize_mcp_tools,
+            
+            # MCP tool wrappers - delegate to actual tools loaded by initialize_mcp_tools
             mcp_tool_wrappers.list_environments_for_org,
             mcp_tool_wrappers.list_cloud_resource_kinds,
             mcp_tool_wrappers.get_cloud_resource_schema,
