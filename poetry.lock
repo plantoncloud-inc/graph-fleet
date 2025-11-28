@@ -603,7 +603,7 @@ pydantic = ">=2.0.0,<3.0.0"
 type = "git"
 url = "https://github.com/plantoncloud-inc/graphton.git"
 reference = "main"
-resolved_reference = "3cff778bcdaa97b66e65688ee66b5ab39db52ece"
+resolved_reference = "a8a137c5c2eb7661a67d30e3b2ae85be05ebe71f"
 
 [[package]]
 name = "grpcio"
