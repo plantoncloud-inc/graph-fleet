@@ -3,7 +3,8 @@
   "graphs": {
     "rds_manifest_generator": "src.agents.rds_manifest_generator.graph:graph",
     "session_subject_generator": "src.agents.session_subject_generator.graph:graph",
-    "aws_rds_instance_creator": "src.agents.aws_rds_instance_creator.graph:graph"
+    "aws_rds_instance_creator": "src.agents.aws_rds_instance_creator.graph:graph",
+    "aws_rds_instance_controller": "src.agents.aws_rds_instance_controller.graph:graph"
   },
   "env": ".env",
   "python_version": "3.11"
