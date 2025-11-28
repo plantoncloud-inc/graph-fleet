@@ -310,3 +310,4 @@ User token successfully extracted
 **Risk**: Low (additive change, no behavior change if token extraction succeeds)  
 **Next Phase**: Deploy and review logs to determine permanent fix
 
+
