@@ -52,7 +52,7 @@ async def load_mcp_tools(user_token: str) -> Sequence[BaseTool]:
         # Create dynamic MCP client configuration with user's token
         client_config = {
             "planton-cloud": {
-                "transport": "streamable_http",
+                "transport": "sse",
                 "url": "https://mcp.planton.ai/",
                 "headers": {
                     "Authorization": f"Bearer {user_token}"
