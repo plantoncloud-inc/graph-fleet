@@ -109,17 +109,11 @@ def initialize_mcp_tools(
         logger.info(f"  Token length: {len(user_token)} characters")
         
         # Load MCP tools asynchronously
-        # Since tools run in async context but tool functions are sync,
-        # we use run_coroutine_threadsafe to safely execute async code
+        # Since tools run in executor threads without event loops,
+        # we use asyncio.run() which creates a new loop, runs the coroutine, and cleans up
         logger.info("Loading MCP tools with per-user authentication...")
         
-        loop = asyncio.get_event_loop()
-        future = asyncio.run_coroutine_threadsafe(
-            load_mcp_tools(user_token), 
-            loop
-        )
-        # Block synchronously waiting for the async operation to complete
-        mcp_tools = future.result(timeout=30)  # 30 second timeout
+        mcp_tools = asyncio.run(load_mcp_tools(user_token))
         
         if not mcp_tools:
             raise RuntimeError(

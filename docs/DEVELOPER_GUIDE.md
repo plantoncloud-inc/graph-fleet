@@ -289,10 +289,13 @@ def get_cloud_resource_schema(
     runtime: ToolRuntime,
 ) -> Any:
     """Get schema for a cloud resource type."""
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError("MCP tools not loaded by middleware")
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     actual_tool = mcp_tools["get_cloud_resource_schema"]
     return actual_tool.invoke({"cloud_resource_kind": cloud_resource_kind})
 

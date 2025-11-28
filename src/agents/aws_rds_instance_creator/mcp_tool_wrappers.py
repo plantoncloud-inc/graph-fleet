@@ -39,12 +39,15 @@ def list_environments_for_org(
         RuntimeError: If MCP tools not loaded or tool not found
 
     """
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError(
             "MCP tools not loaded. McpToolsLoader middleware should run before tools."
         )
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     tool_name = "list_environments_for_org"
     
     if tool_name not in mcp_tools:
@@ -76,12 +79,15 @@ def list_cloud_resource_kinds(
         RuntimeError: If MCP tools not loaded or tool not found
 
     """
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError(
             "MCP tools not loaded. McpToolsLoader middleware should run before tools."
         )
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     tool_name = "list_cloud_resource_kinds"
     
     if tool_name not in mcp_tools:
@@ -115,12 +121,15 @@ def get_cloud_resource_schema(
         RuntimeError: If MCP tools not loaded or tool not found
 
     """
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError(
             "MCP tools not loaded. McpToolsLoader middleware should run before tools."
         )
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     tool_name = "get_cloud_resource_schema"
     
     if tool_name not in mcp_tools:
@@ -162,12 +171,15 @@ def create_cloud_resource(
         RuntimeError: If MCP tools not loaded or tool not found
 
     """
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError(
             "MCP tools not loaded. McpToolsLoader middleware should run before tools."
         )
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     tool_name = "create_cloud_resource"
     
     if tool_name not in mcp_tools:
@@ -213,12 +225,15 @@ def search_cloud_resources(
         RuntimeError: If MCP tools not loaded or tool not found
 
     """
-    if not hasattr(runtime.langgraph_runtime, 'mcp_tools'):
+    # Handle ToolRuntime nesting: tools get ToolRuntime which wraps the actual Runtime
+    actual_runtime = runtime.runtime if hasattr(runtime, 'runtime') else runtime
+    
+    if not hasattr(actual_runtime, 'mcp_tools'):
         raise RuntimeError(
             "MCP tools not loaded. McpToolsLoader middleware should run before tools."
         )
     
-    mcp_tools = runtime.langgraph_runtime.mcp_tools
+    mcp_tools = actual_runtime.mcp_tools
     tool_name = "search_cloud_resources"
     
     if tool_name not in mcp_tools:
