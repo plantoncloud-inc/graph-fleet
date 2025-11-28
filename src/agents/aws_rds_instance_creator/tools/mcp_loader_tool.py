@@ -27,7 +27,6 @@ Redis → agent-fleet-worker → config["configurable"] → this tool → MCP cl
 
 import asyncio
 import logging
-from typing import Annotated
 
 from langchain.tools import ToolRuntime, tool
 from langchain_core.runnables import RunnableConfig
@@ -39,8 +38,8 @@ logger = logging.getLogger(__name__)
 
 @tool
 def initialize_mcp_tools(
-    runtime: Annotated[ToolRuntime, "The tool runtime context"],
-    config: Annotated[RunnableConfig | None, "Runtime configuration with user token"] = None,
+    runtime: ToolRuntime = None,
+    config: RunnableConfig = None,
 ) -> str:
     """Initialize MCP tools with per-user authentication.
     
