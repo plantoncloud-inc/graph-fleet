@@ -22,7 +22,7 @@ from langchain_core.tools import tool
 @tool
 def list_environments_for_org(
     org_id: str,
-    runtime: ToolRuntime,
+    runtime: ToolRuntime = None,
 ) -> Any:
     """List all environments available in an organization.
     
@@ -60,7 +60,7 @@ def list_environments_for_org(
 
 @tool
 def list_cloud_resource_kinds(
-    runtime: ToolRuntime,
+    runtime: ToolRuntime = None,
 ) -> Any:
     """List all available cloud resource kinds in Planton Cloud.
     
@@ -98,7 +98,7 @@ def list_cloud_resource_kinds(
 @tool
 def get_cloud_resource_schema(
     cloud_resource_kind: str,
-    runtime: ToolRuntime,
+    runtime: ToolRuntime = None,
 ) -> Any:
     """Get the schema/specification for a cloud resource type.
     
@@ -141,7 +141,7 @@ def create_cloud_resource(
     env_name: str,
     resource_name: str,
     spec: dict[str, Any],
-    runtime: ToolRuntime,
+    runtime: ToolRuntime = None,
 ) -> Any:
     """Create a new cloud resource in Planton Cloud.
     
@@ -190,7 +190,7 @@ def create_cloud_resource(
 @tool
 def search_cloud_resources(
     org_id: str,
-    runtime: ToolRuntime,
+    runtime: ToolRuntime = None,
     env_names: list[str] | None = None,
     cloud_resource_kinds: list[str] | None = None,
     search_text: str | None = None,
