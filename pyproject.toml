@@ -22,7 +22,9 @@ pydantic = ">=2.0.0,<3.0.0"
 psycopg = {extras = ["binary", "pool"], version = ">=3.0.0,<4.0.0"}
 langgraph-checkpoint-postgres = ">=3.0.0,<4.0.0"
 deepagents = ">=0.2.4,<0.3.0"
-graphton = {path = "../graphton", develop = true}
+# For local development, uncomment the line below and comment out the git reference
+# graphton = {path = "../graphton", develop = true}
+graphton = {git = "https://github.com/plantoncloud-inc/graphton.git", branch = "main"}
 
 # Protobuf & validation
 protobuf = "^6.32.0"

@@ -588,7 +588,7 @@ optional = false
 python-versions = ">=3.11,<4.0"
 groups = ["main"]
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 deepagents = ">=0.2.4,<0.3.0"
@@ -600,8 +600,10 @@ langgraph = ">=1.0.0,<2.0.0"
 pydantic = ">=2.0.0,<3.0.0"
 
 [package.source]
-type = "directory"
-url = "../graphton"
+type = "git"
+url = "https://github.com/plantoncloud-inc/graphton.git"
+reference = "main"
+resolved_reference = "1500456bd8bdd9aaa0dc973e922e3ce75688f201"
 
 [[package]]
 name = "grpcio"
@@ -3473,4 +3475,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "ae84d6eed064dcd364231c84b8a0f8d941fe36e23661673425945c60aba8eea5"
+content-hash = "459b7c1a11282053a6137ea847aa82435202bdf1ea7bb03b60e02268d110174b"
