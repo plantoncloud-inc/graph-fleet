@@ -20,8 +20,7 @@ from .agent import create_rds_agent
 from .config import FILESYSTEM_PROTO_DIR, REPO_CONFIG
 from .schema.loader import ProtoSchemaLoader, set_schema_loader
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Logging is configured globally in src/__init__.py
 logger = logging.getLogger(__name__)
 
 # Global storage for proto file contents from startup initialization

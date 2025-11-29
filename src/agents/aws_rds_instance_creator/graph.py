@@ -21,8 +21,7 @@ from deepagents.middleware.filesystem import FilesystemState
 
 from .agent import create_aws_rds_creator_agent
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Logging is configured globally in src/__init__.py
 logger = logging.getLogger(__name__)
 
 
