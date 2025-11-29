@@ -13,8 +13,7 @@ import logging
 
 from .agent import create_aws_rds_controller_agent
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Logging is configured globally in src/__init__.py
 logger = logging.getLogger(__name__)
 
 logger.info("=" * 60)
