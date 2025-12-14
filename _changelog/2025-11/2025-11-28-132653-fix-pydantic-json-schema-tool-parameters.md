@@ -285,3 +285,13 @@ The fastest path to correct implementation is often studying working code. The `
 
 **Key Takeaway**: Framework-injected parameters in LangChain tools must use simple type hints with default values (`runtime: ToolRuntime = None`), not `Annotated` wrappers, to avoid Pydantic JSON schema generation errors.
 
+
+
+
+
+
+
+
+
+
+

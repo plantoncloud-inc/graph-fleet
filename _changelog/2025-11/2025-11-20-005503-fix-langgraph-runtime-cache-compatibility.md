@@ -635,7 +635,7 @@ If LangGraph adds native support, we can migrate away from custom cache.
 
 ```bash
 # 1. Build Docker image
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 make docker-build
 
 # 2. Deploy to production

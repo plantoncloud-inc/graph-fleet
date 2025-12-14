@@ -11,7 +11,7 @@ spec:
   container:
     app:
       image:
-        repo: ghcr.io/plantoncloud-inc/graph-fleet
+        repo: ghcr.io/plantoncloud/graph-fleet
         #tag: <comes-from-ci-git-commit-sha>
       env:
         variables:

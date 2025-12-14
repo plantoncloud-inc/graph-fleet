@@ -601,7 +601,7 @@ pydantic = ">=2.0.0,<3.0.0"
 
 [package.source]
 type = "git"
-url = "https://github.com/plantoncloud-inc/graphton.git"
+url = "https://github.com/plantoncloud/graphton.git"
 reference = "main"
 resolved_reference = "a8c5df83244060d39bf91374080edbd5ac8f3719"
 
@@ -3608,4 +3608,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "459b7c1a11282053a6137ea847aa82435202bdf1ea7bb03b60e02268d110174b"
+content-hash = "511ef93844e7d0173591fd80e875415fc60ecaf7cee042d93f99e992002634d0"

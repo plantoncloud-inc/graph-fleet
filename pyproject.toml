@@ -24,7 +24,7 @@ langgraph-checkpoint-postgres = ">=3.0.0,<4.0.0"
 deepagents = ">=0.2.4,<0.3.0"
 # For local development, uncomment the line below and comment out the git reference
 # graphton = {path = "../graphton", develop = true}
-graphton = {git = "https://github.com/plantoncloud-inc/graphton.git", branch = "main"}
+graphton = {git = "https://github.com/plantoncloud/graphton.git", branch = "main"}
 
 # Protobuf & validation
 protobuf = "^6.32.0"

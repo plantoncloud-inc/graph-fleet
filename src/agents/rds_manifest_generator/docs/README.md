@@ -52,7 +52,7 @@ The agent automatically fetches proto schema files from the `project-planton` re
 ### Starting the Agent
 
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 make deps  # Install dependencies
 make run   # Start LangGraph Studio
 ```
@@ -223,7 +223,7 @@ The agent understands proto validation rules:
 ### Testing the Schema Loader
 
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 python3 -c "
 from src.agents.rds_manifest_generator.schema.loader import get_schema_loader
 
@@ -241,7 +241,7 @@ for f in required:
 ### Checking Lints
 
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 make build  # Runs ruff linting and type checks
 ```
 

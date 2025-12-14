@@ -334,7 +334,7 @@ Incorrect system prompts confuse the agent. Always keep documentation in sync wi
 
 **Master Plan**: `/Users/suresh/scm/github.com/plantoncloud-inc/planton-cloud/.cursor/plans/fix-requirements-storage-2cf3f0-62438eda.plan.md`
 
-**Phase 1 Research**: `/Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet/docs/research/phase1-requirements-storage-architecture-research.md`
+**Phase 1 Research**: `/Users/suresh/scm/github.com/plantoncloud/graph-fleet/docs/research/phase1-requirements-storage-architecture-research.md`
 
 **Phase 3 Plan**: `/Users/suresh/scm/github.com/plantoncloud-inc/planton-cloud/.cursor/plans/phase-3-file-sync-6452e520.plan.md`
 

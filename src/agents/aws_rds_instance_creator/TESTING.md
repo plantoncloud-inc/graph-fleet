@@ -24,7 +24,7 @@ All Python files compiled successfully with no syntax errors:
 ### 1. Start LangGraph Server
 
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 make run
 ```
 

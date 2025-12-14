@@ -129,7 +129,7 @@ Key Phase 2 Features:
 Start LangGraph Studio:
 
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 export ANTHROPIC_API_KEY="your-key-here"
 make run
 ```

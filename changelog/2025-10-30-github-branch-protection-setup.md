@@ -42,7 +42,7 @@ Created `.github/scripts/setup-branch-protection.sh` that:
 
 **Key Configuration Applied**:
 ```bash
-gh api --method PUT "/repos/plantoncloud-inc/graph-fleet/branches/main/protection" \
+gh api --method PUT "/repos/plantoncloud/graph-fleet/branches/main/protection" \
   -f required_status_checks[strict]=true \
   -f "required_status_checks[contexts][]=$STATUS_CHECK" \
   -f enforce_admins=false \
@@ -193,5 +193,5 @@ Potential improvements for future consideration:
 
 **Status**: ✅ Production Ready (requires admin execution)
 **Timeline**: Implemented in single session
-**Repository**: plantoncloud-inc/graph-fleet
+**Repository**: plantoncloud/graph-fleet
 

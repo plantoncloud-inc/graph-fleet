@@ -34,7 +34,7 @@ Subsequent phases will handle Poetry dependencies, tooling, and documentation cl
 
 ### 1. Removed Synced APIs Directory
 
-Deleted `/Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet/apis/` which contained:
+Deleted `/Users/suresh/scm/github.com/plantoncloud/graph-fleet/apis/` which contained:
 - `stubs/python/planton_cloud/` - synced from monorepo
 - `stubs/python/project_planton/` - synced from monorepo
 

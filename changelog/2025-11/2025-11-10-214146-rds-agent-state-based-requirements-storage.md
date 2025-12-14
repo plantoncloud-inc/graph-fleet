@@ -339,7 +339,7 @@ This is **Phase 2 of 6** in the requirements storage architecture fix:
 
 ## Related Work
 
-- **Phase 1 Research**: `/Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet/docs/research/phase1-requirements-storage-architecture-research.md`
+- **Phase 1 Research**: `/Users/suresh/scm/github.com/plantoncloud/graph-fleet/docs/research/phase1-requirements-storage-architecture-research.md`
 - **Master Plan**: `/Users/suresh/scm/github.com/plantoncloud-inc/planton-cloud/.cursor/plans/fix-requirements-storage-2cf3f0-62438eda.plan.md`
 - **Previous Syntax Fix**: `changelog/2025-11/2025-11-09-015148-fix-requirements-storage-syntax-bug.md` (addressed symptoms, not root cause)
 - **DeepAgents File Reducer**: `deepagents/libs/deepagents/middleware/filesystem.py` lines 51-84

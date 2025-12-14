@@ -124,7 +124,7 @@ From the middleware documentation (`middleware/requirements_init.py`):
 
 ### Files Modified
 
-- `/Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet/src/agents/rds_manifest_generator/tools/requirement_tools.py`
+- `/Users/suresh/scm/github.com/plantoncloud/graph-fleet/src/agents/rds_manifest_generator/tools/requirement_tools.py`
   - Line 51: Added `return json.loads(json_content)`
   - Line 105: Added condition `"Error" not in current_content`
 

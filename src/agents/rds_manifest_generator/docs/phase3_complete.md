@@ -328,7 +328,7 @@ Phase 3 is ready to test in LangGraph Studio!
 
 Start the agent:
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 export ANTHROPIC_API_KEY="your-key-here"
 make run
 ```

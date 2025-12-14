@@ -380,3 +380,13 @@ DO use middleware for:
 
 **Key Takeaway**: Tools receive config, middleware does not. For user-specific dynamic operations like MCP loading, use tools, not middleware.
 
+
+
+
+
+
+
+
+
+
+
