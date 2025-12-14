@@ -12,7 +12,7 @@ Get your first AWS RDS manifest in 5 minutes!
 
 ```bash
 # Navigate to the project
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 
 # Install dependencies
 make venvs

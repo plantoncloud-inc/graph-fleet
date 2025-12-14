@@ -1,7 +1,7 @@
 # Security Improvements Implemented
 
 **Date**: November 1, 2025  
-**Repository**: `plantoncloud-inc/graph-fleet`  
+**Repository**: `plantoncloud/graph-fleet`  
 
 ---
 
@@ -235,10 +235,10 @@ To verify the improvements:
 
 ```bash
 # Check security features
-gh api repos/plantoncloud-inc/graph-fleet --jq '.security_and_analysis'
+gh api repos/plantoncloud/graph-fleet --jq '.security_and_analysis'
 
 # Check branch protection
-gh api repos/plantoncloud-inc/graph-fleet/branches/main/protection
+gh api repos/plantoncloud/graph-fleet/branches/main/protection
 
 # Test pre-commit hooks
 pre-commit run --all-files

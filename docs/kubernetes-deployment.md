@@ -161,7 +161,7 @@ spec:
   container:
     app:
       image:
-        repo: ghcr.io/plantoncloud-inc/graph-fleet
+        repo: ghcr.io/plantoncloud/graph-fleet
       ports:
         - name: http-api
           servicePort: 80        # External port
@@ -361,7 +361,7 @@ git push --tags
 
 **Deploying Service Updates**:
 ```bash
-cd /Users/suresh/scm/github.com/plantoncloud-inc/graph-fleet
+cd /Users/suresh/scm/github.com/plantoncloud/graph-fleet
 
 # Make changes to code, Dockerfile, or configs
 
@@ -380,7 +380,7 @@ git push
 ### For Graph Fleet Contributors (External)
 
 **Contributing Code**:
-1. Fork `github.com/plantoncloud-inc/graph-fleet`
+1. Fork `github.com/plantoncloud/graph-fleet`
 2. Make changes
 3. Submit pull request
 4. After merge, Planton Cloud team's ServiceHub automatically deploys
@@ -398,7 +398,7 @@ make run     # Start on port 8080
 
 ```bash
 # Clone repository
-git clone https://github.com/plantoncloud-inc/graph-fleet.git
+git clone https://github.com/plantoncloud/graph-fleet.git
 cd graph-fleet
 
 # Install dependencies
@@ -642,7 +642,7 @@ But it's still **fully integrated** with Planton Cloud deployment infrastructure
 ## Additional Resources
 
 - **LangGraph Documentation**: https://langchain-ai.github.io/langgraph/
-- **Graph Fleet Repository**: https://github.com/plantoncloud-inc/graph-fleet
+- **Graph Fleet Repository**: https://github.com/plantoncloud/graph-fleet
 - **Planton Cloud Architecture**: (internal docs)
 - **Kubernetes Documentation**: https://kubernetes.io/docs/
 
